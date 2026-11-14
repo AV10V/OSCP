@@ -1,0 +1,29 @@
+# Never commit credentials or key material, even from a lab
+id_rsa
+id_rsa_*
+*.pem
+*.key
+*.ppk
+*.bin
+*.pcap
+*.potfile
+*.ntlm
+*.hash
+
+# raw scan output and scratch
+*.nmap
+*.gnmap
+*.xml
+ferox_*.txt
+nmap_*.txt
+full_tcp.txt
+services.txt
+snmp_full.txt
+users.txt
+pass.txt
+*.log
+
+# editor / OS noise
+.DS_Store
+.vscode/
+.idea/

