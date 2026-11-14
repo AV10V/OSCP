@@ -1,5 +1,9 @@
 # OSCP Lab Walkthroughs
 
+**▶ Interactive version: <https://av10v.github.io/OSCP/>** — same content as a single-page site with
+collapsible sections, copy-to-clipboard commands, chapter progress and search. Built from the
+markdown in this repo by [`build.py`](build.py); regenerate with `python3 build.py`.
+
 Step-by-step documentation of my OSCP lab machines: every command as executed, why it was
 chosen, the raw output, and what it told me. Written as I work, not retrofitted afterwards.
 
@@ -67,6 +71,8 @@ Chapters:
 ```
 OSCP/
 ├── README.md                     # this file
+├── index.html                    # interactive single-page site (generated)
+├── build.py                      # markdown -> index.html generator
 ├── docs/
 │   ├── methodology.md
 │   └── cheatsheet.md

