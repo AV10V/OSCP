@@ -61,6 +61,18 @@ Chapters:
 
 ## Reference
 
+### Rebuilding the site
+
+```bash
+pip install markdown pygments      # only dependencies
+python3 build.py                   # writes index.html
+```
+
+The generated `index.html` is committed, so GitHub Pages needs no build step. Edit the markdown,
+not the HTML.
+
+### Reference
+
 - [Methodology checklist](docs/methodology.md) — the repeatable loop I run on every box
 - [Command cheat sheet](docs/cheatsheet.md) — the commands I actually reuse
 
