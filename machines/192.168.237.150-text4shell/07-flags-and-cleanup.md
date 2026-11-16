@@ -11,18 +11,17 @@
 
 ## 7.1 Proof capture
 
-**On the target** — both flags in one pass, each read by the identity that is allowed to read it:
+**On the target** — both flags, each read by the identity that is allowed to read it:
 
 ```bash
-echo "user : $(cat /home/dev/local.txt)"
-echo "root : $(cat /tmp/r_proof)"
-ls -la /home/dev/local.txt /root/proof.txt
+cat /home/dev/local.txt
+cat /tmp/v_proof
+ls -la /root/proof.txt
 ```
 
 ```
-user : 6851d85c0e1e82991b98fa6e146532fd
-root : 43d31153587be5031d1db3f9a934eb46
--rw-r----- 1 dev  dev  33 Nov 15 23:34 /home/dev/local.txt
+6851d85c0e1e82991b98fa6e146532fd
+43d31153587be5031d1db3f9a934eb46
 -rw-r--r-- 1 root root 33 Nov 15 23:34 /root/proof.txt
 ```
 
@@ -36,20 +35,48 @@ root : 43d31153587be5031d1db3f9a934eb46
 
 ## 7.2 Cleanup
 
-Everything the exploit dropped lives in `/tmp` and is owned by `dev`. The root JVM only ever wrote
-files we named explicitly, so there is nothing to hunt for outside those paths.
+Everything the exploit dropped lives in `/tmp`. Most of it is owned by `dev` and deletes cleanly; the
+exception is worth knowing about.
 
 **On the target**
 
 ```bash
-rm -f /tmp/JdiBreakExec.java /tmp/JdiBreakExec.class /tmp/jdwp_rce.py \
-      /tmp/r_id /tmp/r_proof /tmp/r_ls /tmp/r_flag \
-      /tmp/v_id /tmp/v_proof /tmp/jdwp_probe /tmp/jdwp_probe3 \
-      /tmp/jdwp_local_ok /tmp/jdi_touch_ok /tmp/jdwp_touch_ok /tmp/jdwp_bash_ok \
-      /tmp/jdb_out /tmp/ev_all.txt /tmp/ev_app.txt
-
-ls -la /tmp | grep -E 'Jdi|jdwp|r_id|r_proof|ev_' || echo "clean"
+rm -f /tmp/JdiBreakExec.java /tmp/JdiBreakExec.class '/tmp/JdiBreakExec$1.class' \
+      /tmp/JdiVmSuspend.java /tmp/JdiVmSuspend.class /tmp/jdwp_rce.py \
+      /tmp/r_id /tmp/r_proof /tmp/v_id /tmp/v_proof \
+      /tmp/jdwp_probe /tmp/jdwp_probe3 /tmp/jdi_touch_ok /tmp/jdwp_touch_ok \
+      /tmp/jdwp_bash_ok /tmp/jdb_out /tmp/ev_all.txt /tmp/ev_app.txt
 ```
+
+```
+rm: cannot remove '/tmp/r_id': Operation not permitted
+rm: cannot remove '/tmp/r_proof': Operation not permitted
+rm: cannot remove '/tmp/v_id': Operation not permitted
+rm: cannot remove '/tmp/v_proof': Operation not permitted
+```
+
+**Reading it:** those four files were written by the **root** JVM in chapter 06, so they are owned by
+`root` — and `/tmp` is sticky (`drwxrwxrwt`), which means `dev` may only delete files it owns. A
+`dev` shell cannot finish this cleanup, no matter how many times you retype the command.
+
+**On the target**
+
+```bash
+ls -la /tmp | grep -E 'Jdi|jdwp|r_id|r_proof|v_id|v_proof'
+```
+
+```
+-rw-r--r--  1 root root   44 Nov 16 01:28 r_id
+-rw-r--r--  1 root root   88 Nov 16 01:28 r_proof
+-rw-r--r--  1 root root   39 Nov 16 01:46 v_id
+-rw-r--r--  1 root root   33 Nov 16 01:46 v_proof
+```
+
+To remove them you have to be root again: re-run the chapter 06 tool with
+`bash -c rm${IFS}-f${IFS}/tmp/r_id${IFS}/tmp/r_proof`, which is exactly the same invocation that
+created them. The two files contain nothing beyond the flags already recorded above, and the lab is
+rebuilt between attempts, so leaving them is defensible — writing "clean" in a report when four
+root-owned files are still sitting there is not.
 
 **On Kali**
 
@@ -65,10 +92,9 @@ pkill -f 'http.server 8888'
 rm -rf ~/t4s ~/jdwp
 ```
 
-One thing that is **not** cleaned, because it cannot be: the root JVM on port 8000 still has its
-debug agent open, and the shell we came in through is a child of the application. Killing that
-process would take the box's service down; the lab is rebuilt between attempts, so it was left
-alone deliberately.
+The service itself is deliberately left running: the root JVM on port 8000 still has its debug agent
+open, and the shell we came in through is a child of the application. Killing that process would take
+the box's service down; the lab is rebuilt between attempts, so it was left alone.
 
 ## 7.3 Lessons
 

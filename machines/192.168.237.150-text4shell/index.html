@@ -1755,14 +1755,13 @@ on whatever port it serves, and it will walk into your breakpoint.</p></div></se
 </table>
 <hr />
 <h3>7.1 Proof capture</h3>
-<p><strong>On the target</strong> — both flags in one pass, each read by the identity that is allowed to read it:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;user : </span><span class="k">$(</span>cat<span class="w"> </span>/home/dev/local.txt<span class="k">)</span><span class="s2">&quot;</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;root : </span><span class="k">$(</span>cat<span class="w"> </span>/tmp/r_proof<span class="k">)</span><span class="s2">&quot;</span>
-ls<span class="w"> </span>-la<span class="w"> </span>/home/dev/local.txt<span class="w"> </span>/root/proof.txt
+<p><strong>On the target</strong> — both flags, each read by the identity that is allowed to read it:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/home/dev/local.txt
+cat<span class="w"> </span>/tmp/v_proof
+ls<span class="w"> </span>-la<span class="w"> </span>/root/proof.txt
 </pre></div>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">user : 6851d85c0e1e82991b98fa6e146532fd
-root : 43d31153587be5031d1db3f9a934eb46
--rw-r----- 1 dev  dev  33 Nov 15 23:34 /home/dev/local.txt
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">6851d85c0e1e82991b98fa6e146532fd
+43d31153587be5031d1db3f9a934eb46
 -rw-r--r-- 1 root root 33 Nov 15 23:34 /root/proof.txt</span></pre></div>
 <p><code>/root/proof.txt</code> was read through the JDWP invocation in chapter 06 — the <code>cat</code> ran as root, not as
 <code>dev</code>, which is why the file's <code>root:root</code> ownership was never an obstacle.</p>
@@ -1788,17 +1787,34 @@ root : 43d31153587be5031d1db3f9a934eb46
 </tbody>
 </table>
 <h3>7.2 Cleanup</h3>
-<p>Everything the exploit dropped lives in <code>/tmp</code> and is owned by <code>dev</code>. The root JVM only ever wrote
-files we named explicitly, so there is nothing to hunt for outside those paths.</p>
+<p>Everything the exploit dropped lives in <code>/tmp</code>. Most of it is owned by <code>dev</code> and deletes cleanly; the
+exception is worth knowing about.</p>
 <p><strong>On the target</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>rm<span class="w"> </span>-f<span class="w"> </span>/tmp/JdiBreakExec.java<span class="w"> </span>/tmp/JdiBreakExec.class<span class="w"> </span>/tmp/jdwp_rce.py<span class="w"> </span><span class="se">\</span>
-<span class="w">      </span>/tmp/r_id<span class="w"> </span>/tmp/r_proof<span class="w"> </span>/tmp/r_ls<span class="w"> </span>/tmp/r_flag<span class="w"> </span><span class="se">\</span>
-<span class="w">      </span>/tmp/v_id<span class="w"> </span>/tmp/v_proof<span class="w"> </span>/tmp/jdwp_probe<span class="w"> </span>/tmp/jdwp_probe3<span class="w"> </span><span class="se">\</span>
-<span class="w">      </span>/tmp/jdwp_local_ok<span class="w"> </span>/tmp/jdi_touch_ok<span class="w"> </span>/tmp/jdwp_touch_ok<span class="w"> </span>/tmp/jdwp_bash_ok<span class="w"> </span><span class="se">\</span>
-<span class="w">      </span>/tmp/jdb_out<span class="w"> </span>/tmp/ev_all.txt<span class="w"> </span>/tmp/ev_app.txt
-
-ls<span class="w"> </span>-la<span class="w"> </span>/tmp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;Jdi|jdwp|r_id|r_proof|ev_&#39;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;clean&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>rm<span class="w"> </span>-f<span class="w"> </span>/tmp/JdiBreakExec.java<span class="w"> </span>/tmp/JdiBreakExec.class<span class="w"> </span><span class="s1">&#39;/tmp/JdiBreakExec$1.class&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>/tmp/JdiVmSuspend.java<span class="w"> </span>/tmp/JdiVmSuspend.class<span class="w"> </span>/tmp/jdwp_rce.py<span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>/tmp/r_id<span class="w"> </span>/tmp/r_proof<span class="w"> </span>/tmp/v_id<span class="w"> </span>/tmp/v_proof<span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>/tmp/jdwp_probe<span class="w"> </span>/tmp/jdwp_probe3<span class="w"> </span>/tmp/jdi_touch_ok<span class="w"> </span>/tmp/jdwp_touch_ok<span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>/tmp/jdwp_bash_ok<span class="w"> </span>/tmp/jdb_out<span class="w"> </span>/tmp/ev_all.txt<span class="w"> </span>/tmp/ev_app.txt
 </pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">rm: cannot remove '/tmp/r_id': Operation not permitted
+rm: cannot remove '/tmp/r_proof': Operation not permitted
+rm: cannot remove '/tmp/v_id': Operation not permitted
+rm: cannot remove '/tmp/v_proof': Operation not permitted</span></pre></div>
+<p><strong>Reading it:</strong> those four files were written by the <strong>root</strong> JVM in chapter 06, so they are owned by
+<code>root</code> — and <code>/tmp</code> is sticky (<code>drwxrwxrwt</code>), which means <code>dev</code> may only delete files it owns. A
+<code>dev</code> shell cannot finish this cleanup, no matter how many times you retype the command.</p>
+<p><strong>On the target</strong></p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ls<span class="w"> </span>-la<span class="w"> </span>/tmp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;Jdi|jdwp|r_id|r_proof|v_id|v_proof&#39;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-rw-r--r--  1 root root   44 Nov 16 01:28 r_id
+-rw-r--r--  1 root root   88 Nov 16 01:28 r_proof
+-rw-r--r--  1 root root   39 Nov 16 01:46 v_id
+-rw-r--r--  1 root root   33 Nov 16 01:46 v_proof</span></pre></div>
+<p>To remove them you have to be root again: re-run the chapter 06 tool with
+<code>bash -c rm${IFS}-f${IFS}/tmp/r_id${IFS}/tmp/r_proof</code>, which is exactly the same invocation that
+created them. The two files contain nothing beyond the flags already recorded above, and the lab is
+rebuilt between attempts, so leaving them is defensible — writing "clean" in a report when four
+root-owned files are still sitting there is not.</p>
 <p><strong>On Kali</strong></p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## stop the listeners started in chapters 03, 04 and 06</span>
 <span class="c1">##   ncat -lv 4445            (reverse shell)</span>
@@ -1810,10 +1826,9 @@ pkill<span class="w"> </span>-f<span class="w"> </span><span class="s1">&#39;htt
 
 rm<span class="w"> </span>-rf<span class="w"> </span>~/t4s<span class="w"> </span>~/jdwp
 </pre></div>
-<p>One thing that is <strong>not</strong> cleaned, because it cannot be: the root JVM on port 8000 still has its
-debug agent open, and the shell we came in through is a child of the application. Killing that
-process would take the box's service down; the lab is rebuilt between attempts, so it was left
-alone deliberately.</p>
+<p>The service itself is deliberately left running: the root JVM on port 8000 still has its debug agent
+open, and the shell we came in through is a child of the application. Killing that process would take
+the box's service down; the lab is rebuilt between attempts, so it was left alone.</p>
 <h3>7.3 Lessons</h3>
 <p><strong>1. A blind injection needs a side effect, not a reflection.</strong>
 <code>{"query":"…","result":""}</code> was identical for every payload. Six classic in-band probes returned
