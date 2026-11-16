@@ -1,0 +1,15 @@
+# Timing oracle — ${script:javascript:java.lang.Thread.sleep(N)}
+# measured with date +%s%N around a single curl, same client, same endpoint
+
+arg=0      payload=baseline                                    elapsed_ms=146
+arg=1000   ${script:javascript:java.lang.Thread.sleep(1000)}   elapsed_ms=1173
+arg=3000   ${script:javascript:java.lang.Thread.sleep(3000)}   elapsed_ms=3208
+arg=4000   ${script:javascript:java.lang.Thread.sleep(4000)}   elapsed_ms=4175
+
+# delay above baseline tracks the argument almost exactly
+#   (1173-146)=1027 ms for 1000 ms, (3208-146)=3062 ms for 3000 ms,
+#   (4175-146)=4029 ms for 4000 ms
+# => our JavaScript is blocking the request thread, not network latency.
+#
+# NOTE: each probe occupies a request thread for the whole sleep. Keep the
+# sleeps short (1-4 s) and do not run them in parallel.

@@ -1,0 +1,103 @@
+# Post-foothold enumeration — as dev (uid 1001)
+# host lab-pwk2-student-cl5-150-ubuntu20-berlin-241-187
+
+== identity / platform ==
+uid=1001(dev) gid=1001(dev) groups=1001(dev)
+PRETTY_NAME="Ubuntu 22.04.1 LTS"
+5.15.0-52-generic
+openjdk version "11.0.16" 2022-07-19
+javac 18.0.2-ea
+
+# runtime 11.0.16 vs compiler 18.0.2-ea -> javac must be run with --release 11
+
+== processes ==
+dev          680 java -jar /opt/dev/api.jar
+root         698 java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y /opt/stats/App.java
+
+== listeners ==
+State Recv-Q Send-Q Local Address:Port Peer Address:Port Process
+LISTEN 0 4096 127.0.0.53%lo:53 0.0.0.0:*
+LISTEN 0 128 0.0.0.0:22 0.0.0.0:*
+LISTEN 0 1 127.0.0.1:8000 0.0.0.0:*
+LISTEN 0 100 *:8080 *:* users:(("java",pid=680,fd=11))
+LISTEN 0 128 [::]:22 [::]:*
+LISTEN 0 50 *:5000 *:*
+
+== /opt ==
+/opt/dev:
+total 16992
+drwxr-xr-x 2 root root     4096 Nov  7  2022 .
+drwxr-xr-x 4 root root     4096 Nov  7  2022 ..
+-rw-r--r-- 1 root root 17383754 Nov  7  2022 api.jar
+-rw-r--r-- 1 root root      195 Nov  7  2022 CHANGELOG
+
+/opt/stats:
+total 12
+drwxr-xr-x 2 root root     4096 Nov  7  2022 .
+drwxr-xr-x 4 root root     4096 Nov  7  2022 ..
+-rw-r--r-- 1 root root     1076 Nov  7  2022 App.java
+
+== CHANGELOG ==
+# Changelog
+
+Version 0.2
+- Added Apache Commons Text 1.8 Dependency for String Interpolation
+
+Version 0.1
+- Initial beta version based on Spring Boot Framework
+- Added basic search functionality
+
+== vulnerable jar inside the fat jar ==
+BOOT-INF/lib/commons-text-1.8.jar
+
+== dead ends ==
+$ sudo -n -l
+sudo: a password is required
+
+$ find / -perm -4000 -type f 2>/dev/null | grep -v '^/snap'
+/usr/libexec/polkit-agent-helper-1
+/usr/lib/snapd/snap-confine
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/openssh/ssh-keysign
+/usr/bin/passwd
+/usr/bin/umount
+/usr/bin/fusermount3
+/usr/bin/su
+/usr/bin/pkexec
+/usr/bin/mount
+/usr/bin/newgrp
+/usr/bin/sudo
+/usr/bin/chfn
+/usr/bin/gpasswd
+/usr/bin/chsh
+# all stock Ubuntu 22.04
+
+$ getcap -r / 2>/dev/null
+/snap/core20/1405/usr/bin/ping cap_net_raw=ep
+/snap/core20/1634/usr/bin/ping cap_net_raw=ep
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper cap_net_bind_service,cap_net_admin=ep
+/usr/bin/mtr-packet cap_net_raw=ep
+/usr/bin/ping cap_net_raw=ep
+
+$ grep -E 'sh$' /etc/passwd
+root:x:0:0:root:/root:/bin/bash
+user:x:1000:1000:user:/home/user:/bin/bash
+dev:x:1001:1001:,,,:/home/dev:/bin/bash
+ubuntu:x:1002:1003:Ubuntu:/home/ubuntu:/bin/bash
+
+$ command -v curl wget python3 nc
+/usr/bin/curl
+/usr/bin/wget
+/usr/bin/python3
+/usr/bin/nc
+
+== /home/dev ==
+drwxr-x--- 2 dev  dev  4096 Nov  7  2022 .
+lrwxrwxrwx 1 root root    9 Nov  7  2022 .bash_history -> /dev/null
+-rw-r--r-- 1 dev  dev   220 Nov  7  2022 .bash_logout
+-rw-r--r-- 1 dev  dev  3771 Nov  7  2022 .bashrc
+-rw-r----- 1 dev  dev    33 Nov 15 23:34 local.txt
+-rw-r--r-- 1 dev  dev   807 Nov  7  2022 .profile
+
+== root process command line ==
+java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y /opt/stats/App.java

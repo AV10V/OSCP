@@ -19,40 +19,151 @@ from pygments.formatters import HtmlFormatter
 from pygments.util import ClassNotFound
 
 ROOT = pathlib.Path(__file__).parent
-MACH = ROOT / "machines/192.168.245.149-kiero"
 REPO = "https://github.com/AV10V/OSCP"
+DOCS = ROOT / "docs"
 
-# id, number, title, subtitle, source file
-CHAPTERS = [
-    ("ch-01", "01", "Reconnaissance", "Port scan and service fingerprint", MACH / "01-reconnaissance.md"),
-    ("ch-02", "02", "Web enumeration", "The dead end, justified with four negatives", MACH / "02-web-enumeration.md"),
-    ("ch-03", "03", "SNMP", "The leak that hands over credentials", MACH / "03-snmp.md"),
-    ("ch-04", "04", "FTP", "Default credentials and exposed SSH keys", MACH / "04-ftp.md"),
-    ("ch-05", "05", "Foothold", "Shell as john, then local enumeration", MACH / "05-foothold.md"),
-    ("ch-06", "06", "Privilege escalation", "setuid + system() = PATH hijack", MACH / "06-privilege-escalation.md"),
-    ("ch-07", "07", "Flags &amp; cleanup", "Proof, tidy-up, lessons", MACH / "07-flags-and-cleanup.md"),
-    ("ch-08", "08", "Methodology", "The repeatable per-box loop", ROOT / "docs/methodology.md"),
-    ("ch-09", "09", "Cheat sheet", "Every command, with the flag that matters", ROOT / "docs/cheatsheet.md"),
+KIERO = ROOT / "machines/192.168.245.149-kiero"
+T4S = ROOT / "machines/192.168.237.150-text4shell"
+
+# Shared reference chapters, appended to every machine page (ids ch-08 / ch-09).
+REFERENCE = [
+    ("ch-08", "08", "Methodology", "The repeatable per-box loop", DOCS / "methodology.md"),
+    ("ch-09", "09", "Cheat sheet", "Every command, with the flag that matters", DOCS / "cheatsheet.md"),
 ]
 
-# markdown link target -> in-page anchor
-LINKMAP = {
-    "README.md": "#overview",
-    "01-reconnaissance.md": "#ch-01",
-    "02-web-enumeration.md": "#ch-02",
-    "03-snmp.md": "#ch-03",
-    "04-ftp.md": "#ch-04",
-    "05-foothold.md": "#ch-05",
-    "06-privilege-escalation.md": "#ch-06",
-    "07-flags-and-cleanup.md": "#ch-07",
-    "methodology.md": "#ch-08",
-    "cheatsheet.md": "#ch-09",
-}
+# ---------------------------------------------------------------------------
+# One entry per box. Each gets its own self-contained page built from the
+# markdown in its directory; the site root is the first entry's page.
+# ---------------------------------------------------------------------------
+MACHINES = [
+    {
+        "slug": "kiero",
+        "out": ROOT / "index.html",
+        "home": "index.html",
+        "pkey": "oscp-progress",
+        "dir": KIERO,
+        "dir_rel": "machines/192.168.245.149-kiero",
+        "ip": "192.168.245.149",
+        "name": "kiero",
+        "title": "192.168.245.149 — kiero · OSCP walkthrough",
+        "desc": "Interactive step-by-step OSCP lab walkthrough: SNMP extend leak to default FTP "
+                "credentials to a setuid PATH hijack. Full commands, reasoning and raw output.",
+        "ogdesc": "UDP/161 SNMP leak → default FTP credentials → exposed SSH key → setuid PATH hijack → root.",
+        "lede": "A Linux box whose only TCP services were three well-patched daemons — and whose entire "
+                "entry point was hiding in a UDP port nobody scans. The host names its own weak credential "
+                "over SNMP, then a setuid helper hands over root.",
+        "badges": [
+            ("", "Ubuntu 20.04.5"),
+            ("", "vsftpd 3.0.5"),
+            ("", "OpenSSH 8.2p1"),
+            ("", "Apache 2.4.41"),
+            ("warn", "udp/161 snmpd"),
+            ("ok", "root · 2 flags"),
+        ],
+        "meta": [
+            ("Host", "kiero"),
+            ("IP", "192.168.245.149"),
+            ("OS", "Ubuntu 20.04.5"),
+            ("TCP", "21, 22, 80"),
+            ("UDP", "161"),
+            ("Result", "root"),
+        ],
+        "flags": [
+            ("local.txt · as john", "af540ac8ffa61d312756f2f4a3877d1d"),
+            ("proof.txt · as root", "9e7f4ce50acc525d577abfc26aebfd1e"),
+        ],
+        "chain": [
+            ("01", "UDP 161", "snmpd · community <code>public</code>", "#ch-01"),
+            ("02", "Extend leak", "<code>nsExtendTable</code> → username + default password", "#ch-03"),
+            ("03", "FTP", "<code>kiero:kiero</code> → <code>id_rsa</code>", "#ch-04"),
+            ("04", "SSH", "key → shell as <code>john</code>", "#ch-05"),
+            ("05", "SUID", "<code>RESET_PASSWD</code> calls <code>system()</code>", "#ch-06"),
+            ("06", "root", "<code>proof.txt</code>", "#ch-07"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "Port scan and service fingerprint",
+             KIERO / "01-reconnaissance.md"),
+            ("ch-02", "02", "Web enumeration", "The dead end, justified with four negatives",
+             KIERO / "02-web-enumeration.md"),
+            ("ch-03", "03", "SNMP", "The leak that hands over credentials", KIERO / "03-snmp.md"),
+            ("ch-04", "04", "FTP", "Default credentials and exposed SSH keys", KIERO / "04-ftp.md"),
+            ("ch-05", "05", "Foothold", "Shell as john, then local enumeration", KIERO / "05-foothold.md"),
+            ("ch-06", "06", "Privilege escalation", "setuid + system() = PATH hijack",
+             KIERO / "06-privilege-escalation.md"),
+            ("ch-07", "07", "Flags &amp; cleanup", "Proof, tidy-up, lessons", KIERO / "07-flags-and-cleanup.md"),
+        ] + REFERENCE,
+    },
+    {
+        "slug": "text4shell",
+        "out": T4S / "index.html",
+        "home": "../../index.html",
+        "pkey": "oscp-progress-text4shell",
+        "dir": T4S,
+        "dir_rel": "machines/192.168.237.150-text4shell",
+        "ip": "192.168.237.150",
+        "name": "text4shell",
+        "title": "192.168.237.150 — text4shell · OSCP walkthrough",
+        "desc": "Interactive step-by-step OSCP lab walkthrough: a blind Apache Commons Text RCE "
+                "(CVE-2022-42889) in a Spring Boot search API, then unauthenticated JDWP on a root JVM. "
+                "Full commands, reasoning and raw output.",
+        "ogdesc": "Spring Boot /search → Text4Shell RCE as dev → unauthenticated JDWP on "
+                  "127.0.0.1:8000 → root.",
+        "lede": "A Spring Boot search API that interpolates its query parameter and returns nothing to "
+                "show for it — the bug only appears out of band. The shell it yields is unprivileged, but "
+                "a root JVM on the same host is listening for a debugger.",
+        "badges": [
+            ("", "Ubuntu 22.04.1"),
+            ("", "OpenJDK 11.0.16"),
+            ("", "Spring Boot"),
+            ("warn", "commons-text 1.8"),
+            ("warn", "jdwp 127.0.0.1:8000"),
+            ("ok", "root · 2 flags"),
+        ],
+        "meta": [
+            ("Host", "lab-pwk2-…-150-187"),
+            ("IP", "192.168.237.150"),
+            ("OS", "Ubuntu 22.04.1"),
+            ("TCP", "22, 5000, 8080"),
+            ("Loopback", "8000"),
+            ("Result", "root"),
+        ],
+        "flags": [
+            ("local.txt · as dev", "6851d85c0e1e82991b98fa6e146532fd"),
+            ("proof.txt · as root", "43d31153587be5031d1db3f9a934eb46"),
+        ],
+        "chain": [
+            ("01", "8080", "Spring Boot search API", "#ch-01"),
+            ("02", "Blind", "<code>query</code> echoed, result always empty", "#ch-02"),
+            ("03", "Text4Shell", "<code>${script:…}</code> → code in the JVM", "#ch-03"),
+            ("04", "dev", "reverse shell · <code>local.txt</code>", "#ch-04"),
+            ("05", "JDWP", "root JVM on <code>127.0.0.1:8000</code>", "#ch-05"),
+            ("06", "root", "<code>proof.txt</code>", "#ch-06"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "Three ports, one input surface",
+             T4S / "01-reconnaissance.md"),
+            ("ch-02", "02", "Web enumeration", "One route, one parameter, no feedback",
+             T4S / "02-web-enumeration.md"),
+            ("ch-03", "03", "Text4Shell", "CVE-2022-42889, proved blind", T4S / "03-text4shell.md"),
+            ("ch-04", "04", "Foothold", "Shell as dev via ProcessBuilder", T4S / "04-foothold.md"),
+            ("ch-05", "05", "Host enumeration", "The root JVM on port 8000", T4S / "05-enumeration.md"),
+            ("ch-06", "06", "Privilege escalation", "JDWP breakpoint → root",
+             T4S / "06-privilege-escalation.md"),
+            ("ch-07", "07", "Flags &amp; cleanup", "Proof, tidy-up, lessons",
+             T4S / "07-flags-and-cleanup.md"),
+        ] + REFERENCE,
+    },
+]
 
-EVIDENCE = REPO + "/blob/main/machines/192.168.245.149-kiero/evidence/"
+# markdown filename -> in-page anchor, plus the evidence blob prefix, per machine
+for _m in MACHINES:
+    _m["links"] = {"README.md": "#overview"}
+    for _cid, _num, _title, _sub, _path in _m["chapters"]:
+        _m["links"][_path.name] = "#" + _cid
+    _m["evidence"] = f"{REPO}/blob/main/{_m['dir_rel']}/evidence/"
 
 
-def fix_links(text: str) -> str:
+def fix_links(text: str, mach: dict) -> str:
     """Rewrite relative markdown links to anchors or GitHub blob URLs."""
     def repl(m):
         href = m.group(1)
@@ -63,10 +174,10 @@ def fix_links(text: str) -> str:
             href, frag = href.split("#", 1)
             frag = "#" + frag
         name = pathlib.PurePosixPath(href).name
-        if name in LINKMAP:
-            return 'href="%s%s"' % (LINKMAP[name], frag)
+        if name in mach["links"]:
+            return 'href="%s%s"' % (mach["links"][name], frag)
         if href.endswith(".txt"):
-            return 'href="%s%s"' % (EVIDENCE + name, frag)
+            return 'href="%s%s"' % (mach["evidence"] + name, frag)
         return 'href="%s%s"' % (REPO + "/blob/main/" + href, frag)
 
     return re.sub(r'href="([^"]+)"', repl, text)
@@ -106,7 +217,7 @@ def code_block(code: str, lang: str) -> str:
     )
 
 
-def render(path: pathlib.Path) -> str:
+def render(path: pathlib.Path, mach: dict) -> str:
     src = path.read_text(encoding="utf-8")
     # drop the leading H1, the page supplies its own heading
     src = re.sub(r"\A\s*#\s+.*?\n", "", src, count=1)
@@ -129,7 +240,7 @@ def render(path: pathlib.Path) -> str:
         extensions=["tables", "attr_list", "sane_lists"],
     )
     out = md.convert(src)
-    out = fix_links(out)
+    out = fix_links(out, mach)
 
     def unstash(m):
         idx = int(m.group(1))
@@ -139,10 +250,10 @@ def render(path: pathlib.Path) -> str:
     return re.sub(r"<p>CODEPLACEHOLDER(\d+)Z</p>", unstash, out)
 
 
-def build_body() -> str:
+def build_body(mach: dict) -> str:
     parts = []
-    for cid, num, title, sub, path in CHAPTERS:
-        body = render(path)
+    for cid, num, title, sub, path in mach["chapters"]:
+        body = render(path, mach)
         parts.append(
             f'<section class="chapter" id="{cid}" data-title="{re.sub(r"&amp;", "and", title)}">'
             f'<div class="ch-head">'
@@ -156,9 +267,9 @@ def build_body() -> str:
     return "\n".join(parts)
 
 
-def build_nav() -> str:
+def build_nav(mach: dict) -> str:
     items = []
-    for cid, num, title, sub, _ in CHAPTERS:
+    for cid, num, title, sub, _ in mach["chapters"]:
         items.append(
             f'<a class="nav-item" href="#{cid}" data-target="{cid}">'
             f'<span class="nav-num">{num}</span>'
@@ -170,19 +281,9 @@ def build_nav() -> str:
     return "\n".join(items)
 
 
-CHAIN = [
-    ("01", "UDP 161", "snmpd · community <code>public</code>", "#ch-01"),
-    ("02", "Extend leak", "<code>nsExtendTable</code> → username + default password", "#ch-03"),
-    ("03", "FTP", "<code>kiero:kiero</code> → <code>id_rsa</code>", "#ch-04"),
-    ("04", "SSH", "key → shell as <code>john</code>", "#ch-05"),
-    ("05", "SUID", "<code>RESET_PASSWD</code> calls <code>system()</code>", "#ch-06"),
-    ("06", "root", "<code>proof.txt</code>", "#ch-07"),
-]
-
-
-def build_chain() -> str:
+def build_chain(mach: dict) -> str:
     out = []
-    for num, label, desc, href in CHAIN:
+    for num, label, desc, href in mach["chain"]:
         out.append(
             f'<a class="step" href="{href}">'
             f'<span class="step-num">{num}</span>'
@@ -519,7 +620,7 @@ JS = r"""
   });
 
   /* ---------- progress ---------- */
-  var PKEY="oscp-progress";
+  var PKEY="%%PKEY%%";
   var checks=Array.prototype.slice.call(document.querySelectorAll(".nav-check"));
   var done={};try{done=JSON.parse(localStorage.getItem(PKEY)||"{}")}catch(e){}
   function paint(){
@@ -648,11 +749,11 @@ TEMPLATE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>192.168.245.149 — kiero · OSCP walkthrough</title>
-<meta name="description" content="Interactive step-by-step OSCP lab walkthrough: SNMP extend leak to default FTP credentials to a setuid PATH hijack. Full commands, reasoning and raw output.">
+<title>%%TITLE%%</title>
+<meta name="description" content="%%DESC%%">
 <meta property="og:type" content="article">
-<meta property="og:title" content="192.168.245.149 — kiero · OSCP walkthrough">
-<meta property="og:description" content="UDP/161 SNMP leak → default FTP credentials → exposed SSH key → setuid PATH hijack → root.">
+<meta property="og:title" content="%%TITLE%%">
+<meta property="og:description" content="%%OGDESC%%">
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
 <style>%%CSS%%</style>
@@ -662,7 +763,7 @@ TEMPLATE = """<!doctype html>
 
 <header class="topbar">
   <button class="burger" id="burger" type="button" aria-label="Open navigation">☰</button>
-  <div class="brand"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">kiero</span></div>
+  <div class="brand"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">%%NAME%%</span></div>
   <div class="search-wrap">
     <input id="search" type="search" placeholder="Search chapters…   ( / )" autocomplete="off" aria-label="Search chapters">
     <span class="search-count" id="searchCount"></span>
@@ -675,7 +776,7 @@ TEMPLATE = """<!doctype html>
     <div class="card">
       <h3>Progress</h3>
       <div class="progress-track"><div class="progress-fill" id="bar"></div></div>
-      <div class="progress-label"><span><b id="pcount">0 / 9</b> chapters</span><span id="ppct">0%</span></div>
+      <div class="progress-label"><span><b id="pcount">0 / %%CHN%%</b> chapters</span><span id="ppct">0%</span></div>
     </div>
 
     <div class="nav-title">Chapters</div>
@@ -688,50 +789,30 @@ TEMPLATE = """<!doctype html>
 
     <div class="card" style="margin-top:16px">
       <h3>Target</h3>
-      <div class="meta-line"><span>Host</span><span>kiero</span></div>
-      <div class="meta-line"><span>IP</span><span>192.168.245.149</span></div>
-      <div class="meta-line"><span>OS</span><span>Ubuntu 20.04.5</span></div>
-      <div class="meta-line"><span>TCP</span><span>21, 22, 80</span></div>
-      <div class="meta-line"><span>UDP</span><span>161</span></div>
-      <div class="meta-line"><span>Result</span><span>root</span></div>
+%%METAROWS%%
     </div>
 
     <div class="card">
       <h3>Source</h3>
       <div class="meta-line"><span>Repo</span><span><a href="%%REPO%%">AV10V/OSCP</a></span></div>
       <div class="meta-line"><span>Notes</span><span>markdown</span></div>
+      <div class="meta-line"><span>All machines</span><span><a href="%%HOME%%">index</a></span></div>
     </div>
   </aside>
 
   <main id="main">
     <section class="hero" id="overview">
       <div class="eyebrow">OSCP lab walkthrough</div>
-      <h1><span class="ip">192.168.245.149</span> <span class="name">— kiero</span></h1>
+      <h1><span class="ip">%%IP%%</span> <span class="name">— %%NAME%%</span></h1>
       <p class="lede">
-        A Linux box whose only TCP services were three well-patched daemons — and whose entire
-        entry point was hiding in a UDP port nobody scans. The host names its own weak credential
-        over SNMP, then a setuid helper hands over root.
+        %%LEDE%%
       </p>
       <div class="badges">
-        <span class="badge">Ubuntu 20.04.5</span>
-        <span class="badge">vsftpd 3.0.5</span>
-        <span class="badge">OpenSSH 8.2p1</span>
-        <span class="badge">Apache 2.4.41</span>
-        <span class="badge warn">udp/161 snmpd</span>
-        <span class="badge ok">root · 2 flags</span>
+%%BADGES%%
       </div>
       <div class="chain">%%CHAIN%%</div>
       <div class="flags">
-        <div class="flag">
-          <div class="k">local.txt · as john</div>
-          <div class="v" data-value="af540ac8ffa61d312756f2f4a3877d1d"><span class="masked">••••••••••••••••••••••••••••••••</span></div>
-          <button class="reveal" type="button">reveal</button>
-        </div>
-        <div class="flag">
-          <div class="k">proof.txt · as root</div>
-          <div class="v" data-value="9e7f4ce50acc525d577abfc26aebfd1e"><span class="masked">••••••••••••••••••••••••••••••••</span></div>
-          <button class="reveal" type="button">reveal</button>
-        </div>
+%%FLAGS%%
       </div>
     </section>
 
@@ -752,20 +833,67 @@ TEMPLATE = """<!doctype html>
 """
 
 
-def main() -> None:
-    body = build_body()
-    html_out = (
+def build_meta(mach: dict) -> str:
+    return "\n".join(
+        f'      <div class="meta-line"><span>{k}</span><span>{v}</span></div>'
+        for k, v in mach["meta"]
+    )
+
+
+def build_badges(mach: dict) -> str:
+    out = []
+    for kind, text in mach["badges"]:
+        cls = "badge " + kind if kind else "badge"
+        out.append(f'        <span class="{cls}">{text}</span>')
+    return "\n".join(out)
+
+
+def build_flags(mach: dict) -> str:
+    out = []
+    for label, value in mach["flags"]:
+        out.append(
+            '        <div class="flag">\n'
+            f'          <div class="k">{label}</div>\n'
+            f'          <div class="v" data-value="{value}">'
+            '<span class="masked">••••••••••••••••••••••••••••••••</span></div>\n'
+            '          <button class="reveal" type="button">reveal</button>\n'
+            '        </div>'
+        )
+    return "\n".join(out)
+
+
+def build_page(mach: dict) -> str:
+    return (
         TEMPLATE.replace("%%CSS%%", CSS)
         .replace("%%JS%%", JS)
-        .replace("%%NAV%%", build_nav())
-        .replace("%%CHAIN%%", build_chain())
-        .replace("%%BODY%%", body)
+        .replace("%%PKEY%%", mach["pkey"])
+        .replace("%%NAV%%", build_nav(mach))
+        .replace("%%CHAIN%%", build_chain(mach))
+        .replace("%%BODY%%", build_body(mach))
+        .replace("%%METAROWS%%", build_meta(mach))
+        .replace("%%BADGES%%", build_badges(mach))
+        .replace("%%FLAGS%%", build_flags(mach))
+        .replace("%%TITLE%%", mach["title"])
+        .replace("%%DESC%%", mach["desc"])
+        .replace("%%OGDESC%%", mach["ogdesc"])
+        .replace("%%LEDE%%", mach["lede"])
+        .replace("%%NAME%%", mach["name"])
+        .replace("%%IP%%", mach["ip"])
+        .replace("%%HOME%%", mach["home"])
+        .replace("%%CHN%%", str(len(mach["chapters"])))
         .replace("%%REPO%%", REPO)
         .replace("%%DATE%%", datetime.date.today().strftime("%d %B %Y"))
     )
-    out = ROOT / "index.html"
-    out.write_text(html_out, encoding="utf-8")
-    print(f"wrote {out} ({out.stat().st_size/1024:.1f} KB, {html_out.count(chr(10))} lines)")
+
+
+def main() -> None:
+    for mach in MACHINES:
+        html_out = build_page(mach)
+        mach["out"].parent.mkdir(parents=True, exist_ok=True)
+        mach["out"].write_text(html_out, encoding="utf-8")
+        rel = mach["out"].relative_to(ROOT)
+        print(f"wrote {rel} ({mach['out'].stat().st_size/1024:.1f} KB, "
+              f"{html_out.count(chr(10))} lines)")
 
 
 if __name__ == "__main__":
