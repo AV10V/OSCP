@@ -1,0 +1,9 @@
+Content-Type: auth/request
+
+Content-Type: command/reply
+Reply-Text: +OK accepted
+
+Content-Type: api/response
+Content-Length: 11
+
+oscp\chris

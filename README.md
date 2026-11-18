@@ -19,7 +19,7 @@ chosen, the raw output, and what it told me. Written as I work, not retrofitted 
 
 ## Lab map
 
-Subnets `192.168.245.0/24`, `192.168.237.0/24` and `192.168.118.0/24`, attacker box Kali at `192.168.45.158` (VPN `tun0`).
+Subnets `192.168.245.0/24`, `192.168.237.0/24`, `192.168.118.0/24` and `192.168.137.0/24`, attacker box Kali at `192.168.45.158` (VPN `tun0`).
 
 | Host | Identity | Status | Walkthrough |
 |---|---|---|---|
@@ -27,6 +27,7 @@ Subnets `192.168.245.0/24`, `192.168.237.0/24` and `192.168.118.0/24`, attacker 
 | **`192.168.118.147`** | **AD set `oscp.exam` — MS01, dual-homed into `10.10.118.0/24`** | **MS01 owned (SYSTEM); MS02 / DC01 pending** | **[→ walkthrough](labs/ad-oscp-exam/README.md)** |
 | **`192.168.245.149`** | **Ubuntu 20.04.5, `kiero`** | **owned (root), both flags** | **[→ walkthrough](labs/192.168.245.149-kiero/README.md)** |
 | **`192.168.237.150`** | **Ubuntu 22.04.1, `text4shell`** | **owned (root), both flags** | **[→ walkthrough](labs/192.168.237.150-text4shell/README.md)** |
+| **`192.168.137.151`** | **Windows 10 21H2, `gust` (host `OSCP`)** | **owned (SYSTEM), both flags** | **[→ walkthrough](labs/192.168.137.151-gust/README.md)** |
 | `192.168.245.150` | Linux, SSH + 8080 | not started | — |
 | `192.168.245.151` | Windows, 80 + RDP (heavily filtered) | not started | — |
 | `192.168.245.254` | gateway | infrastructure | — |
@@ -109,6 +110,32 @@ Chapters:
 6. [MS02 — the second hop](labs/ad-oscp-exam/06-ms02.md) *(placeholder)*
 7. [DC01 — domain admin and the flag](labs/ad-oscp-exam/07-dc01.md) *(placeholder)*
 
+### 192.168.137.151 — `gust` (Windows 10 21H2)
+
+**SYSTEM via the FreeSWITCH event socket on its default password, then a service account holding
+`SeImpersonatePrivilege`.**
+
+| | |
+|---|---|
+| Entry point | `8021/tcp` FreeSWITCH `mod_event_socket` (ESL) — `auth ClueCon` accepts the shipped default password, and no inbound ACL is configured |
+| Primitive | `api system <cmd>` → command execution as `OSCP\chris`, an `NT AUTHORITY\SERVICE` logon at high integrity |
+| Interface quirk | only stdout is captured, returned as `-ERR no reply` when a command prints nothing — so stderr and exit status are invisible |
+| Privilege escalation | `SeImpersonatePrivilege` enabled → **GodPotato-NET4** → RPCSS SYSTEM token → `cmd.exe` as SYSTEM |
+| Why the obvious payloads failed | a `.bat`, a nested `cmd /c` and a PowerShell script all failed as GodPotato children; `nc64.exe -e cmd.exe` worked first try |
+| Independent SYSTEM proof | `reg query HKLM\SECURITY\Policy\PolAdtEv` succeeds as SYSTEM and returns `Access is denied` for `chris` |
+| `local.txt` | `9d05eefc0447258ceab32e91e3b54aac` |
+| `proof.txt` | `46586fc8f483adc13d76335768bf0a4c` |
+
+Chapters:
+
+1. [Reconnaissance — thirteen ports, one product](labs/192.168.137.151-gust/01-reconnaissance.md)
+2. [The event socket — default password on a control interface](labs/192.168.137.151-gust/02-esl.md)
+3. [Foothold — command execution as `chris`](labs/192.168.137.151-gust/03-foothold.md)
+4. [Enumeration — one `whoami /all` decides the box](labs/192.168.137.151-gust/04-enumeration.md)
+5. [Privilege escalation — GodPotato, and four ways it failed first](labs/192.168.137.151-gust/05-privilege-escalation.md)
+6. [Flags — both values, with the account that read them](labs/192.168.137.151-gust/06-flags.md)
+7. [Cleanup and lessons](labs/192.168.137.151-gust/07-cleanup-and-lessons.md)
+
 ---
 
 ## Reference
@@ -172,14 +199,26 @@ OSCP/
     │   ├── index.html            # this lab's interactive page (generated)
     │   ├── evidence/             # raw command output
     │   └── tools/                # JdiBreakExec.java, JdiVmSuspend.java, t4s_probe.py, cap_server.py
-    └── ad-oscp-exam/             # MS01 -> MS02 -> DC01
-        ├── README.md             # chain table + domain facts + flags
+    ├── ad-oscp-exam/             # MS01 -> MS02 -> DC01
+    │   ├── README.md             # chain table + domain facts + flags
+    │   ├── 01-reconnaissance.md
+    │   ├── 02-foothold.md
+    │   ├── 03-privilege-escalation.md
+    │   ├── 04-credentials.md
+    │   ├── 05-pivot.md
+    │   ├── 06-ms02.md
+    │   ├── 07-dc01.md
+    │   └── index.html            # this set's interactive page (generated)
+    └── 192.168.137.151-gust/     # FreeSWITCH ESL -> SYSTEM
+        ├── README.md
         ├── 01-reconnaissance.md
-        ├── 02-foothold.md
-        ├── 03-privilege-escalation.md
-        ├── 04-credentials.md
-        ├── 05-pivot.md
-        ├── 06-ms02.md
-        ├── 07-dc01.md
-        └── index.html            # this set's interactive page (generated)
+        ├── 02-esl.md
+        ├── 03-foothold.md
+        ├── 04-enumeration.md
+        ├── 05-privilege-escalation.md
+        ├── 06-flags.md
+        ├── 07-cleanup-and-lessons.md
+        ├── index.html            # this lab's interactive page (generated)
+        ├── evidence/             # nmap, ESL handshake, whoami /all, escalation log, shells
+        └── tools/                # 1.py (ESL client)
 ```

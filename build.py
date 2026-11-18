@@ -26,6 +26,7 @@ LABS_DIR = ROOT / "labs"
 KIERO = LABS_DIR / "192.168.245.149-kiero"
 T4S = LABS_DIR / "192.168.237.150-text4shell"
 AD = LABS_DIR / "ad-oscp-exam"
+GUST = LABS_DIR / "192.168.137.151-gust"
 
 # Lab index: one card per lab, plus a select that redirects to that lab page.
 # main.html is the entry point; index.html is a redirect so the Pages root keeps working.
@@ -238,6 +239,77 @@ LABS = [
             ("ch-05", "05", "Pivot", "chisel into 10.10.118.0/24", AD / "05-pivot.md"),
             ("ch-06", "06", "MS02", "The second hop", AD / "06-ms02.md"),
             ("ch-07", "07", "DC01", "Domain admin and the flag", AD / "07-dc01.md"),
+        ] + REFERENCE,
+    },
+    {
+        "slug": "gust",
+        "out": GUST / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-gust",
+        "card": {
+            "status": "ok",
+            "status_text": "owned",
+            "summary": "FreeSWITCH 1.10.1 event socket on the default password ClueCon → command "
+                       "execution as a service account → SeImpersonatePrivilege → GodPotato → SYSTEM.",
+            "tags": ["Windows 10", "FreeSWITCH", "ESL", "GodPotato"],
+            "foot": "local.txt + proof.txt",
+        },
+        "dir": GUST,
+        "dir_rel": "labs/192.168.137.151-gust",
+        "ip": "192.168.137.151",
+        "name": "gust",
+        "title": "192.168.137.151 — gust · OSCP walkthrough",
+        "desc": "Interactive step-by-step OSCP lab walkthrough: FreeSWITCH 1.10.1 command "
+                "execution over the event socket with the default password ClueCon, then "
+                "SeImpersonatePrivilege to SYSTEM with GodPotato. Full commands, reasoning and raw output.",
+        "ogdesc": "ESL 8021 + default ClueCon password → command execution as oscp\\chris → "
+                  "SeImpersonatePrivilege → GodPotato → NT AUTHORITY\\SYSTEM.",
+        "lede": "A Windows PBX that firewalls everything except its own management interface — and "
+                "left that interface on the password it shipped with. The command execution it hands "
+                "over belongs to a service account holding SeImpersonatePrivilege, which is the whole "
+                "privesc.",
+        "badges": [
+            ("", "Windows 10 21H2"),
+            ("", "build 19043.2130"),
+            ("warn", "FreeSWITCH 1.10.1"),
+            ("warn", "ESL 8021 · ClueCon"),
+            ("warn", "SeImpersonatePrivilege"),
+            ("ok", "SYSTEM · 2 flags"),
+        ],
+        "meta": [
+            ("Host", "OSCP"),
+            ("IP", "192.168.137.151"),
+            ("OS", "Windows 10 21H2"),
+            ("Open", "80, 3389, 5060/5080, 8021"),
+            ("Product", "FreeSWITCH 1.10.1"),
+            ("Result", "NT AUTHORITY\\SYSTEM"),
+        ],
+        "flags": [
+            ("local.txt · as oscp\\chris", "9d05eefc0447258ceab32e91e3b54aac"),
+            ("proof.txt · as SYSTEM", "46586fc8f483adc13d76335768bf0a4c"),
+        ],
+        "chain": [
+            ("01", "8021", "<code>mod_event_socket</code>", "#ch-01"),
+            ("02", "ClueCon", "default ESL password → <code>api system</code>", "#ch-02"),
+            ("03", "chris", "command execution, then <code>nc64</code> shell", "#ch-03"),
+            ("04", "Token", "High IL + <code>SeImpersonatePrivilege</code>", "#ch-04"),
+            ("05", "GodPotato", "SYSTEM token → <code>cmd.exe</code> as SYSTEM", "#ch-05"),
+            ("06", "proof.txt", "both flags", "#ch-06"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "Thirteen ports, one product",
+             GUST / "01-reconnaissance.md"),
+            ("ch-02", "02", "The event socket", "Default password on a control interface",
+             GUST / "02-esl.md"),
+            ("ch-03", "03", "Foothold", "Command execution as chris", GUST / "03-foothold.md"),
+            ("ch-04", "04", "Enumeration", "One whoami /all decides the box",
+             GUST / "04-enumeration.md"),
+            ("ch-05", "05", "Privilege escalation", "GodPotato, and four ways it failed first",
+             GUST / "05-privilege-escalation.md"),
+            ("ch-06", "06", "Flags", "Both proofs, with the account that read them",
+             GUST / "06-flags.md"),
+            ("ch-07", "07", "Cleanup and lessons", "Artefacts, remediation, takeaways",
+             GUST / "07-cleanup-and-lessons.md"),
         ] + REFERENCE,
     },
 ]
