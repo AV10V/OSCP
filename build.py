@@ -2,7 +2,7 @@
 """
 Build a single self-contained interactive HTML site from the markdown walkthrough.
 
-    python3 build.py      ->  index.html
+    python3 build.py      ->  main.html (lab index) + labs/<dir>/index.html (one page per lab)
 
 No external assets, no CDN, no build tooling. Everything (CSS, JS, content) is inlined so the
 page works offline, from a file:// path, and on GitHub Pages.
@@ -22,8 +22,15 @@ ROOT = pathlib.Path(__file__).parent
 REPO = "https://github.com/AV10V/OSCP"
 DOCS = ROOT / "docs"
 
-KIERO = ROOT / "machines/192.168.245.149-kiero"
-T4S = ROOT / "machines/192.168.237.150-text4shell"
+LABS_DIR = ROOT / "labs"
+KIERO = LABS_DIR / "192.168.245.149-kiero"
+T4S = LABS_DIR / "192.168.237.150-text4shell"
+AD = LABS_DIR / "ad-oscp-exam"
+
+# Lab index: one card per lab, plus a select that redirects to that lab page.
+# main.html is the entry point; index.html is a redirect so the Pages root keeps working.
+HOME_OUT = ROOT / "main.html"
+REDIRECT_OUT = ROOT / "index.html"
 
 # Shared reference chapters, appended to every machine page (ids ch-08 / ch-09).
 REFERENCE = [
@@ -32,17 +39,25 @@ REFERENCE = [
 ]
 
 # ---------------------------------------------------------------------------
-# One entry per box. Each gets its own self-contained page built from the
-# markdown in its directory; the site root is the first entry's page.
+# One entry per lab. Each gets its own self-contained page built from the markdown
+# in its directory; main.html links them all and redirects on selection.
 # ---------------------------------------------------------------------------
-MACHINES = [
+LABS = [
     {
         "slug": "kiero",
-        "out": ROOT / "index.html",
-        "home": "index.html",
+        "out": KIERO / "index.html",
+        "home": "../../main.html",
         "pkey": "oscp-progress",
+        "card": {
+            "status": "ok",
+            "status_text": "owned",
+            "summary": "UDP/161 SNMP extend leak → default FTP credentials → exposed SSH key → "
+                       "setuid PATH hijack → root.",
+            "tags": ["Ubuntu 20.04", "SNMP", "FTP", "SUID"],
+            "foot": "local.txt + proof.txt",
+        },
         "dir": KIERO,
-        "dir_rel": "machines/192.168.245.149-kiero",
+        "dir_rel": "labs/192.168.245.149-kiero",
         "ip": "192.168.245.149",
         "name": "kiero",
         "title": "192.168.245.149 — kiero · OSCP walkthrough",
@@ -96,10 +111,18 @@ MACHINES = [
     {
         "slug": "text4shell",
         "out": T4S / "index.html",
-        "home": "../../index.html",
+        "home": "../../main.html",
         "pkey": "oscp-progress-text4shell",
+        "card": {
+            "status": "ok",
+            "status_text": "owned",
+            "summary": "Blind Commons Text RCE (CVE-2022-42889) in a Spring Boot API, then an "
+                       "unauthenticated JDWP agent on a root JVM.",
+            "tags": ["Ubuntu 22.04", "Spring Boot", "Text4Shell", "JDWP"],
+            "foot": "local.txt + proof.txt",
+        },
         "dir": T4S,
-        "dir_rel": "machines/192.168.237.150-text4shell",
+        "dir_rel": "labs/192.168.237.150-text4shell",
         "ip": "192.168.237.150",
         "name": "text4shell",
         "title": "192.168.237.150 — text4shell · OSCP walkthrough",
@@ -153,10 +176,74 @@ MACHINES = [
              T4S / "07-flags-and-cleanup.md"),
         ] + REFERENCE,
     },
+    {
+        "slug": "oscp-exam",
+        "out": AD / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-oscp-exam",
+        "card": {
+            "status": "warn",
+            "status_text": "in progress",
+            "role": "MS01 → MS02 → DC01",
+            "summary": "WinRM foothold on MS01 → SeImpersonate → SYSTEM → chisel pivot into "
+                       "10.10.118.0/24 → MS02 → DC01.",
+            "tags": ["Server 2019", "Active Directory", "SeImpersonate", "chisel"],
+            "foot": "MS01 SYSTEM · flag pending",
+        },
+        "dir": AD,
+        "dir_rel": "labs/ad-oscp-exam",
+        "ip": "10.10.118.0/24",
+        "name": "oscp.exam",
+        "title": "oscp.exam — MS01 → MS02 → DC01 · OSCP walkthrough",
+        "desc": "Interactive walkthrough of an OSCP Active Directory set: a WinRM foothold on MS01, "
+                "SeImpersonate to SYSTEM, a chisel SOCKS pivot into 10.10.118.0/24, then MS02 and DC01.",
+        "ogdesc": "OSCP\\eric.wallows → WinRM → SeImpersonate → SYSTEM → chisel pivot → MS02 → DC01.",
+        "lede": "A domain behind a dual-homed member server. Kali can reach exactly one host; the DC "
+                "lives on a network only MS01 can see. The way in is a domain user with "
+                "SeImpersonatePrivilege — which is enough to take the host and open the tunnel.",
+        "badges": [
+            ("", "Server 2019 · build 19041"),
+            ("", "oscp.exam"),
+            ("warn", "SMB signing off"),
+            ("warn", "SeImpersonate"),
+            ("ok", "MS01 SYSTEM"),
+            ("warn", "MS02 / DC01 pending"),
+        ],
+        "meta": [
+            ("Domain", "oscp.exam"),
+            ("MS01", "192.168.118.147"),
+            ("MS01 int.", "10.10.118.147"),
+            ("DC01", "10.10.118.146"),
+            ("Attacker", "192.168.45.158"),
+            ("Result", "MS01 SYSTEM"),
+        ],
+        "flags": [],
+        "chain": [
+            ("01", "Recon", "one routable host", "#ch-01"),
+            ("02", "WinRM", "<code>OSCP\\eric.wallows</code>", "#ch-02"),
+            ("03", "Potato", "<code>SeImpersonate</code> → SYSTEM", "#ch-03"),
+            ("04", "LSASS", "no domain-tier material", "#ch-04"),
+            ("05", "Pivot", "chisel <code>R:socks</code> → <code>10.10.118.0/24</code>", "#ch-05"),
+            ("06", "MS02", "the second hop", "#ch-06"),
+            ("07", "DC01", "<code>proof.txt</code>", "#ch-07"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "One routable host, two networks",
+             AD / "01-reconnaissance.md"),
+            ("ch-02", "02", "Foothold", "WinRM as eric.wallows", AD / "02-foothold.md"),
+            ("ch-03", "03", "Privilege escalation", "SeImpersonate → SYSTEM with PrintSpoofer",
+             AD / "03-privilege-escalation.md"),
+            ("ch-04", "04", "Credentials", "What LSASS would and would not give",
+             AD / "04-credentials.md"),
+            ("ch-05", "05", "Pivot", "chisel into 10.10.118.0/24", AD / "05-pivot.md"),
+            ("ch-06", "06", "MS02", "The second hop", AD / "06-ms02.md"),
+            ("ch-07", "07", "DC01", "Domain admin and the flag", AD / "07-dc01.md"),
+        ] + REFERENCE,
+    },
 ]
 
 # markdown filename -> in-page anchor, plus the evidence blob prefix, per machine
-for _m in MACHINES:
+for _m in LABS:
     _m["links"] = {"README.md": "#overview"}
     for _cid, _num, _title, _sub, _path in _m["chapters"]:
         _m["links"][_path.name] = "#" + _cid
@@ -183,7 +270,7 @@ def fix_links(text: str, mach: dict) -> str:
     return re.sub(r'href="([^"]+)"', repl, text)
 
 
-CMD_LANGS = {"bash", "sh", "shell", "console", "zsh"}
+CMD_LANGS = {"bash", "sh", "shell", "console", "zsh", "powershell", "ps1", "ps", "cmd", "bat", "dos"}
 FENCE = re.compile(r"^```([^\n`]*)\n(.*?)^```\s*$", re.S | re.M)
 FORMATTER = HtmlFormatter(nowrap=True, style="monokai")
 
@@ -460,8 +547,8 @@ main{padding:34px 36px 90px;max-width:1000px;width:100%}
   padding:12px 15px;font-size:17px;font-weight:650;cursor:pointer;text-align:left;font-family:var(--sans);
 }
 .sec-head:hover{background:var(--bg2)}
-.sec-head::before{content:"▸";color:var(--dim2);font-size:12px;transition:transform .18s ease;flex:none}
-.sec-head[aria-expanded="true"]::before{transform:rotate(90deg)}
+.sec-head::before{content:"";flex:none;width:7px;height:7px;margin-top:-3px;border-right:1.7px solid var(--dim2);border-bottom:1.7px solid var(--dim2);transform:rotate(-45deg);transition:transform .18s ease}
+.sec-head[aria-expanded="true"]::before{transform:rotate(45deg);margin-top:-5px}
 .sec-body{padding:2px 15px 14px}
 .sec-body[hidden]{display:none}
 
@@ -796,7 +883,7 @@ TEMPLATE = """<!doctype html>
       <h3>Source</h3>
       <div class="meta-line"><span>Repo</span><span><a href="%%REPO%%">AV10V/OSCP</a></span></div>
       <div class="meta-line"><span>Notes</span><span>markdown</span></div>
-      <div class="meta-line"><span>All machines</span><span><a href="%%HOME%%">index</a></span></div>
+      <div class="meta-line"><span>All labs</span><span><a href="%%HOME%%">main</a></span></div>
     </div>
   </aside>
 
@@ -831,6 +918,222 @@ TEMPLATE = """<!doctype html>
 </body>
 </html>
 """
+
+
+HOME_CSS = r"""
+/* ---------- landing page ---------- */
+body.home-body{
+  background:
+    radial-gradient(1100px 520px at 18% -12%, color-mix(in srgb,var(--acc) 10%,transparent), transparent 62%),
+    var(--bg);
+}
+main.home{max-width:1140px;margin:0 auto;padding:48px 24px 80px}
+.home-hero{padding:14px 0 8px}
+.home-hero .eyebrow{margin-bottom:14px}
+.home-hero h1{font-size:clamp(32px,5.2vw,58px);line-height:1.04;letter-spacing:-.035em;margin:0 0 16px}
+.home-hero h1 .dim{color:var(--dim2)}
+.home-hero .lede{font-size:17.5px;max-width:64ch;margin:0 0 26px}
+.picker{
+  border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 88%,transparent);
+  border-radius:18px;padding:18px;max-width:700px;box-shadow:var(--shadow);
+}
+.picker label{display:block;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim2);margin-bottom:9px}
+.picker-row{display:flex;gap:10px;flex-wrap:wrap}
+#labSelect{
+  flex:1 1 320px;min-width:0;appearance:none;-webkit-appearance:none;
+  padding:12px 40px 12px 14px;border-radius:12px;border:1px solid var(--line2);background-color:var(--bg2);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%238697ab' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 14px center;
+  color:var(--fg);font-family:var(--mono);font-size:13.5px;cursor:pointer;
+}
+#labSelect:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+.btn{
+  flex:0 0 auto;background:var(--acc);color:#04120a;border:1px solid var(--acc);border-radius:12px;
+  padding:12px 18px;font-size:14px;font-weight:700;font-family:var(--sans);cursor:pointer;
+}
+.btn:hover{filter:brightness(1.08)}
+.picker .hint{margin:11px 0 0;font-size:12.5px;color:var(--dim2)}
+.labs{margin-top:44px}
+.labs-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:14px}
+.labs h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:0}
+.labs .count{font-size:11.5px;color:var(--dim2);font-family:var(--mono)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.mcard{
+  display:flex;flex-direction:column;gap:11px;padding:20px;border-radius:16px;border:1px solid var(--line);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 85%,transparent),var(--panel));
+  color:var(--fg);text-decoration:none;
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+.mcard:hover{transform:translateY(-3px);border-color:var(--acc);text-decoration:none;box-shadow:var(--shadow)}
+.mcard-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.m-ip{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.pill{font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:99px;border:1px solid var(--line2);color:var(--dim);white-space:nowrap}
+.pill.ok{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 42%,transparent);background:color-mix(in srgb,var(--acc) 10%,transparent)}
+.pill.warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 42%,transparent);background:color-mix(in srgb,var(--amber) 10%,transparent)}
+.m-name{margin:0;font-size:23px;letter-spacing:-.02em}
+.m-role{font-family:var(--mono);font-size:11.5px;color:var(--acc);margin:-6px 0 0}
+.m-sum{margin:0;color:var(--dim);font-size:13.5px;line-height:1.55;flex:1}
+.m-tags{display:flex;flex-wrap:wrap;gap:6px}
+.m-tags span{font-size:10.5px;font-family:var(--mono);color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:2px 7px;background:var(--bg2)}
+.m-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--dim2)}
+.m-go{color:var(--link);font-weight:650;white-space:nowrap}
+.mcard:hover .m-go{color:var(--acc)}
+body.home-body .topbar .icon-btn{margin-left:auto}
+.home-foot{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);color:var(--dim2);font-size:12.5px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
+@media (max-width:560px){
+  main.home{padding:30px 16px 70px}
+  .grid{grid-template-columns:1fr}
+}
+"""
+
+HOME_JS = r"""
+(function(){
+  "use strict";
+  var root=document.documentElement;
+  var THEME_KEY="oscp-theme";
+  function setTheme(t){root.setAttribute("data-theme",t);try{localStorage.setItem(THEME_KEY,t)}catch(e){}}
+  var saved=null;try{saved=localStorage.getItem(THEME_KEY)}catch(e){}
+  if(!saved){saved=window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";}
+  setTheme(saved);
+  document.getElementById("themeBtn").addEventListener("click",function(){
+    setTheme(root.getAttribute("data-theme")==="dark"?"light":"dark");
+  });
+
+  var form=document.getElementById("picker");
+  var sel=document.getElementById("labSelect");
+  var toast=document.getElementById("toast"),tt=null;
+  function say(msg){
+    toast.textContent=msg;toast.classList.add("show");
+    clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove("show")},1600);
+  }
+  function go(){
+    var v=sel.value;
+    if(!v){say("Pick a lab first");return;}
+    window.location.href=v;
+  }
+  sel.addEventListener("change",go);
+  form.addEventListener("submit",function(e){e.preventDefault();go();});
+  document.addEventListener("keydown",function(e){
+    var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if(e.key==="/"&&!typing){e.preventDefault();sel.focus();}
+  });
+})();
+"""
+
+HOME_TEMPLATE = """<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OSCP lab walkthroughs — select a lab</title>
+<meta name="description" content="Step-by-step OSCP lab walkthroughs. Pick a lab to open its full chain: commands, raw output and reasoning.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="OSCP lab walkthroughs — select a lab">
+<meta property="og:description" content="Step-by-step OSCP lab walkthroughs. Pick a lab to open its full chain.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<style>%%CSS%%%%HOMECSS%%</style>
+</head>
+<body class="home-body">
+<header class="topbar">
+  <div class="brand"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">labs</span></div>
+  <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle colour theme" title="Toggle theme">◐</button>
+</header>
+
+<main class="home">
+  <section class="home-hero">
+    <div class="eyebrow">OSCP lab walkthroughs</div>
+    <h1>Select a lab.<br><span class="dim">Read the whole chain.</span></h1>
+    <p class="lede">
+      Every host I have taken apart in the lab, written up as it happened — the commands, the output
+      they produced, and the reasoning in between. Pick a lab to open its walkthrough.
+    </p>
+
+    <form class="picker" id="picker" action="%%FIRST%%">
+      <label for="labSelect">Lab</label>
+      <div class="picker-row">
+        <select id="labSelect" name="machine">
+          <option value="" selected disabled>Select a lab…</option>
+%%OPTIONS%%
+        </select>
+        <button class="btn" type="submit">Open lab →</button>
+      </div>
+      <p class="hint">Choosing a lab opens its page immediately. Press <b>/</b> to jump to the list.</p>
+    </form>
+  </section>
+
+  <section class="labs" id="labs">
+    <div class="labs-head">
+      <h2>Labs</h2>
+      <span class="count">%%COUNT%%</span>
+    </div>
+    <div class="grid">
+%%CARDS%%
+    </div>
+  </section>
+
+  <footer class="home-foot">
+    <span>Authorised lab environment · flags and credentials are lab-specific</span>
+    <span><a href="%%REPO%%">source on GitHub</a> · built %%DATE%%</span>
+  </footer>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<script>%%HOMEJS%%</script>
+</body>
+</html>
+"""
+
+
+def _out_rel(mach: dict) -> str:
+    return mach["out"].relative_to(ROOT).as_posix()
+
+
+def _opt_label(mach: dict) -> str:
+    return mach["card"].get("option") or f'{mach["ip"]} — {mach["name"]}'
+
+
+def build_home_options() -> str:
+    return "\n".join(
+        f'          <option value="{_out_rel(m)}">{_opt_label(m)}</option>' for m in LABS
+    )
+
+
+def build_home_cards() -> str:
+    cards = []
+    for m in LABS:
+        c = m["card"]
+        parts = [
+            f'<div class="mcard-head"><span class="m-ip">{m["ip"]}</span>'
+            f'<span class="pill {c["status"]}">{c["status_text"]}</span></div>',
+            f'<h3 class="m-name">{m["name"]}</h3>',
+        ]
+        if c.get("role"):
+            parts.append(f'<p class="m-role">{c["role"]}</p>')
+        parts.append(f'<p class="m-sum">{c["summary"]}</p>')
+        parts.append('<div class="m-tags">' + "".join(f"<span>{t}</span>" for t in c["tags"]) + '</div>')
+        parts.append(
+            f'<div class="m-foot"><span>{c["foot"]}</span>'
+            '<span class="m-go">Open lab →</span></div>'
+        )
+        cards.append(
+            f'      <a class="mcard" href="{_out_rel(m)}">' + "".join(parts) + "</a>"
+        )
+    return "\n".join(cards)
+
+
+def build_home() -> str:
+    return (
+        HOME_TEMPLATE.replace("%%CSS%%", CSS)
+        .replace("%%HOMECSS%%", HOME_CSS)
+        .replace("%%HOMEJS%%", HOME_JS)
+        .replace("%%OPTIONS%%", build_home_options())
+        .replace("%%CARDS%%", build_home_cards())
+        .replace("%%FIRST%%", _out_rel(LABS[0]))
+        .replace("%%COUNT%%", f"{len(LABS)} labs")
+        .replace("%%REPO%%", REPO)
+        .replace("%%DATE%%", datetime.date.today().strftime("%d %B %Y"))
+    )
 
 
 def build_meta(mach: dict) -> str:
@@ -886,14 +1189,61 @@ def build_page(mach: dict) -> str:
     )
 
 
+
+REDIRECT_TEMPLATE = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OSCP lab walkthroughs</title>
+<link rel="canonical" href="main.html">
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0; url=main.html">
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       background:#0a0e13;color:#8697ab;font-family:system-ui,-apple-system,sans-serif;font-size:15px}
+  a{color:#3fb950}
+</style>
+</head>
+<body>
+<p>Opening the <a href="main.html">lab index</a>…</p>
+<script>location.replace("main.html"+location.search+location.hash);</script>
+</body>
+</html>
+"""
+
+
+def audit_labs() -> None:
+    """Warn about lab folders the main page would not list."""
+    listed = {lab["dir"].resolve() for lab in LABS}
+    on_disk = {p.resolve() for p in LABS_DIR.iterdir() if p.is_dir()}
+    for missing in sorted(on_disk - listed):
+        print(f"WARNING: labs/{missing.name}/ has no entry in LABS - main.html will not list it")
+    for lab in LABS:
+        if not lab["dir"].is_dir():
+            print(f"ERROR: '{lab['slug']}' points at a missing directory: {lab['dir']}")
+        for _cid, _num, _title, _sub, path in lab["chapters"]:
+            if not path.is_file():
+                print(f"ERROR: {lab['slug']}: missing chapter {path.name}")
+
+
 def main() -> None:
-    for mach in MACHINES:
-        html_out = build_page(mach)
-        mach["out"].parent.mkdir(parents=True, exist_ok=True)
-        mach["out"].write_text(html_out, encoding="utf-8")
-        rel = mach["out"].relative_to(ROOT)
-        print(f"wrote {rel} ({mach['out'].stat().st_size/1024:.1f} KB, "
+    audit_labs()
+    for lab in LABS:
+        html_out = build_page(lab)
+        lab["out"].parent.mkdir(parents=True, exist_ok=True)
+        lab["out"].write_text(html_out, encoding="utf-8")
+        rel = lab["out"].relative_to(ROOT)
+        print(f"wrote {rel} ({lab['out'].stat().st_size/1024:.1f} KB, "
               f"{html_out.count(chr(10))} lines)")
+
+    home = build_home()
+    HOME_OUT.write_text(home, encoding="utf-8")
+    print(f"wrote {HOME_OUT.name} ({HOME_OUT.stat().st_size/1024:.1f} KB, "
+          f"{home.count(chr(10))} lines)")
+
+    REDIRECT_OUT.write_text(REDIRECT_TEMPLATE, encoding="utf-8")
+    print(f"wrote {REDIRECT_OUT.name} (redirect -> {HOME_OUT.name})")
 
 
 if __name__ == "__main__":

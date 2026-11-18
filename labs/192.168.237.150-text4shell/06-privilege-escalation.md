@@ -235,7 +235,7 @@ The final tool does five things:
 ```bash
 mkdir -p ~/jdwp && cd ~/jdwp
 curl -sS -o JdiBreakExec.java \
-  https://raw.githubusercontent.com/AV10V/OSCP/main/machines/192.168.237.150-text4shell/tools/JdiBreakExec.java
+  https://raw.githubusercontent.com/AV10V/OSCP/main/labs/192.168.237.150-text4shell/tools/JdiBreakExec.java
 ls -l JdiBreakExec.java
 ```
 
