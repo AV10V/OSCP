@@ -106,8 +106,8 @@ Kali (nmap `clock-skew: 6h59m58s`), which is visible in file timestamps on the t
 
 | Path | Contents |
 |---|---|
-| `evidence/full_tcp.txt` | raw full-port nmap output |
-| `evidence/services.txt` | `-sV -sC` fingerprint of all open ports |
+| `evidence/full_tcp.txt` | raw full-port nmap output — **local only**, `.gitignore` excludes raw scans |
+| `evidence/services.txt` | `-sV -sC` fingerprint of all open ports — **local only**, same rule |
 | `evidence/http80.txt` | IIS response headers and default page |
 | `evidence/esl_handshake.txt` | raw `auth ClueCon` / `api system` exchange |
 | `evidence/esl_output_quirks.txt` | the `-ERR no reply` cases and their causes |
