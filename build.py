@@ -28,6 +28,7 @@ T4S = LABS_DIR / "192.168.237.150-text4shell"
 AD = LABS_DIR / "ad-oscp-exam"
 GUST = LABS_DIR / "192.168.137.151-gust"
 WINSNMP = LABS_DIR / "192.168.103.145-snmp-mouse"
+GITEXP = LABS_DIR / "192.168.161.144-git-exposure"
 
 # Lab index: one card per lab, plus a select that redirects to that lab page.
 # main.html is the entry point; index.html is a redirect so the Pages root keeps working.
@@ -379,6 +380,82 @@ LABS = [
              WINSNMP / "06-privilege-escalation.md"),
             ("ch-07", "07", "Flags &amp; cleanup", "Proof, removing adm1n, lessons",
              WINSNMP / "07-flags-and-cleanup.md"),
+        ] + REFERENCE,
+    },
+    {
+        "slug": "git-exposure",
+        "out": GITEXP / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-git-exposure",
+        "card": {
+            "status": "ok",
+            "status_text": "owned",
+            "summary": "Served <code>.git</code> → two passwords recovered from commit history → "
+                       "credential reuse onto a system account → CVE-2023-0386 overlayfs copy-up.",
+            "tags": ["Ubuntu 22.04", "Git exposure", "vsftpd", "overlayfs"],
+            "foot": "local.txt + proof.txt",
+        },
+        "dir": GITEXP,
+        "dir_rel": "labs/192.168.161.144-git-exposure",
+        "ip": "192.168.161.144",
+        "name": "git-exposure",
+        "title": "192.168.161.144 — git-exposure · OSCP walkthrough",
+        "desc": "Interactive step-by-step OSCP lab walkthrough: an exposed .git directory leaks "
+                "credentials through commit history, the FTP account is chrooted to /, and a GA "
+                "5.15.0-53 kernel falls to CVE-2023-0386 after porting the PoC to FUSE3. "
+                "Full commands, reasoning and raw output.",
+        "ogdesc": "Exposed .git → git history → stuart:BreakingBad92 → FTP chroot=/ → "
+                  "PwnKit refuted, GameOver(lay) refuted, CVE-2023-0386 → root.",
+        "lede": "A host with no application deployed at all — every PHP file in the repository "
+                "returns 404 — and whose entire entry point was a .git directory left readable by "
+                "Apache. The commit called Security Update is the one that says credentials were "
+                "there; its parent still has them. Two of the three obvious kernel escalations are "
+                "dead, and the third only works after the public exploit is ported to a library "
+                "the target actually ships.",
+        "badges": [
+            ("", "Ubuntu 22.04.1"),
+            ("", "vsftpd 3.0.5"),
+            ("", "OpenSSH 8.9p1"),
+            ("", "Apache 2.4.52"),
+            ("warn", ".git exposed"),
+            ("ok", "root · 2 flags"),
+        ],
+        "meta": [
+            ("Host", "lab-pwk2-…-ubuntu2204"),
+            ("IP", "192.168.161.144"),
+            ("OS", "Ubuntu 22.04.1 · 5.15.0-53"),
+            ("TCP", "21, 22, 80"),
+            ("Entry", ".git → history"),
+            ("Result", "root"),
+        ],
+        "flags": [
+            ("local.txt · as stuart", "bb8e8b0b546a972d8280c494463cbf93"),
+            ("proof.txt · as root", "fffa8aa85fea084e31de521432d8e8b9"),
+        ],
+        "chain": [
+            ("01", "Recon", "21 / 22 / 80 — and gopher <code>:70</code> closed", "#ch-01"),
+            ("02", ".git", "<code>/.git/config</code> → remote URL + token", "#ch-02"),
+            ("03", "History", "<code>git show 44a055d^</code> → the password", "#ch-03"),
+            ("04", "Foothold", "reuse → <code>ssh stuart</code>, FTP <code>pwd=/</code>", "#ch-04"),
+            ("05", "Enumerate", "no sudo, no caps, <code>5.15.0-53</code>", "#ch-05"),
+            ("06", "Escalate", "2 refuted → CVE-2023-0386 via FUSE3", "#ch-06"),
+            ("07", "proof.txt", "root, then cleanup", "#ch-07"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "Three services, and a dead end closed with evidence",
+             GITEXP / "01-reconnaissance.md"),
+            ("ch-02", "02", "Web enumeration", "Why /.git/ answers 301 — and why it is the whole box",
+             GITEXP / "02-web-enumeration.md"),
+            ("ch-03", "03", "Dumping the repository", "git-dumper, and reading history as an archive",
+             GITEXP / "03-git-dump.md"),
+            ("ch-04", "04", "Foothold", "Credential reuse, and a chroot that is the whole filesystem",
+             GITEXP / "04-foothold.md"),
+            ("ch-05", "05", "Enumeration", "Nothing in sudo, SUID or cron — the kernel is the finding",
+             GITEXP / "05-enumeration.md"),
+            ("ch-06", "06", "Privilege escalation", "PwnKit refuted, GameOver(lay) refuted, overlayfs lands",
+             GITEXP / "06-privilege-escalation.md"),
+            ("ch-07", "07", "Flags &amp; cleanup", "Proof, removing the SUID shell, lessons",
+             GITEXP / "07-flags-and-cleanup.md"),
         ] + REFERENCE,
     },
 ]
