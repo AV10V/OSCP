@@ -1119,6 +1119,24 @@ main.home{max-width:1140px;margin:0 auto;padding:48px 24px 80px}
 .m-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--dim2)}
 .m-go{color:var(--link);font-weight:650;white-space:nowrap}
 .mcard:hover .m-go{color:var(--acc)}
+.labsearch{position:relative;max-width:760px;margin:2px 0 20px}
+#labSearch{
+  width:100%;padding:12px 42px;border-radius:12px;border:1px solid var(--line2);background-color:var(--bg2);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14'><circle cx='6' cy='6' r='4.3' fill='none' stroke='%238697ab' stroke-width='1.6'/><path d='M9.4 9.4L13 13' stroke='%238697ab' stroke-width='1.6' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:left 14px center;
+  color:var(--fg);font-family:var(--mono);font-size:13.5px;
+}
+#labSearch:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+#labSearch::placeholder{color:var(--dim2)}
+#labSearch::-webkit-search-cancel-button,#labSearch::-webkit-search-decoration{-webkit-appearance:none}
+.search-clear{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  background:none;border:0;color:var(--dim2);font-size:17px;line-height:1;cursor:pointer;
+  padding:5px 8px;border-radius:8px;font-family:var(--sans);
+}
+.search-clear:hover{color:var(--fg)}
+.search-empty{margin:-8px 0 16px;color:var(--amber);font-size:13px;font-family:var(--mono)}
+.mcard[hidden]{display:none}
 body.home-body .topbar .icon-btn{margin-left:auto}
 .home-foot{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);color:var(--dim2);font-size:12.5px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
 @media (max-width:560px){
@@ -1154,10 +1172,54 @@ HOME_JS = r"""
   }
   sel.addEventListener("change",go);
   form.addEventListener("submit",function(e){e.preventDefault();go();});
-  document.addEventListener("keydown",function(e){
-    var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
-    if(e.key==="/"&&!typing){e.preventDefault();sel.focus();}
-  });
+  /* ---- lab search: filters the cards and the dropdown ------------------ */
+  var searchInput=document.getElementById("labSearch");
+  if(searchInput){
+    var cards=[].slice.call(document.querySelectorAll(".mcard"));
+    var opts=[].slice.call(sel.querySelectorAll("option"));
+    var countEl=document.querySelector(".labs .count");
+    var baseCount=countEl?countEl.textContent:"";
+    var emptyEl=document.getElementById("searchEmpty");
+    var termEl=document.getElementById("searchTerm");
+    var clearBtn=document.querySelector(".search-clear");
+    function norm(s){return (s||"").toLowerCase().replace(/\s+/g," ").trim();}
+    function apply(q){
+      q=norm(q);
+      var shown=0;
+      cards.forEach(function(c){
+        var hay=norm(c.getAttribute("data-search")||c.textContent);
+        var hit=!q||hay.indexOf(q)!==-1;
+        c.hidden=!hit;
+        if(hit){shown++;}
+      });
+      opts.forEach(function(o){
+        if(o.value){o.hidden=!!q&&norm(o.getAttribute("data-search")||o.textContent).indexOf(q)===-1;}
+      });
+      if(countEl){countEl.textContent=q?(shown+" / "+baseCount):baseCount;}
+      if(emptyEl){emptyEl.hidden=!(q&&shown===0);if(termEl){termEl.textContent=q;}}
+      if(clearBtn){clearBtn.hidden=!q;}
+      try{
+        var u=new URL(window.location.href);
+        if(q){u.searchParams.set("q",q);}else{u.searchParams.delete("q");}
+        history.replaceState(null,"",u);
+      }catch(err){}
+    }
+    searchInput.addEventListener("input",function(){apply(searchInput.value);});
+    searchInput.addEventListener("search",function(){apply(searchInput.value);});
+    if(clearBtn){clearBtn.addEventListener("click",function(){searchInput.value="";apply("");searchInput.focus();});}
+    document.addEventListener("keydown",function(e){
+      var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      if(e.key==="Escape"&&document.activeElement===searchInput){searchInput.value="";apply("");searchInput.blur();}
+      if(e.key==="/"&&!typing){e.preventDefault();searchInput.focus();}
+    });
+    var q0="";try{q0=new URL(window.location.href).searchParams.get("q")||"";}catch(err){}
+    if(q0){searchInput.value=q0;apply(q0);}
+  }else{
+    document.addEventListener("keydown",function(e){
+      var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      if(e.key==="/"&&!typing){e.preventDefault();sel.focus();}
+    });
+  }
 })();
 """
 
@@ -1199,7 +1261,7 @@ HOME_TEMPLATE = """<!doctype html>
         </select>
         <button class="btn" type="submit">Open lab →</button>
       </div>
-      <p class="hint">Choosing a lab opens its page immediately. Press <b>/</b> to jump to the list.</p>
+      <p class="hint">Choosing a lab opens its page immediately. Press <b>/</b> to search.</p>
     </form>
   </section>
 
@@ -1208,6 +1270,12 @@ HOME_TEMPLATE = """<!doctype html>
       <h2>Labs</h2>
       <span class="count">%%COUNT%%</span>
     </div>
+    <div class="labsearch" role="search">
+      <input id="labSearch" type="search" placeholder="Search labs — ip, name, os, cve, technique…"
+             autocomplete="off" spellcheck="false" aria-label="Search labs">
+      <button class="search-clear" type="button" aria-label="Clear search" hidden>&times;</button>
+    </div>
+    <p class="search-empty" id="searchEmpty" aria-live="polite" hidden>No lab matches &ldquo;<span id="searchTerm"></span>&rdquo; — try an ip, os, cve or technique.</p>
     <div class="grid">
 %%CARDS%%
     </div>
@@ -1234,9 +1302,22 @@ def _opt_label(mach: dict) -> str:
     return mach["card"].get("option") or f'{mach["ip"]} — {mach["name"]}'
 
 
+def _haystack(m: dict) -> str:
+    """Searchable text for one lab: identity, card copy, badges, meta and chain steps."""
+    c = m["card"]
+    parts = [m["ip"], m["name"], c["status_text"], c["summary"], c["foot"]]
+    parts += list(c["tags"])
+    parts += [b[1] for b in m.get("badges", [])]
+    parts += [f"{k} {v}" for k, v in m.get("meta", [])]
+    for _step in m.get("chain", []):
+        parts.extend(re.sub(r"<[^>]+>", " ", s) for s in _step[1:3])
+    return html.escape(re.sub(r"\s+", " ", " ".join(parts)).strip().lower(), quote=True)
+
+
 def build_home_options() -> str:
     return "\n".join(
-        f'          <option value="{_out_rel(m)}">{_opt_label(m)}</option>' for m in LABS
+        f'          <option value="{_out_rel(m)}" data-search="{_haystack(m)}">'
+        f'{_opt_label(m)}</option>' for m in LABS
     )
 
 
@@ -1258,7 +1339,8 @@ def build_home_cards() -> str:
             '<span class="m-go">Open lab →</span></div>'
         )
         cards.append(
-            f'      <a class="mcard" href="{_out_rel(m)}">' + "".join(parts) + "</a>"
+            f'      <a class="mcard" href="{_out_rel(m)}" data-search="{_haystack(m)}">'
+            + "".join(parts) + "</a>"
         )
     return "\n".join(cards)
 

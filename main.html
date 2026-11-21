@@ -315,6 +315,24 @@ main.home{max-width:1140px;margin:0 auto;padding:48px 24px 80px}
 .m-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--dim2)}
 .m-go{color:var(--link);font-weight:650;white-space:nowrap}
 .mcard:hover .m-go{color:var(--acc)}
+.labsearch{position:relative;max-width:760px;margin:2px 0 20px}
+#labSearch{
+  width:100%;padding:12px 42px;border-radius:12px;border:1px solid var(--line2);background-color:var(--bg2);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14'><circle cx='6' cy='6' r='4.3' fill='none' stroke='%238697ab' stroke-width='1.6'/><path d='M9.4 9.4L13 13' stroke='%238697ab' stroke-width='1.6' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:left 14px center;
+  color:var(--fg);font-family:var(--mono);font-size:13.5px;
+}
+#labSearch:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+#labSearch::placeholder{color:var(--dim2)}
+#labSearch::-webkit-search-cancel-button,#labSearch::-webkit-search-decoration{-webkit-appearance:none}
+.search-clear{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  background:none;border:0;color:var(--dim2);font-size:17px;line-height:1;cursor:pointer;
+  padding:5px 8px;border-radius:8px;font-family:var(--sans);
+}
+.search-clear:hover{color:var(--fg)}
+.search-empty{margin:-8px 0 16px;color:var(--amber);font-size:13px;font-family:var(--mono)}
+.mcard[hidden]{display:none}
 body.home-body .topbar .icon-btn{margin-left:auto}
 .home-foot{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);color:var(--dim2);font-size:12.5px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
 @media (max-width:560px){
@@ -343,15 +361,15 @@ body.home-body .topbar .icon-btn{margin-left:auto}
       <div class="picker-row">
         <select id="labSelect" name="machine">
           <option value="" selected disabled>Select a lab…</option>
-          <option value="labs/192.168.245.149-kiero/index.html">192.168.245.149 — kiero</option>
-          <option value="labs/192.168.237.150-text4shell/index.html">192.168.237.150 — text4shell</option>
-          <option value="labs/ad-oscp-exam/index.html">10.10.118.0/24 — oscp.exam</option>
-          <option value="labs/192.168.137.151-gust/index.html">192.168.137.151 — gust</option>
-          <option value="labs/192.168.103.145-snmp-mouse/index.html">192.168.103.145 — snmp-mouse</option>
+          <option value="labs/192.168.245.149-kiero/index.html" data-search="192.168.245.149 kiero owned udp/161 snmp extend leak → default ftp credentials → exposed ssh key → setuid path hijack → root. local.txt + proof.txt ubuntu 20.04 snmp ftp suid ubuntu 20.04.5 vsftpd 3.0.5 openssh 8.2p1 apache 2.4.41 udp/161 snmpd root · 2 flags host kiero ip 192.168.245.149 os ubuntu 20.04.5 tcp 21, 22, 80 udp 161 result root udp 161 snmpd · community public extend leak nsextendtable → username + default password ftp kiero:kiero → id_rsa ssh key → shell as john suid reset_passwd calls system() root proof.txt">192.168.245.149 — kiero</option>
+          <option value="labs/192.168.237.150-text4shell/index.html" data-search="192.168.237.150 text4shell owned blind commons text rce (cve-2022-42889) in a spring boot api, then an unauthenticated jdwp agent on a root jvm. local.txt + proof.txt ubuntu 22.04 spring boot text4shell jdwp ubuntu 22.04.1 openjdk 11.0.16 spring boot commons-text 1.8 jdwp 127.0.0.1:8000 root · 2 flags host lab-pwk2-…-150-187 ip 192.168.237.150 os ubuntu 22.04.1 tcp 22, 5000, 8080 loopback 8000 result root 8080 spring boot search api blind query echoed, result always empty text4shell ${script:…} → code in the jvm dev reverse shell · local.txt jdwp root jvm on 127.0.0.1:8000 root proof.txt">192.168.237.150 — text4shell</option>
+          <option value="labs/ad-oscp-exam/index.html" data-search="10.10.118.0/24 oscp.exam in progress winrm foothold on ms01 → seimpersonate → system → chisel pivot into 10.10.118.0/24 → ms02 → dc01. ms01 system · flag pending server 2019 active directory seimpersonate chisel server 2019 · build 19041 oscp.exam smb signing off seimpersonate ms01 system ms02 / dc01 pending domain oscp.exam ms01 192.168.118.147 ms01 int. 10.10.118.147 dc01 10.10.118.146 attacker 192.168.45.158 result ms01 system recon one routable host winrm oscp\eric.wallows potato seimpersonate → system lsass no domain-tier material pivot chisel r:socks → 10.10.118.0/24 ms02 the second hop dc01 proof.txt">10.10.118.0/24 — oscp.exam</option>
+          <option value="labs/192.168.137.151-gust/index.html" data-search="192.168.137.151 gust owned freeswitch 1.10.1 event socket on the default password cluecon → command execution as a service account → seimpersonateprivilege → godpotato → system. local.txt + proof.txt windows 10 freeswitch esl godpotato windows 10 21h2 build 19043.2130 freeswitch 1.10.1 esl 8021 · cluecon seimpersonateprivilege system · 2 flags host oscp ip 192.168.137.151 os windows 10 21h2 open 80, 3389, 5060/5080, 8021 product freeswitch 1.10.1 result nt authority\system 8021 mod_event_socket cluecon default esl password → api system chris command execution, then nc64 shell token high il + seimpersonateprivilege godpotato system token → cmd.exe as system proof.txt both flags">192.168.137.151 — gust</option>
+          <option value="labs/192.168.103.145-snmp-mouse/index.html" data-search="192.168.103.145 snmp-mouse owned udp/161 snmp inventory → wifi mouse server 1.7.8.5 rce (cve-2022-3218) → printnightmare → local admin → proof.txt. offsec → adm1n · proof.txt windows 10 2004 snmp mouse server printnightmare windows 10 · 19041 windows/shell/reverse_tcp udp/161 public mouse server 1.7.8.5 unpatched spooler local admin · proof.txt host zachary (sysname) / oscp ip 192.168.103.145 os windows 10 2004 · build 19041 tcp 1978, 3389 (filtered at first scan) udp 161 result local admin adm1n filtered all 10 tcp ports filtered udp 161 community public → inventory analysis mouse server 1.7.8.5 + live desktop foothold cve-2022-3218 → oscp\offsec 1346 no seimpersonate — potatoes are out printnightmare invoke-nightmare → adm1n proof.txt rdp as admin, then cleanup">192.168.103.145 — snmp-mouse</option>
         </select>
         <button class="btn" type="submit">Open lab →</button>
       </div>
-      <p class="hint">Choosing a lab opens its page immediately. Press <b>/</b> to jump to the list.</p>
+      <p class="hint">Choosing a lab opens its page immediately. Press <b>/</b> to search.</p>
     </form>
   </section>
 
@@ -360,12 +378,18 @@ body.home-body .topbar .icon-btn{margin-left:auto}
       <h2>Labs</h2>
       <span class="count">5 labs</span>
     </div>
+    <div class="labsearch" role="search">
+      <input id="labSearch" type="search" placeholder="Search labs — ip, name, os, cve, technique…"
+             autocomplete="off" spellcheck="false" aria-label="Search labs">
+      <button class="search-clear" type="button" aria-label="Clear search" hidden>&times;</button>
+    </div>
+    <p class="search-empty" id="searchEmpty" aria-live="polite" hidden>No lab matches &ldquo;<span id="searchTerm"></span>&rdquo; — try an ip, os, cve or technique.</p>
     <div class="grid">
-      <a class="mcard" href="labs/192.168.245.149-kiero/index.html"><div class="mcard-head"><span class="m-ip">192.168.245.149</span><span class="pill ok">owned</span></div><h3 class="m-name">kiero</h3><p class="m-sum">UDP/161 SNMP extend leak → default FTP credentials → exposed SSH key → setuid PATH hijack → root.</p><div class="m-tags"><span>Ubuntu 20.04</span><span>SNMP</span><span>FTP</span><span>SUID</span></div><div class="m-foot"><span>local.txt + proof.txt</span><span class="m-go">Open lab →</span></div></a>
-      <a class="mcard" href="labs/192.168.237.150-text4shell/index.html"><div class="mcard-head"><span class="m-ip">192.168.237.150</span><span class="pill ok">owned</span></div><h3 class="m-name">text4shell</h3><p class="m-sum">Blind Commons Text RCE (CVE-2022-42889) in a Spring Boot API, then an unauthenticated JDWP agent on a root JVM.</p><div class="m-tags"><span>Ubuntu 22.04</span><span>Spring Boot</span><span>Text4Shell</span><span>JDWP</span></div><div class="m-foot"><span>local.txt + proof.txt</span><span class="m-go">Open lab →</span></div></a>
-      <a class="mcard" href="labs/ad-oscp-exam/index.html"><div class="mcard-head"><span class="m-ip">10.10.118.0/24</span><span class="pill warn">in progress</span></div><h3 class="m-name">oscp.exam</h3><p class="m-role">MS01 → MS02 → DC01</p><p class="m-sum">WinRM foothold on MS01 → SeImpersonate → SYSTEM → chisel pivot into 10.10.118.0/24 → MS02 → DC01.</p><div class="m-tags"><span>Server 2019</span><span>Active Directory</span><span>SeImpersonate</span><span>chisel</span></div><div class="m-foot"><span>MS01 SYSTEM · flag pending</span><span class="m-go">Open lab →</span></div></a>
-      <a class="mcard" href="labs/192.168.137.151-gust/index.html"><div class="mcard-head"><span class="m-ip">192.168.137.151</span><span class="pill ok">owned</span></div><h3 class="m-name">gust</h3><p class="m-sum">FreeSWITCH 1.10.1 event socket on the default password ClueCon → command execution as a service account → SeImpersonatePrivilege → GodPotato → SYSTEM.</p><div class="m-tags"><span>Windows 10</span><span>FreeSWITCH</span><span>ESL</span><span>GodPotato</span></div><div class="m-foot"><span>local.txt + proof.txt</span><span class="m-go">Open lab →</span></div></a>
-      <a class="mcard" href="labs/192.168.103.145-snmp-mouse/index.html"><div class="mcard-head"><span class="m-ip">192.168.103.145</span><span class="pill ok">owned</span></div><h3 class="m-name">snmp-mouse</h3><p class="m-sum">UDP/161 SNMP inventory → WiFi Mouse Server 1.7.8.5 RCE (CVE-2022-3218) → PrintNightmare → local admin → proof.txt.</p><div class="m-tags"><span>Windows 10 2004</span><span>SNMP</span><span>Mouse Server</span><span>PrintNightmare</span></div><div class="m-foot"><span>offsec → adm1n · proof.txt</span><span class="m-go">Open lab →</span></div></a>
+      <a class="mcard" href="labs/192.168.245.149-kiero/index.html" data-search="192.168.245.149 kiero owned udp/161 snmp extend leak → default ftp credentials → exposed ssh key → setuid path hijack → root. local.txt + proof.txt ubuntu 20.04 snmp ftp suid ubuntu 20.04.5 vsftpd 3.0.5 openssh 8.2p1 apache 2.4.41 udp/161 snmpd root · 2 flags host kiero ip 192.168.245.149 os ubuntu 20.04.5 tcp 21, 22, 80 udp 161 result root udp 161 snmpd · community public extend leak nsextendtable → username + default password ftp kiero:kiero → id_rsa ssh key → shell as john suid reset_passwd calls system() root proof.txt"><div class="mcard-head"><span class="m-ip">192.168.245.149</span><span class="pill ok">owned</span></div><h3 class="m-name">kiero</h3><p class="m-sum">UDP/161 SNMP extend leak → default FTP credentials → exposed SSH key → setuid PATH hijack → root.</p><div class="m-tags"><span>Ubuntu 20.04</span><span>SNMP</span><span>FTP</span><span>SUID</span></div><div class="m-foot"><span>local.txt + proof.txt</span><span class="m-go">Open lab →</span></div></a>
+      <a class="mcard" href="labs/192.168.237.150-text4shell/index.html" data-search="192.168.237.150 text4shell owned blind commons text rce (cve-2022-42889) in a spring boot api, then an unauthenticated jdwp agent on a root jvm. local.txt + proof.txt ubuntu 22.04 spring boot text4shell jdwp ubuntu 22.04.1 openjdk 11.0.16 spring boot commons-text 1.8 jdwp 127.0.0.1:8000 root · 2 flags host lab-pwk2-…-150-187 ip 192.168.237.150 os ubuntu 22.04.1 tcp 22, 5000, 8080 loopback 8000 result root 8080 spring boot search api blind query echoed, result always empty text4shell ${script:…} → code in the jvm dev reverse shell · local.txt jdwp root jvm on 127.0.0.1:8000 root proof.txt"><div class="mcard-head"><span class="m-ip">192.168.237.150</span><span class="pill ok">owned</span></div><h3 class="m-name">text4shell</h3><p class="m-sum">Blind Commons Text RCE (CVE-2022-42889) in a Spring Boot API, then an unauthenticated JDWP agent on a root JVM.</p><div class="m-tags"><span>Ubuntu 22.04</span><span>Spring Boot</span><span>Text4Shell</span><span>JDWP</span></div><div class="m-foot"><span>local.txt + proof.txt</span><span class="m-go">Open lab →</span></div></a>
+      <a class="mcard" href="labs/ad-oscp-exam/index.html" data-search="10.10.118.0/24 oscp.exam in progress winrm foothold on ms01 → seimpersonate → system → chisel pivot into 10.10.118.0/24 → ms02 → dc01. ms01 system · flag pending server 2019 active directory seimpersonate chisel server 2019 · build 19041 oscp.exam smb signing off seimpersonate ms01 system ms02 / dc01 pending domain oscp.exam ms01 192.168.118.147 ms01 int. 10.10.118.147 dc01 10.10.118.146 attacker 192.168.45.158 result ms01 system recon one routable host winrm oscp\eric.wallows potato seimpersonate → system lsass no domain-tier material pivot chisel r:socks → 10.10.118.0/24 ms02 the second hop dc01 proof.txt"><div class="mcard-head"><span class="m-ip">10.10.118.0/24</span><span class="pill warn">in progress</span></div><h3 class="m-name">oscp.exam</h3><p class="m-role">MS01 → MS02 → DC01</p><p class="m-sum">WinRM foothold on MS01 → SeImpersonate → SYSTEM → chisel pivot into 10.10.118.0/24 → MS02 → DC01.</p><div class="m-tags"><span>Server 2019</span><span>Active Directory</span><span>SeImpersonate</span><span>chisel</span></div><div class="m-foot"><span>MS01 SYSTEM · flag pending</span><span class="m-go">Open lab →</span></div></a>
+      <a class="mcard" href="labs/192.168.137.151-gust/index.html" data-search="192.168.137.151 gust owned freeswitch 1.10.1 event socket on the default password cluecon → command execution as a service account → seimpersonateprivilege → godpotato → system. local.txt + proof.txt windows 10 freeswitch esl godpotato windows 10 21h2 build 19043.2130 freeswitch 1.10.1 esl 8021 · cluecon seimpersonateprivilege system · 2 flags host oscp ip 192.168.137.151 os windows 10 21h2 open 80, 3389, 5060/5080, 8021 product freeswitch 1.10.1 result nt authority\system 8021 mod_event_socket cluecon default esl password → api system chris command execution, then nc64 shell token high il + seimpersonateprivilege godpotato system token → cmd.exe as system proof.txt both flags"><div class="mcard-head"><span class="m-ip">192.168.137.151</span><span class="pill ok">owned</span></div><h3 class="m-name">gust</h3><p class="m-sum">FreeSWITCH 1.10.1 event socket on the default password ClueCon → command execution as a service account → SeImpersonatePrivilege → GodPotato → SYSTEM.</p><div class="m-tags"><span>Windows 10</span><span>FreeSWITCH</span><span>ESL</span><span>GodPotato</span></div><div class="m-foot"><span>local.txt + proof.txt</span><span class="m-go">Open lab →</span></div></a>
+      <a class="mcard" href="labs/192.168.103.145-snmp-mouse/index.html" data-search="192.168.103.145 snmp-mouse owned udp/161 snmp inventory → wifi mouse server 1.7.8.5 rce (cve-2022-3218) → printnightmare → local admin → proof.txt. offsec → adm1n · proof.txt windows 10 2004 snmp mouse server printnightmare windows 10 · 19041 windows/shell/reverse_tcp udp/161 public mouse server 1.7.8.5 unpatched spooler local admin · proof.txt host zachary (sysname) / oscp ip 192.168.103.145 os windows 10 2004 · build 19041 tcp 1978, 3389 (filtered at first scan) udp 161 result local admin adm1n filtered all 10 tcp ports filtered udp 161 community public → inventory analysis mouse server 1.7.8.5 + live desktop foothold cve-2022-3218 → oscp\offsec 1346 no seimpersonate — potatoes are out printnightmare invoke-nightmare → adm1n proof.txt rdp as admin, then cleanup"><div class="mcard-head"><span class="m-ip">192.168.103.145</span><span class="pill ok">owned</span></div><h3 class="m-name">snmp-mouse</h3><p class="m-sum">UDP/161 SNMP inventory → WiFi Mouse Server 1.7.8.5 RCE (CVE-2022-3218) → PrintNightmare → local admin → proof.txt.</p><div class="m-tags"><span>Windows 10 2004</span><span>SNMP</span><span>Mouse Server</span><span>PrintNightmare</span></div><div class="m-foot"><span>offsec → adm1n · proof.txt</span><span class="m-go">Open lab →</span></div></a>
     </div>
   </section>
 
@@ -403,10 +427,54 @@ body.home-body .topbar .icon-btn{margin-left:auto}
   }
   sel.addEventListener("change",go);
   form.addEventListener("submit",function(e){e.preventDefault();go();});
-  document.addEventListener("keydown",function(e){
-    var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
-    if(e.key==="/"&&!typing){e.preventDefault();sel.focus();}
-  });
+  /* ---- lab search: filters the cards and the dropdown ------------------ */
+  var searchInput=document.getElementById("labSearch");
+  if(searchInput){
+    var cards=[].slice.call(document.querySelectorAll(".mcard"));
+    var opts=[].slice.call(sel.querySelectorAll("option"));
+    var countEl=document.querySelector(".labs .count");
+    var baseCount=countEl?countEl.textContent:"";
+    var emptyEl=document.getElementById("searchEmpty");
+    var termEl=document.getElementById("searchTerm");
+    var clearBtn=document.querySelector(".search-clear");
+    function norm(s){return (s||"").toLowerCase().replace(/\s+/g," ").trim();}
+    function apply(q){
+      q=norm(q);
+      var shown=0;
+      cards.forEach(function(c){
+        var hay=norm(c.getAttribute("data-search")||c.textContent);
+        var hit=!q||hay.indexOf(q)!==-1;
+        c.hidden=!hit;
+        if(hit){shown++;}
+      });
+      opts.forEach(function(o){
+        if(o.value){o.hidden=!!q&&norm(o.getAttribute("data-search")||o.textContent).indexOf(q)===-1;}
+      });
+      if(countEl){countEl.textContent=q?(shown+" / "+baseCount):baseCount;}
+      if(emptyEl){emptyEl.hidden=!(q&&shown===0);if(termEl){termEl.textContent=q;}}
+      if(clearBtn){clearBtn.hidden=!q;}
+      try{
+        var u=new URL(window.location.href);
+        if(q){u.searchParams.set("q",q);}else{u.searchParams.delete("q");}
+        history.replaceState(null,"",u);
+      }catch(err){}
+    }
+    searchInput.addEventListener("input",function(){apply(searchInput.value);});
+    searchInput.addEventListener("search",function(){apply(searchInput.value);});
+    if(clearBtn){clearBtn.addEventListener("click",function(){searchInput.value="";apply("");searchInput.focus();});}
+    document.addEventListener("keydown",function(e){
+      var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      if(e.key==="Escape"&&document.activeElement===searchInput){searchInput.value="";apply("");searchInput.blur();}
+      if(e.key==="/"&&!typing){e.preventDefault();searchInput.focus();}
+    });
+    var q0="";try{q0=new URL(window.location.href).searchParams.get("q")||"";}catch(err){}
+    if(q0){searchInput.value=q0;apply(q0);}
+  }else{
+    document.addEventListener("keydown",function(e){
+      var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      if(e.key==="/"&&!typing){e.preventDefault();sel.focus();}
+    });
+  }
 })();
 </script>
 </body>
