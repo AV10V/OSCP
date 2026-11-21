@@ -1,0 +1,19 @@
+# snmpwalk -v1 -c public 192.168.103.145   (sysGroup, verbatim as rendered by net-snmp)
+iso.3.6.1.2.1.1.1.0 = STRING: "Hardware: AMD64 Family 25 Model 1 Stepping 1 AT/AT COMPATIBLE - Software: Windows Version 6.3 (Build 19041 Multiprocessor Free)"
+iso.3.6.1.2.1.1.2.0 = OID: iso.3.6.1.4.1.311.1.1.3.1.1
+iso.3.6.1.2.1.1.3.0 = Timeticks: (287801) 0:47:58.01
+iso.3.6.1.2.1.1.4.0 = STRING: "zachary"
+
+# Note: 1.3.6.1.2.1.1.5.0 (sysName) also returned "zachary".
+# The OS itself later reported the computer name as OSCP (whoami -> OSCP\offsec),
+# which is the authoritative value. sysName is free text set by an administrator.
+
+# ---- the two dead ends, kept for the record ----------------------------------
+# snmpwalk 192.168.103.145                      -> snmpwalk: Timeout   (no -v given: defaults to SNMPv3)
+# snmpwalk -v1 -c public 192.168.103.145 1.3.6.1.4.1.8072.1.3.2
+#                                               -> End of MIB         (net-snmp tree; absent on Windows)
+# snmpget -v1 -c public 192.168.103.145 1.3.6.1.4.1.8072.1.3.2.4.1.3.5.82.69.83.69.84
+#                                               -> Error in packet
+#                                                  Reason: (noSuchName) There is no such variable name in this MIB.
+#                                                  Failed object: iso.3.6.1.4.1.8072.1.3.2.4.1.3.5.82.69.83.69.84
+#                                                  (index 5.82.69.83.69.84 = len 5, "RESET")

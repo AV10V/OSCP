@@ -347,6 +347,7 @@ body.home-body .topbar .icon-btn{margin-left:auto}
           <option value="labs/192.168.237.150-text4shell/index.html">192.168.237.150 — text4shell</option>
           <option value="labs/ad-oscp-exam/index.html">10.10.118.0/24 — oscp.exam</option>
           <option value="labs/192.168.137.151-gust/index.html">192.168.137.151 — gust</option>
+          <option value="labs/192.168.103.145-snmp-mouse/index.html">192.168.103.145 — snmp-mouse</option>
         </select>
         <button class="btn" type="submit">Open lab →</button>
       </div>
@@ -357,19 +358,20 @@ body.home-body .topbar .icon-btn{margin-left:auto}
   <section class="labs" id="labs">
     <div class="labs-head">
       <h2>Labs</h2>
-      <span class="count">4 labs</span>
+      <span class="count">5 labs</span>
     </div>
     <div class="grid">
       <a class="mcard" href="labs/192.168.245.149-kiero/index.html"><div class="mcard-head"><span class="m-ip">192.168.245.149</span><span class="pill ok">owned</span></div><h3 class="m-name">kiero</h3><p class="m-sum">UDP/161 SNMP extend leak → default FTP credentials → exposed SSH key → setuid PATH hijack → root.</p><div class="m-tags"><span>Ubuntu 20.04</span><span>SNMP</span><span>FTP</span><span>SUID</span></div><div class="m-foot"><span>local.txt + proof.txt</span><span class="m-go">Open lab →</span></div></a>
       <a class="mcard" href="labs/192.168.237.150-text4shell/index.html"><div class="mcard-head"><span class="m-ip">192.168.237.150</span><span class="pill ok">owned</span></div><h3 class="m-name">text4shell</h3><p class="m-sum">Blind Commons Text RCE (CVE-2022-42889) in a Spring Boot API, then an unauthenticated JDWP agent on a root JVM.</p><div class="m-tags"><span>Ubuntu 22.04</span><span>Spring Boot</span><span>Text4Shell</span><span>JDWP</span></div><div class="m-foot"><span>local.txt + proof.txt</span><span class="m-go">Open lab →</span></div></a>
       <a class="mcard" href="labs/ad-oscp-exam/index.html"><div class="mcard-head"><span class="m-ip">10.10.118.0/24</span><span class="pill warn">in progress</span></div><h3 class="m-name">oscp.exam</h3><p class="m-role">MS01 → MS02 → DC01</p><p class="m-sum">WinRM foothold on MS01 → SeImpersonate → SYSTEM → chisel pivot into 10.10.118.0/24 → MS02 → DC01.</p><div class="m-tags"><span>Server 2019</span><span>Active Directory</span><span>SeImpersonate</span><span>chisel</span></div><div class="m-foot"><span>MS01 SYSTEM · flag pending</span><span class="m-go">Open lab →</span></div></a>
       <a class="mcard" href="labs/192.168.137.151-gust/index.html"><div class="mcard-head"><span class="m-ip">192.168.137.151</span><span class="pill ok">owned</span></div><h3 class="m-name">gust</h3><p class="m-sum">FreeSWITCH 1.10.1 event socket on the default password ClueCon → command execution as a service account → SeImpersonatePrivilege → GodPotato → SYSTEM.</p><div class="m-tags"><span>Windows 10</span><span>FreeSWITCH</span><span>ESL</span><span>GodPotato</span></div><div class="m-foot"><span>local.txt + proof.txt</span><span class="m-go">Open lab →</span></div></a>
+      <a class="mcard" href="labs/192.168.103.145-snmp-mouse/index.html"><div class="mcard-head"><span class="m-ip">192.168.103.145</span><span class="pill ok">owned</span></div><h3 class="m-name">snmp-mouse</h3><p class="m-sum">UDP/161 SNMP inventory → WiFi Mouse Server 1.7.8.5 RCE (CVE-2022-3218) → PrintNightmare → local admin → proof.txt.</p><div class="m-tags"><span>Windows 10 2004</span><span>SNMP</span><span>Mouse Server</span><span>PrintNightmare</span></div><div class="m-foot"><span>offsec → adm1n · proof.txt</span><span class="m-go">Open lab →</span></div></a>
     </div>
   </section>
 
   <footer class="home-foot">
     <span>Authorised lab environment · flags and credentials are lab-specific</span>
-    <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 18 November 2026</span>
+    <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 21 November 2026</span>
   </footer>
 </main>
 

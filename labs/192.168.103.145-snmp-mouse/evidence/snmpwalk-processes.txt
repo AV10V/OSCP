@@ -1,0 +1,57 @@
+# snmpwalk -v1 -c public 192.168.103.145 1.3.6.1.2.1.25.4.2.1.2 | sed -E 's/.*STRING: //' | sort -u
+# 47 entries
+"ApplicationFrameHost.exe"
+"blnsvr.exe"
+"csrss.exe"
+"ctfmon.exe"
+"DefenderSessionHelper.exe"
+"dllhost.exe"
+"dwm.exe"
+"explorer.exe"
+"fontdrvhost.exe"
+"lsass.exe"
+"Memory Compression"
+"MicrosoftEdgeUpdate.exe"
+"Microsoft.Photos.exe"
+"MouseServer.exe"
+"Mouse Server Luminati.exe"
+"MoUsoCoreWorker.exe"
+"MpDefenderCoreService.exe"
+"msdtc.exe"
+"MsMpEng.exe"
+"OneDrive.exe"
+"OneDrive.Sync.Service.exe"
+"qemu-ga.exe"
+"Registry"
+"RuntimeBroker.exe"
+"SearchApp.exe"
+"SearchIndexer.exe"
+"SecurityHealthService.exe"
+"SecurityHealthSystray.exe"
+"services.exe"
+"SgrmBroker.exe"
+"sihost.exe"
+"smss.exe"
+"snmp.exe"
+"spoolsv.exe"
+"StartMenuExperienceHost.exe"
+"svchost.exe"
+"System"
+"System Idle Process"
+"taskhostw.exe"
+"UserOOBEBroker.exe"
+"VGAuthService.exe"
+"vm3dservice.exe"
+"w3wp.exe"
+"wininit.exe"
+"winlogon.exe"
+"WinStore.App.exe"
+"WmiPrvSE.exe"
+
+# Reading:
+#   MouseServer.exe + "Mouse Server Luminati.exe"  -> vulnerable service is RUNNING
+#   explorer + dwm + sihost + SearchApp + StartMenu -> INTERACTIVE DESKTOP SESSION
+#   w3wp.exe                                        -> IIS application pool (site port unknown)
+#   MsMpEng + MpDefenderCore + SecurityHealth*      -> Defender fully active
+#   spoolsv.exe                                     -> PrintNightmare precondition (see ch.06)
+#   qemu-ga + VGAuthService + vm3dservice + blnsvr  -> KVM/QEMU guest with VMware + virtio tools

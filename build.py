@@ -27,6 +27,7 @@ KIERO = LABS_DIR / "192.168.245.149-kiero"
 T4S = LABS_DIR / "192.168.237.150-text4shell"
 AD = LABS_DIR / "ad-oscp-exam"
 GUST = LABS_DIR / "192.168.137.151-gust"
+WINSNMP = LABS_DIR / "192.168.103.145-snmp-mouse"
 
 # Lab index: one card per lab, plus a select that redirects to that lab page.
 # main.html is the entry point; index.html is a redirect so the Pages root keeps working.
@@ -310,6 +311,74 @@ LABS = [
              GUST / "06-flags.md"),
             ("ch-07", "07", "Cleanup and lessons", "Artefacts, remediation, takeaways",
              GUST / "07-cleanup-and-lessons.md"),
+        ] + REFERENCE,
+    },
+    {
+        "slug": "snmp-mouse",
+        "out": WINSNMP / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-snmp-mouse",
+        "card": {
+            "status": "ok",
+            "status_text": "owned",
+            "summary": "UDP/161 SNMP inventory → WiFi Mouse Server 1.7.8.5 RCE (CVE-2022-3218) "
+                       "→ PrintNightmare → local admin → proof.txt.",
+            "tags": ["Windows 10 2004", "SNMP", "Mouse Server", "PrintNightmare"],
+            "foot": "offsec → adm1n · proof.txt",
+        },
+        "dir": WINSNMP,
+        "dir_rel": "labs/192.168.103.145-snmp-mouse",
+        "ip": "192.168.103.145",
+        "name": "snmp-mouse",
+        "title": "192.168.103.145 — snmp-mouse · OSCP walkthrough",
+        "desc": "Interactive step-by-step OSCP lab walkthrough: a fully filtered TCP scan that hid "
+                "an SNMP-exposed Windows host, a WiFi Mouse Server 1.7.8.5 RCE (CVE-2022-3218), and "
+                "PrintNightmare for the escalation. Full commands, reasoning and raw output.",
+        "ogdesc": "UDP/161 SNMP inventory → Mouse Server 1.7.8.5 RCE → PrintNightmare → local admin.",
+        "lede": "Every TCP port came back filtered and the box looked dead. It was answering SNMP the "
+                "whole time — and the inventory it handed over named both the vulnerable package and "
+                "the precondition that makes a keystroke exploit work: somebody was logged in.",
+        "badges": [
+            ("", "Windows 10 · 19041"),
+            ("", "windows/shell/reverse_tcp"),
+            ("warn", "udp/161 public"),
+            ("warn", "Mouse Server 1.7.8.5"),
+            ("warn", "unpatched spooler"),
+            ("ok", "local admin · proof.txt"),
+        ],
+        "meta": [
+            ("Host", "zachary (sysName) / OSCP"),
+            ("IP", "192.168.103.145"),
+            ("OS", "Windows 10 2004 · build 19041"),
+            ("TCP", "1978, 3389 (filtered at first scan)"),
+            ("UDP", "161"),
+            ("Result", "local admin adm1n"),
+        ],
+        "flags": [],
+        "chain": [
+            ("01", "Filtered", "all 10 TCP ports <code>filtered</code>", "#ch-01"),
+            ("02", "UDP 161", "community <code>public</code> → inventory", "#ch-02"),
+            ("03", "Analysis", "Mouse Server 1.7.8.5 + live desktop", "#ch-03"),
+            ("04", "Foothold", "CVE-2022-3218 → <code>OSCP\\offsec</code>", "#ch-04"),
+            ("05", "1346", "no <code>SeImpersonate</code> — potatoes are out", "#ch-05"),
+            ("06", "PrintNightmare", "<code>Invoke-Nightmare</code> → <code>adm1n</code>", "#ch-06"),
+            ("07", "proof.txt", "RDP as admin, then cleanup", "#ch-07"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "Ten filtered ports and a host that was alive",
+             WINSNMP / "01-reconnaissance.md"),
+            ("ch-02", "02", "SNMP enumeration", "Processes, software, and the 8072 dead end",
+             WINSNMP / "02-snmp-enumeration.md"),
+            ("ch-03", "03", "Vulnerability analysis", "CVE-2022-3218 and its real precondition",
+             WINSNMP / "03-vulnerability-analysis.md"),
+            ("ch-04", "04", "Foothold", "wifi_mouse_rce → shell as offsec",
+             WINSNMP / "04-foothold.md"),
+            ("ch-05", "05", "Enumeration &amp; dead ends", "getsystem 1346, and why potatoes fail",
+             WINSNMP / "05-enumeration.md"),
+            ("ch-06", "06", "Privilege escalation", "PrintNightmare from a standard user",
+             WINSNMP / "06-privilege-escalation.md"),
+            ("ch-07", "07", "Flags &amp; cleanup", "Proof, removing adm1n, lessons",
+             WINSNMP / "07-flags-and-cleanup.md"),
         ] + REFERENCE,
     },
 ]
