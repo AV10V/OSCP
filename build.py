@@ -510,7 +510,7 @@ LABS = [
             ("03", "Aerospike", "<code>build=5.1.0.1</code>, no auth", "#ch-03"),
             ("04", "UDF", "<code>io.popen</code> → <code>aero</code>, pty on <code>:3000</code>", "#ch-04"),
             ("05", "Enum", "PwnKit out, <code>screen-4.5.0</code> in", "#ch-05"),
-            ("06", "screen", "<code>ld.so.preload</code> via <code>umask 000</code>", "#ch-06"),
+            ("06", "screen", "<code>libhax.so</code> → <code>ld.so.preload</code> → root", "#ch-06"),
             ("07", "proof.txt", "root, then cleanup", "#ch-07"),
         ],
         "chapters": [
@@ -524,7 +524,7 @@ LABS = [
              AERO / "04-foothold.md"),
             ("ch-05", "05", "Enumeration", "Two refutations, one unreadable cron, no compiler",
              AERO / "05-enumeration.md"),
-            ("ch-06", "06", "Privilege escalation", "setuid screen 4.5.0, CRLF and the rewrite",
+            ("ch-06", "06", "Privilege escalation", "Payload: get, modify, build, deliver, trigger — by machine",
              AERO / "06-privilege-escalation.md"),
             ("ch-07", "07", "Flags &amp; cleanup", "Proof, artefact removal, lessons",
              AERO / "07-flags-and-cleanup.md"),

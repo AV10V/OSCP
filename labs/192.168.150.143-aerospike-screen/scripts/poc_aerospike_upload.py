@@ -22,6 +22,7 @@ import base64
 import hashlib
 import os
 import random
+import re
 import shutil
 import string
 import sys
@@ -95,8 +96,20 @@ def main():
             code, value = result if isinstance(result, tuple) else (0, result)
             return (value or "").strip()
 
+        def clean(text):
+            """Drop loader noise from a host that has a broken /etc/ld.so.preload.
+
+            Such a host prefixes the output of *every* dynamic binary with
+            'ERROR: ld.so: object ... ignored.' — harmless, but it lands in front of
+            whatever we actually asked for, so nothing may be parsed positionally.
+            """
+            return "\n".join(
+                ln for ln in text.splitlines()
+                if not ln.startswith("ERROR: ld.so:") and "cannot be preloaded" not in ln
+            ).strip()
+
         def must(cmd, what):
-            out = run(cmd)
+            out = clean(run(cmd))
             if out:
                 print(f"[!] {what}: {out}")
             return out
@@ -110,20 +123,23 @@ def main():
         total = len(b64)
         for off in range(0, total, args.chunk):
             piece = b64[off:off + args.chunk]
-            out = run(f"printf '%s' '{piece}' >> '{tmp}'")
+            out = clean(run(f"printf '%s' '{piece}' >> '{tmp}'"))
             if out:
                 # printf writes no output on success; anything here is a real error.
                 print(f"[!] chunk at {off}: {out}")
             sent += len(piece)
             print(f"    {sent}/{total} b64 chars", end="\r" if sent < total else "\n")
 
-        out = run(
+        out = clean(run(
             f"base64 -d '{tmp}' > '{args.remote}' && rm -f '{tmp}' "
             f"&& chmod {args.mode} '{args.remote}' && sha256sum '{args.remote}'"
-        )
+        ))
         print(f"    sent {sent} b64 chars")
 
-        remote_hash = out.split()[0] if out else ""
+        # Find the digest by pattern, never by position: a host with a broken
+        # ld.so.preload prepends loader warnings to this very output.
+        found = re.findall(r"\b[0-9a-f]{64}\b", out)
+        remote_hash = found[-1] if found else ""
         print(f"[+] remote: {out}")
         if remote_hash == local_hash:
             print("[+] hash match — the file arrived intact")

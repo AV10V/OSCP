@@ -18,6 +18,14 @@ root@...# cat /home/aero/local.txt
 | `local.txt` | `8d0b2414df3c73b491d05711c000a9d6` | `aero` (readable from the very first UDF call) |
 | `proof.txt` | `7fd0bd2e18b52d791a6600fbd8e622b7` | `root` only |
 
+Rebuild `192.168.152.143` (`…-aero-241-102`), re-owned end to end while writing chapter 06 — per-instance
+flags, different values, same box:
+
+| Flag | Value |
+|---|---|
+| `local.txt` | `89fa94be5fc49493528ce6f5096c3ff0` |
+| `proof.txt` | `35aeb3da308d9bf53be4d0d728d5f71e` |
+
 Both flags are `33` bytes on disk, owned by the account that holds them, and `local.txt` is readable
 by the service account that the vulnerable daemon runs as. That is worth noting: a box whose
 database user can read `local.txt` gives up half its score to a single unauthenticated API call.
@@ -160,5 +168,7 @@ Five things, in order of how much they changed the outcome:
 | "Kernel 5.4 → Dirty Pipe" | CVE-2022-0847 needs 5.8+. Refuted by arithmetic. |
 | "The root cron every minute is the intended path" | Plausible (`/opt/aerospike/bin` is `aero`-owned) but **not tested**. The setuid screen was deterministic; the cron is recorded as an alternate, not as solved. |
 | "`screen -L` wrote the preload file, so it's done" | It wrote it with **CRLF**, and `ld.so` silently ignored every entry. The rewrite was required. |
+| "`system()` in the constructor already runs as root" | It does not. dash and bash drop the effective uid when `uid != euid`, so the shell ran as `aero`: `proof.txt` denied, and `rbash` came out owned by `aero`. `setgid(0); setuid(0);` before `system()` is mandatory. |
+| "`aero` can recreate `/etc/ld.so.preload` after the payload deletes it" | It cannot — `printf > /etc/ld.so.preload` returns `rc=2`, because `/etc` is root-owned and the file no longer exists. Only the setuid `screen` can create it; every retry needs the creation step again. |
 | "The target has no egress — reverse shells are impossible here" | Egress is a **destination-port allowlist**: `4444`, `8080`, `8834` are dropped; `22`, `53`, `80`, `443`, `3000` are permitted. A listener on `3000` received a `pty` shell. |
 | "The preload file is gone — the exploit failed" | The payload deletes it deliberately, to stop child processes re-entering `system()`. Absence is success. |

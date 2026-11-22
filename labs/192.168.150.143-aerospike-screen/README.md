@@ -9,7 +9,7 @@
 | **Difficulty** | Easy — one unauthenticated database, one setuid binary from 2017 |
 | **Result** | `aero` → `root` (via CVE-2020-13151, then CVE-2017-5618) |
 | **Flags** | `local.txt` — `8d0b2414df3c73b491d05711c000a9d6` · `proof.txt` — `7fd0bd2e18b52d791a6600fbd8e622b7` |
-| **Rebuild** | `192.168.152.143` (`…-aero-241-102`) — identical build and ports; `local.txt` — `89fa94be5fc49493528ce6f5096c3ff0` |
+| **Rebuild** | `192.168.152.143` (`…-aero-241-102`) — identical build and ports; re-owned end to end while writing ch. 06: `local.txt` — `89fa94be5fc49493528ce6f5096c3ff0`, `proof.txt` — `35aeb3da308d9bf53be4d0d728d5f71e` |
 
 ---
 
@@ -36,7 +36,9 @@ SUID /usr/bin/screen-4.5.0      (dpkg says screen 4.8.0 — the *file* is 4.5.0)
         →  -rw-rw-rw- root:aero /etc/ld.so.preload
         →  but CRLF from the terminal logger → ld.so ignores '/…/libhax.so\r'
         →  mode 0666 lets us rewrite it clean, one LF
-     screen -ls  →  preload loads libhax.so as root → constructor → rootcmd.sh
+     screen -ls  →  preload loads libhax.so as root → constructor
+        →  setgid(0); setuid(0);  (without it dash/bash drop back to aero)
+        →  unlink(preload) → rootcmd.sh
         │
         ▼
 uid=0(root) → proof.txt   (+ ed25519 key for a TTY)
@@ -65,7 +67,7 @@ Four things make this box worth writing up:
 | 03 | [Aerospike](03-aerospike.md) | Identifying the daemon, reading `build=5.1.0.1`, CVE-2020-13151, and the broken version gate in 49067.py |
 | 04 | [Foothold](04-foothold.md) | The Lua UDF, `client.apply()`, `local.txt`, the egress **port allowlist**, a pty reverse shell on `3000`, and moving files over the database socket |
 | 05 | [Enumeration](05-enumeration.md) | setuid inventory, PwnKit refuted, Dirty Pipe refuted, the root cron, and the missing compiler |
-| 06 | [Privilege escalation](06-privilege-escalation.md) | CVE-2017-5618 end to end — `umask 000`, `ld.so.preload`, the CRLF trap, the root constructor |
+| 06 | [Privilege escalation](06-privilege-escalation.md) | CVE-2017-5618 end to end, split by machine: payload source, the four edits, build + ABI check *(on Kali)*; create, rewrite, trigger, shell *(on target)*; retargeting |
 | 07 | [Flags & cleanup](07-flags-and-cleanup.md) | Proof, artefact removal, lessons, defensive notes |
 
 ---
@@ -81,6 +83,8 @@ Four things make this box worth writing up:
 | Kernel 5.4 → Dirty Pipe | CVE-2022-0847 requires 5.8+. Refuted. |
 | The root cron every minute is the path | Plausible — `/opt/aerospike/bin` is `aero`-owned — but **not tested**. Recorded as an alternate, not as solved. |
 | `screen -L` wrote the file, so we are done | It wrote **CRLF**; `ld.so` ignored every entry. The `0666` mode allowed a clean rewrite, which is what made it work. |
+| `system()` in the constructor runs as root already | No — dash/bash drop the effective uid when `uid != euid`. Without `setgid(0); setuid(0);` the shell ran as `aero` and `rbash` came out `aero`-owned. |
+| `aero` can rewrite `/etc/ld.so.preload` whenever needed | Only while it exists as `0666`. `aero` cannot *create* it (`rc=2`); every retry needs the setuid `screen` creation step again. |
 | `/etc/ld.so.preload` is gone → exploit failed | The payload deletes it on purpose, so child processes cannot re-enter `system()`. Absence is success. |
 | "The target has no egress, so a reverse shell is impossible" | Egress is a **destination-port allowlist**. `4444`, `8080` and `8834` are dropped, but `22`, `53`, `80`, `443` and `3000` are permitted — a listener on `3000` got a `pty` shell. Use an allowed port. |
 
