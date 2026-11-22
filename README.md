@@ -28,6 +28,9 @@ Subnets `192.168.245.0/24`, `192.168.237.0/24`, `192.168.118.0/24` and `192.168.
 | **`192.168.245.149`** | **Ubuntu 20.04.5, `kiero`** | **owned (root), both flags** | **[→ walkthrough](labs/192.168.245.149-kiero/README.md)** |
 | **`192.168.237.150`** | **Ubuntu 22.04.1, `text4shell`** | **owned (root), both flags** | **[→ walkthrough](labs/192.168.237.150-text4shell/README.md)** |
 | **`192.168.137.151`** | **Windows 10 21H2, `gust` (host `OSCP`)** | **owned (SYSTEM), both flags** | **[→ walkthrough](labs/192.168.137.151-gust/README.md)** |
+| **`192.168.103.145`** | **Windows, `snmp-mouse` — SNMP → Mouse Server → PrintNightmare** | **owned (SYSTEM), both flags** | **[→ walkthrough](labs/192.168.103.145-snmp-mouse/README.md)** |
+| **`192.168.161.144`** | **Ubuntu 22.04.1, `git-exposure`** | **owned (root), both flags** | **[→ walkthrough](labs/192.168.161.144-git-exposure/README.md)** |
+| **`192.168.150.143`** | **Ubuntu 20.04.4, `aerospike-screen`** | **owned (root), both flags** | **[→ walkthrough](labs/192.168.150.143-aerospike-screen/README.md)** |
 | `192.168.245.150` | Linux, SSH + 8080 | not started | — |
 | `192.168.245.151` | Windows, 80 + RDP (heavily filtered) | not started | — |
 | `192.168.245.254` | gateway | infrastructure | — |
@@ -135,6 +138,33 @@ Chapters:
 5. [Privilege escalation — GodPotato, and four ways it failed first](labs/192.168.137.151-gust/05-privilege-escalation.md)
 6. [Flags — both values, with the account that read them](labs/192.168.137.151-gust/06-flags.md)
 7. [Cleanup and lessons](labs/192.168.137.151-gust/07-cleanup-and-lessons.md)
+
+### 192.168.150.143 — `aerospike-screen` (Ubuntu 20.04.4)
+
+**Unauthenticated Aerospike on its default port, then a setuid `screen` from 2017 that the package
+database insisted was patched.**
+
+| | |
+|---|---|
+| Entry point | `3000/tcp` Aerospike CE `5.1.0.1` — no authentication, no TLS, no ACL |
+| Primitive | `udf_put` a Lua module that calls `io.popen`, then `client.apply()` → command execution as `aero` |
+| Tool trap | Exploit-DB `49067.py` treats `5.1.0.0` as fixed and bails; the real fix is `5.1.0.3` — the client library works where the wrapper refuses |
+| Network constraint | the target has **no egress** to the attacker — no reverse shell, no `wget`; payloads move over the database socket as chunked base64 with a remote `sha256sum` |
+| Privilege escalation | setuid `/usr/bin/screen-4.5.0` → **CVE-2017-5618**: `umask 000` + `-L` creates a root-owned `0666` `/etc/ld.so.preload`, which the terminal logger writes as **CRLF** and must be rewritten |
+| Package-vs-binary | `dpkg -l screen` reports `4.8.0-1ubuntu0.1`; the setuid binary on `$PATH` is `4.5.0` |
+| Refuted | PwnKit (`policykit-1 0.105-26ubuntu1.3`), Dirty Pipe (kernel 5.4 < 5.8) |
+| `local.txt` | `8d0b2414df3c73b491d05711c000a9d6` |
+| `proof.txt` | `7fd0bd2e18b52d791a6600fbd8e622b7` |
+
+Chapters:
+
+1. [Reconnaissance — ten ports, and why `filtered` is not `closed`](labs/192.168.150.143-aerospike-screen/01-reconnaissance.md)
+2. [Web enumeration — Pico CMS under `/index/`, and a vhost that lies](labs/192.168.150.143-aerospike-screen/02-web-enumeration.md)
+3. [Aerospike — naming the daemon and reading `5.1.0.1`](labs/192.168.150.143-aerospike-screen/03-aerospike.md)
+4. [Foothold — Lua that runs shell, with no way to call back](labs/192.168.150.143-aerospike-screen/04-foothold.md)
+5. [Enumeration — two refutations, one unreadable cron, no compiler](labs/192.168.150.143-aerospike-screen/05-enumeration.md)
+6. [Privilege escalation — setuid screen 4.5.0, CRLF and the rewrite](labs/192.168.150.143-aerospike-screen/06-privilege-escalation.md)
+7. [Flags & cleanup](labs/192.168.150.143-aerospike-screen/07-flags-and-cleanup.md)
 
 ---
 

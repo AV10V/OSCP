@@ -29,6 +29,7 @@ AD = LABS_DIR / "ad-oscp-exam"
 GUST = LABS_DIR / "192.168.137.151-gust"
 WINSNMP = LABS_DIR / "192.168.103.145-snmp-mouse"
 GITEXP = LABS_DIR / "192.168.161.144-git-exposure"
+AERO = LABS_DIR / "192.168.150.143-aerospike-screen"
 
 # Lab index: one card per lab, plus a select that redirects to that lab page.
 # main.html is the entry point; index.html is a redirect so the Pages root keeps working.
@@ -456,6 +457,77 @@ LABS = [
              GITEXP / "06-privilege-escalation.md"),
             ("ch-07", "07", "Flags &amp; cleanup", "Proof, removing the SUID shell, lessons",
              GITEXP / "07-flags-and-cleanup.md"),
+        ] + REFERENCE,
+    },
+    {
+        "slug": "aerospike-screen",
+        "out": AERO / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress",
+        "card": {
+            "status": "ok",
+            "status_text": "owned",
+            "summary": "Unauthenticated Aerospike 5.1.0.1 UDF → <code>aero</code> shell → "
+                       "setuid screen 4.5.0 → root.",
+            "tags": ["Ubuntu 20.04", "Aerospike", "SUID", "Lua"],
+            "foot": "local.txt + proof.txt",
+        },
+        "dir": AERO,
+        "dir_rel": "labs/192.168.150.143-aerospike-screen",
+        "ip": "192.168.150.143",
+        "name": "aerospike-screen",
+        "title": "192.168.150.143 — aerospike-screen · OSCP walkthrough",
+        "desc": "Interactive step-by-step OSCP lab walkthrough: an unauthenticated Aerospike "
+                "database that runs uploaded Lua, then a setuid screen 4.5.0 to root. Full "
+                "commands, reasoning and raw output.",
+        "ogdesc": "Aerospike 5.1.0.1 UDF → aero shell → setuid screen 4.5.0 → root.",
+        "lede": "Ten open ports, four of them unnamed, and the one that mattered was a database "
+                "nobody had ever authenticated. Behind it, a setuid binary from 2017 that the "
+                "package database insisted was patched.",
+        "badges": [
+            ("", "Ubuntu 20.04.4"),
+            ("", "Aerospike 5.1.0.1"),
+            ("", "Apache 2.4.41"),
+            ("warn", "setuid screen 4.5.0"),
+            ("warn", "no egress"),
+            ("ok", "root · 2 flags"),
+        ],
+        "meta": [
+            ("Host", "lab-pwk2-…-aero-242-100"),
+            ("IP", "192.168.150.143"),
+            ("OS", "Ubuntu 20.04.4 · 5.4.0-104"),
+            ("TCP", "21, 22, 80, 81, 443, 3000, 3001, 3003, 3306, 5432"),
+            ("UDP", "not scanned"),
+            ("Result", "root"),
+        ],
+        "flags": [
+            ("local.txt · as aero", "8d0b2414df3c73b491d05711c000a9d6"),
+            ("proof.txt · as root", "7fd0bd2e18b52d791a6600fbd8e622b7"),
+        ],
+        "chain": [
+            ("01", "Recon", "10 open, 65525 <em>filtered</em>", "#ch-01"),
+            ("02", "Web", "Pico CMS, nginx page on <code>:81</code>", "#ch-02"),
+            ("03", "Aerospike", "<code>build=5.1.0.1</code>, no auth", "#ch-03"),
+            ("04", "UDF", "<code>io.popen</code> → <code>aero</code> · local.txt", "#ch-04"),
+            ("05", "Enum", "PwnKit out, <code>screen-4.5.0</code> in", "#ch-05"),
+            ("06", "screen", "<code>ld.so.preload</code> via <code>umask 000</code>", "#ch-06"),
+            ("07", "proof.txt", "root, then cleanup", "#ch-07"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "Ten ports, and why <em>filtered</em> is not <em>closed</em>",
+             AERO / "01-reconnaissance.md"),
+            ("ch-02", "02", "Web enumeration", "Pico CMS under /index/, and the vhost that lies",
+             AERO / "02-web-enumeration.md"),
+            ("ch-03", "03", "Aerospike", "Naming the daemon, reading 5.1.0.1 off the wire",
+             AERO / "03-aerospike.md"),
+            ("ch-04", "04", "Foothold", "Lua that runs shell — and a host that cannot call back",
+             AERO / "04-foothold.md"),
+            ("ch-05", "05", "Enumeration", "Two refutations, one unreadable cron, no compiler",
+             AERO / "05-enumeration.md"),
+            ("ch-06", "06", "Privilege escalation", "setuid screen 4.5.0, CRLF and the rewrite",
+             AERO / "06-privilege-escalation.md"),
+            ("ch-07", "07", "Flags &amp; cleanup", "Proof, artefact removal, lessons",
+             AERO / "07-flags-and-cleanup.md"),
         ] + REFERENCE,
     },
 ]
