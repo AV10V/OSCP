@@ -149,7 +149,7 @@ database insisted was patched.**
 | Entry point | `3000/tcp` Aerospike CE `5.1.0.1` — no authentication, no TLS, no ACL |
 | Primitive | `udf_put` a Lua module that calls `io.popen`, then `client.apply()` → command execution as `aero` |
 | Tool trap | Exploit-DB `49067.py` treats `5.1.0.0` as fixed and bails; the real fix is `5.1.0.3` — the client library works where the wrapper refuses |
-| Network constraint | the target has **no egress** to the attacker — no reverse shell, no `wget`; payloads move over the database socket as chunked base64 with a remote `sha256sum` |
+| Network constraint | egress is a **destination-port allowlist**, not a dead route: `4444`/`8080`/`8834` are dropped, `22`/`53`/`80`/`443`/`3000` are permitted — a listener on `3000` gets a pty reverse shell. Binaries still move over the database socket as chunked base64 with a remote `sha256sum` |
 | Privilege escalation | setuid `/usr/bin/screen-4.5.0` → **CVE-2017-5618**: `umask 000` + `-L` creates a root-owned `0666` `/etc/ld.so.preload`, which the terminal logger writes as **CRLF** and must be rewritten |
 | Package-vs-binary | `dpkg -l screen` reports `4.8.0-1ubuntu0.1`; the setuid binary on `$PATH` is `4.5.0` |
 | Refuted | PwnKit (`policykit-1 0.105-26ubuntu1.3`), Dirty Pipe (kernel 5.4 < 5.8) |
@@ -161,7 +161,7 @@ Chapters:
 1. [Reconnaissance — ten ports, and why `filtered` is not `closed`](labs/192.168.150.143-aerospike-screen/01-reconnaissance.md)
 2. [Web enumeration — Pico CMS under `/index/`, and a vhost that lies](labs/192.168.150.143-aerospike-screen/02-web-enumeration.md)
 3. [Aerospike — naming the daemon and reading `5.1.0.1`](labs/192.168.150.143-aerospike-screen/03-aerospike.md)
-4. [Foothold — Lua that runs shell, with no way to call back](labs/192.168.150.143-aerospike-screen/04-foothold.md)
+4. [Foothold — Lua that runs shell, and the port allowlist that gives it a TTY](labs/192.168.150.143-aerospike-screen/04-foothold.md)
 5. [Enumeration — two refutations, one unreadable cron, no compiler](labs/192.168.150.143-aerospike-screen/05-enumeration.md)
 6. [Privilege escalation — setuid screen 4.5.0, CRLF and the rewrite](labs/192.168.150.143-aerospike-screen/06-privilege-escalation.md)
 7. [Flags & cleanup](labs/192.168.150.143-aerospike-screen/07-flags-and-cleanup.md)

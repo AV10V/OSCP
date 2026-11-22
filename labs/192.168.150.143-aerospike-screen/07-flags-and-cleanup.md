@@ -121,9 +121,11 @@ Five things, in order of how much they changed the outcome:
 4. **CRLF is a real bug class.** screen logs terminal output, terminals use `\r\n`, and `ld.so`
    treats `\r` as part of the path. The exploit "worked" and did nothing, with only a warning to say
    so. `cat -A` is how you see it.
-5. **No egress changes the whole workflow.** With no reverse shell and no `wget`, files move over
-   whatever channel already exists — here, the database socket that gave code execution. That is
-   slower and needs hash verification at every hop, but it is not optional.
+5. **"No egress" was a misdiagnosis, and the port list is the fix.** The target could reach the
+   attacker the whole time — on the lab's allowlisted ports. `4444` and `8000` are dropped, which
+   makes a blocked port look exactly like a dead route; `3000` is permitted and yields a pty shell.
+   The socket transport still earns its place: **a terminal is a terrible way to push a 14 KB shared
+   object**, and chunked base64 with a remote `sha256sum` is verifiable in a way a paste is not.
 
 ---
 
@@ -158,4 +160,5 @@ Five things, in order of how much they changed the outcome:
 | "Kernel 5.4 → Dirty Pipe" | CVE-2022-0847 needs 5.8+. Refuted by arithmetic. |
 | "The root cron every minute is the intended path" | Plausible (`/opt/aerospike/bin` is `aero`-owned) but **not tested**. The setuid screen was deterministic; the cron is recorded as an alternate, not as solved. |
 | "`screen -L` wrote the preload file, so it's done" | It wrote it with **CRLF**, and `ld.so` silently ignored every entry. The rewrite was required. |
+| "The target has no egress — reverse shells are impossible here" | Egress is a **destination-port allowlist**: `4444`, `8080`, `8834` are dropped; `22`, `53`, `80`, `443`, `3000` are permitted. A listener on `3000` received a `pty` shell. |
 | "The preload file is gone — the exploit failed" | The payload deletes it deliberately, to stop child processes re-entering `system()`. Absence is success. |

@@ -120,8 +120,9 @@ strip --strip-unneeded libhax.so
 objdump -T libhax.so | grep -oE 'GLIBC_[0-9.]+' | sort -uV   # -> GLIBC_2.2.5
 ```
 
-No compiler on the target, no egress from the target: push both files through the Aerospike socket
-(chapter 04, §4.5), verifying the hash on the far side.
+No compiler on the target and no way to fetch one: push both files through the Aerospike socket
+(chapter 04, §4.6), verifying the hash on the far side. A reverse shell (§4.5) gives you a terminal,
+but a terminal is a poor transport for a 14 KB shared object.
 
 ---
 

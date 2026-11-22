@@ -27,3 +27,6 @@ pass.txt
 .DS_Store
 .vscode/
 .idea/
+
+# Aerospike client drops a copy of the registered UDF in the cwd
+*_poc.lua

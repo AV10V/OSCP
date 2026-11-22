@@ -467,8 +467,8 @@ LABS = [
         "card": {
             "status": "ok",
             "status_text": "owned",
-            "summary": "Unauthenticated Aerospike 5.1.0.1 UDF → <code>aero</code> shell → "
-                       "setuid screen 4.5.0 → root.",
+            "summary": "Unauthenticated Aerospike 5.1.0.1 UDF → <code>aero</code> shell, pty on the "
+                       "allowlisted port 3000 → setuid screen 4.5.0 → root.",
             "tags": ["Ubuntu 20.04", "Aerospike", "SUID", "Lua"],
             "foot": "local.txt + proof.txt",
         },
@@ -489,7 +489,7 @@ LABS = [
             ("", "Aerospike 5.1.0.1"),
             ("", "Apache 2.4.41"),
             ("warn", "setuid screen 4.5.0"),
-            ("warn", "no egress"),
+            ("warn", "egress :3000 only"),
             ("ok", "root · 2 flags"),
         ],
         "meta": [
@@ -508,7 +508,7 @@ LABS = [
             ("01", "Recon", "10 open, 65525 <em>filtered</em>", "#ch-01"),
             ("02", "Web", "Pico CMS, nginx page on <code>:81</code>", "#ch-02"),
             ("03", "Aerospike", "<code>build=5.1.0.1</code>, no auth", "#ch-03"),
-            ("04", "UDF", "<code>io.popen</code> → <code>aero</code> · local.txt", "#ch-04"),
+            ("04", "UDF", "<code>io.popen</code> → <code>aero</code>, pty on <code>:3000</code>", "#ch-04"),
             ("05", "Enum", "PwnKit out, <code>screen-4.5.0</code> in", "#ch-05"),
             ("06", "screen", "<code>ld.so.preload</code> via <code>umask 000</code>", "#ch-06"),
             ("07", "proof.txt", "root, then cleanup", "#ch-07"),
@@ -520,7 +520,7 @@ LABS = [
              AERO / "02-web-enumeration.md"),
             ("ch-03", "03", "Aerospike", "Naming the daemon, reading 5.1.0.1 off the wire",
              AERO / "03-aerospike.md"),
-            ("ch-04", "04", "Foothold", "Lua that runs shell — and a host that cannot call back",
+            ("ch-04", "04", "Foothold", "Lua that runs shell — and the port allowlist behind it",
              AERO / "04-foothold.md"),
             ("ch-05", "05", "Enumeration", "Two refutations, one unreadable cron, no compiler",
              AERO / "05-enumeration.md"),
@@ -555,7 +555,16 @@ def fix_links(text: str, mach: dict) -> str:
             return 'href="%s%s"' % (mach["links"][name], frag)
         if href.endswith(".txt"):
             return 'href="%s%s"' % (mach["evidence"] + name, frag)
-        return 'href="%s%s"' % (REPO + "/blob/main/" + href, frag)
+        # A relative link in a chapter is relative to the lab directory, not the repo root:
+        # scripts/foo.py -> labs/<lab>/scripts/foo.py. '../' still resolves upwards.
+        parts = []
+        for part in pathlib.PurePosixPath(mach["dir_rel"], href).parts:
+            if part == "..":
+                if parts:
+                    parts.pop()
+            elif part != ".":
+                parts.append(part)
+        return 'href="%s%s"' % (REPO + "/blob/main/" + "/".join(parts), frag)
 
     return re.sub(r'href="([^"]+)"', repl, text)
 

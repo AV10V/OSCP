@@ -9,6 +9,7 @@
 | **Difficulty** | Easy — one unauthenticated database, one setuid binary from 2017 |
 | **Result** | `aero` → `root` (via CVE-2020-13151, then CVE-2017-5618) |
 | **Flags** | `local.txt` — `8d0b2414df3c73b491d05711c000a9d6` · `proof.txt` — `7fd0bd2e18b52d791a6600fbd8e622b7` |
+| **Rebuild** | `192.168.152.143` (`…-aero-241-102`) — identical build and ports; `local.txt` — `89fa94be5fc49493528ce6f5096c3ff0` |
 
 ---
 
@@ -24,8 +25,10 @@ CVE-2020-13151 — unauthenticated UDF registration
         │
         ▼
 uid=1000(aero)   ·   local.txt readable immediately
-        │  no egress: /dev/tcp to attacker = BLOCKED, no wget, no reverse shell
-        │  → move payloads over the database socket (chunked base64, hash-verified)
+        │  egress is a PORT ALLOWLIST, not a blackhole:
+        │    4444/8080/8834 dropped · 22/53/80/443/3000 permitted
+        │  → nc -lvnp 3000 + pty payload = real reverse shell (ch. 04 §4.5)
+        │  → binaries still travel over the socket (chunked base64, hash-verified)
         ▼
 SUID /usr/bin/screen-4.5.0      (dpkg says screen 4.8.0 — the *file* is 4.5.0)
   CVE-2017-5618: setuid screen creates its -L logfile without dropping privileges
@@ -45,8 +48,11 @@ Four things make this box worth writing up:
 2. **The published exploit refuses the box and calls it patched.** Exploit-DB 49067 gates on `5.1.0.0` and bails; the target is `5.1.0.1` against a `5.1.0.3` fix. Four lines of client code succeed where the wrapper fails closed.
 3. **`dpkg -l screen` reports `4.8.0-1ubuntu0.1`; the setuid binary on the path is `screen-4.5.0`.** Every package-database-driven scanner will call this host clean. `ls -la /usr/bin/screen*` is the check that matters.
 4. **The exploit worked and did nothing, twice.** screen's logger writes `\r\n`, so `ld.so` was asked to open `libhax.so\r` and silently ignored it. Only `cat -A` reveals it, and only the `0666` mode from `umask 000` allows the corrective rewrite.
+5. **"No egress" was the wrong reading.** The target reaches the attacker fine — on the lab's
+   *allowlisted* ports. `4444` and `8000` are dropped, which is what made the first tests look like a
+   dead route. Put the listener on `3000` and the reverse shell arrives with a pty.
 
-> **Lab note.** This box was rebuilt twice during the engagement (`192.168.161.143` → `192.168.92.143` → `192.168.150.143`) while the VPN session kept being provisioned for the previous subnet. `192.168.150.143` is the address that was actually reachable, and it is the one all commands here were run against.
+> **Lab note.** This box was rebuilt several times during the engagement (`192.168.161.143` → `192.168.92.143` → `192.168.150.143`, later `192.168.152.143`) while the VPN session kept being provisioned for the previous subnet. `192.168.150.143` is the address the original chapters were run against; the reverse-shell work in §4.4–4.5 was re-verified against the `192.168.152.143` rebuild, which reports the same `build=5.1.0.1` and the same ten open ports.
 
 ---
 
@@ -57,7 +63,7 @@ Four things make this box worth writing up:
 | 01 | [Reconnaissance](01-reconnaissance.md) | Full TCP sweep, the `filtered` distinction, service fingerprint, naming the unnamed port block |
 | 02 | [Web enumeration](02-web-enumeration.md) | Pico CMS `3.0.0-alpha.2` under `/index/`, `/api/` 403, the nginx-on-Fedora vhost on 81, and what was left untested |
 | 03 | [Aerospike](03-aerospike.md) | Identifying the daemon, reading `build=5.1.0.1`, CVE-2020-13151, and the broken version gate in 49067.py |
-| 04 | [Foothold](04-foothold.md) | The Lua UDF, `client.apply()`, `local.txt`, and moving files over the database socket when the target cannot reach back |
+| 04 | [Foothold](04-foothold.md) | The Lua UDF, `client.apply()`, `local.txt`, the egress **port allowlist**, a pty reverse shell on `3000`, and moving files over the database socket |
 | 05 | [Enumeration](05-enumeration.md) | setuid inventory, PwnKit refuted, Dirty Pipe refuted, the root cron, and the missing compiler |
 | 06 | [Privilege escalation](06-privilege-escalation.md) | CVE-2017-5618 end to end — `umask 000`, `ld.so.preload`, the CRLF trap, the root constructor |
 | 07 | [Flags & cleanup](07-flags-and-cleanup.md) | Proof, artefact removal, lessons, defensive notes |
@@ -76,7 +82,7 @@ Four things make this box worth writing up:
 | The root cron every minute is the path | Plausible — `/opt/aerospike/bin` is `aero`-owned — but **not tested**. Recorded as an alternate, not as solved. |
 | `screen -L` wrote the file, so we are done | It wrote **CRLF**; `ld.so` ignored every entry. The `0666` mode allowed a clean rewrite, which is what made it work. |
 | `/etc/ld.so.preload` is gone → exploit failed | The payload deletes it on purpose, so child processes cannot re-enter `system()`. Absence is success. |
-| Reverse shell first, always | No egress: `/dev/tcp` to the attacker is blocked and there is no compiler. Files travelled over the Aerospike socket. |
+| "The target has no egress, so a reverse shell is impossible" | Egress is a **destination-port allowlist**. `4444`, `8080` and `8834` are dropped, but `22`, `53`, `80`, `443` and `3000` are permitted — a listener on `3000` got a `pty` shell. Use an allowed port. |
 
 ---
 

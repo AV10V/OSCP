@@ -140,7 +140,8 @@ recorded here as such — not as tested.
 which gcc cc make
 ```
 
-Nothing. There is no compiler on the target, and no way to fetch one (chapter 04: no egress). Every
+Nothing. There is no compiler on the target, and no toolchain worth fetching (chapter 04: egress is
+limited to the lab's allowlisted ports, so there is no `apt` and no `wget` back to Kali). Every
 binary payload for this box has to be **built on Kali and pushed through the database socket**.
 
 That has one hard consequence: **glibc version**. Kali ships a much newer glibc than Ubuntu 20.04
