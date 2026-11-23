@@ -13,6 +13,7 @@ One directory per lab. Each holds the markdown source, its evidence, and the gen
 | [`192.168.103.145-snmp-mouse`](192.168.103.145-snmp-mouse/) | Windows — SNMP → Mouse Server CVE-2022-3218 → PrintNightmare | SYSTEM, both flags | [page](192.168.103.145-snmp-mouse/index.html) · [notes](192.168.103.145-snmp-mouse/README.md) |
 | [`192.168.161.144-git-exposure`](192.168.161.144-git-exposure/) | Ubuntu 22.04.1 — `.git` leak → credential reuse → CVE-2023-0386 | root, both flags | [page](192.168.161.144-git-exposure/index.html) · [notes](192.168.161.144-git-exposure/README.md) |
 | [`192.168.150.143-aerospike-screen`](192.168.150.143-aerospike-screen/) | Ubuntu 20.04.4 — Aerospike CVE-2020-13151 → setuid screen 4.5.0 | root, both flags | [page](192.168.150.143-aerospike-screen/index.html) · [notes](192.168.150.143-aerospike-screen/README.md) |
+| [`192.168.133.155-oscp-mouse`](192.168.133.155-oscp-mouse/) | Windows 10 Pro — Mobile Mouse CVE-2023-31902 → Users-writable LocalSystem service | SYSTEM, proof.txt | [page](192.168.133.155-oscp-mouse/index.html) · [notes](192.168.133.155-oscp-mouse/README.md) |
 
 The hub for all of these is [`../main.html`](../main.html).
 

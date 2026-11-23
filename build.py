@@ -31,6 +31,7 @@ GUST = LABS_DIR / "192.168.137.151-gust"
 WINSNMP = LABS_DIR / "192.168.103.145-snmp-mouse"
 GITEXP = LABS_DIR / "192.168.161.144-git-exposure"
 AERO = LABS_DIR / "192.168.150.143-aerospike-screen"
+OSCPMOUSE = LABS_DIR / "192.168.133.155-oscp-mouse"
 
 # Lab index: one card per lab, plus a select that redirects to that lab page.
 # main.html is the entry point; index.html is a redirect so the Pages root keeps working.
@@ -600,6 +601,78 @@ LABS = [
              AERO / "06-privilege-escalation.md"),
             ("ch-07", "07", "Flags &amp; cleanup", "Proof, artefact removal, lessons",
              AERO / "07-flags-and-cleanup.md"),
+        ] + REFERENCE,
+    },
+    {
+        "slug": "oscp-mouse",
+        "out": OSCPMOUSE / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-oscp-mouse",
+        "card": {
+            "status": "ok",
+            "status_text": "owned",
+            "summary": "TCP/9099 Mobile Mouse Server 3.6.4 (CVE-2023-31902, no auth) → shell as a "
+                       "standard user → Users-writable LocalSystem service binary → SYSTEM → WinRM.",
+            "tags": ["Windows 10", "Mobile Mouse", "CVE-2023-31902", "Service ACL"],
+            "foot": "Tim → SYSTEM · proof.txt",
+        },
+        "dir": OSCPMOUSE,
+        "dir_rel": "labs/192.168.133.155-oscp-mouse",
+        "ip": "192.168.133.155",
+        "name": "oscp-mouse",
+        "title": "192.168.133.155 — oscp-mouse · OSCP walkthrough",
+        "desc": "Interactive step-by-step OSCP lab walkthrough: an unauthenticated Mobile Mouse "
+                "Server on TCP 9099 (CVE-2023-31902), then a MilleGPG service whose binary and "
+                "service ACL are writable by BUILTIN\\Users. Full commands, reasoning and raw output.",
+        "ogdesc": "9099 Mobile Mouse RCE → shell as OSCP\\Tim → writable LocalSystem service → "
+                  "SYSTEM → proof.txt.",
+        "lede": "A workstation running a phone-as-a-mouse server that will type anything the network "
+                "sends it. That is a shell as whoever is logged in — a standard user. The escalation "
+                "is not a CVE: it is a third-party service, running as LocalSystem, whose binary any "
+                "local user may rewrite and whose service object any local user may reconfigure.",
+        "badges": [
+            ("", "Windows 10 Pro · 19045.2251"),
+            ("warn", "9099/tcp no auth"),
+            ("warn", "CVE-2023-31902"),
+            ("warn", "Users:(M) on service binary"),
+            ("warn", "no SeImpersonate"),
+            ("ok", "SYSTEM · proof.txt"),
+        ],
+        "meta": [
+            ("Host", "oscp (workgroup OSCP)"),
+            ("IP", "192.168.133.155"),
+            ("OS", "Windows 10 Pro · build 19045.2251"),
+            ("TCP", "80, 5986, 7680, 9099, 9999, 35913"),
+            ("Product", "Mobile Mouse 3.6.4 · MilleGPG5"),
+            ("Result", "SYSTEM → local admin hacker"),
+        ],
+        "flags": [
+            ("proof.txt · as NT AUTHORITY\\SYSTEM", "4a456f445abc93450df024fc1b57bc23"),
+        ],
+        "chain": [
+            ("01", "9099", "<code>unknown</code> → <code>Mobile Mouse Server</code>", "#ch-01"),
+            ("02", "CVE-2023-31902", "no password, keystrokes as the desktop user", "#ch-02"),
+            ("03", "Tim", "shell, medium integrity", "#ch-03"),
+            ("04", "PowerUp", "<code>CanRestart: True</code> on GPGOrchestrator", "#ch-04"),
+            ("05", "SYSTEM", "<code>sc config binPath=</code> · 1053 = it ran", "#ch-05"),
+            ("06", "proof.txt", "token filter off → WinRM 5986", "#ch-06"),
+            ("07", "Cleanup", "restore the service, delete the account", "#ch-07"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "Six ports, and the one nmap calls <em>unknown</em>",
+             OSCPMOUSE / "01-reconnaissance.md"),
+            ("ch-02", "02", "Mobile Mouse", "CVE-2023-31902 and its real precondition",
+             OSCPMOUSE / "02-mobile-mouse.md"),
+            ("ch-03", "03", "Foothold", "<code>mobile_mouse_rce</code> → shell as Tim",
+             OSCPMOUSE / "03-foothold.md"),
+            ("ch-04", "04", "Enumeration", "Seatbelt for identity, PowerUp for the service",
+             OSCPMOUSE / "04-enumeration.md"),
+            ("ch-05", "05", "Privilege escalation", "Users:(M) + DC/RP/DT → <code>binPath</code>",
+             OSCPMOUSE / "05-privilege-escalation.md"),
+            ("ch-06", "06", "Loot &amp; admin shell", "proof.txt, token filtering, WinRM over 5986",
+             OSCPMOUSE / "06-loot-and-admin-shell.md"),
+            ("ch-07", "07", "Cleanup &amp; lessons", "Restore the service; what found what",
+             OSCPMOUSE / "07-cleanup-and-lessons.md"),
         ] + REFERENCE,
     },
 ]

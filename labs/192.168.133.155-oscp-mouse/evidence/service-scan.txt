@@ -1,0 +1,44 @@
+# nmap -Pn -n -sS -sC -sV -p 80,5986,7680,9099,9999,35913 -T4 192.168.133.155
+# nmap 7.99 — Mon Nov 23 20:06:41 2026
+# Port table and banner evidence, extracted from the XML; no credentials.
+
+Host is up (up).
+
+PORT      STATE  SERVICE      VERSION
+80/tcp    open   http         Microsoft IIS httpd 10.0
+5986/tcp  open   wsmans       
+7680/tcp  open   pando-pub    
+9099/tcp  open   unknown      
+9999/tcp  open   abyss        
+35913/tcp open                
+
+Service scripts / banners:
+
+80/tcp  http-methods
+  Potentially risky methods: TRACE
+
+80/tcp  http-title
+  IIS Windows
+
+80/tcp  http-server-header
+  Microsoft-IIS/10.0
+
+5986/tcp  ssl-cert
+  Subject: commonName=Cloudbase-Init WinRM
+  Not valid before: 2026-11-23T04:07:57
+  Not valid after:  2036-11-21T04:07:57
+
+5986/tcp  tls-alpn
+  h2
+    http/1.1
+
+5986/tcp  ssl-date
+  2026-11-24T04:13:39+00:00; +3m22s from scanner time.
+
+9099/tcp  fingerprint-strings
+  FourOhFourRequest, GetRequest, NCP, SSLSessionReq: 
+      HTTP/1.0 200 OK 
+      Server: Mobile Mouse Server 
+      Content-Type: text/html 
+      Content-Length: 321
+      <HTML><HEAD><TITLE>Success!</TITLE><meta name="viewport" content="width=device-width,user-scalable=no" /></HEAD><BODY BGCOLOR=#000000><br><br><p style="font:12pt arial,geneva,sans-serif; text-align:center; color:green; font-weight:bold;" >The server running on "OSCP" was able to receive your request.</p></BODY></HTML>
