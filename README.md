@@ -7,6 +7,13 @@ chapter progress and search. Built from the markdown in this repo by [`build.py`
 regenerate with `python3 build.py`. The root `index.html` is a one-line redirect to `main.html` so
 the GitHub Pages URL keeps working.
 
+**Notes page: <https://av10v.github.io/OSCP/notes.html>** — six collapsible paste boxes
+(AD SET MS01/MS02/DC01, Linux 1, Linux 2, Windows 1 and two renameable extra slots), each at least
+15 lines tall. Pressing Save commits the text to [`notes.json`](notes.json) through the GitHub
+contents API from the browser, so the same notes load on any other machine. The token is a
+fine-grained PAT (this repo, Contents: read and write) and is kept only in that browser's
+localStorage; reads need no token on a public repo.
+
 Step-by-step documentation of my OSCP lab machines: every command as executed, why it was
 chosen, the raw output, and what it told me. Written as I work, not retrofitted afterwards.
 
@@ -199,6 +206,8 @@ OSCP/
 ├── README.md                     # this file
 ├── main.html                     # lab index: picker + one card per lab (generated)
 ├── index.html                    # redirect -> main.html (GitHub Pages root)
+├── notes.html                    # scratch notes: six paste boxes, saves to notes.json
+├── notes.json                    # notes content (written by notes.html via the API)
 ├── build.py                      # markdown -> main.html + one page per lab
 ├── docs/
 │   ├── methodology.md

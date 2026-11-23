@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "updatedAt": null,
+  "panels": [
+    {
+      "id": "ad",
+      "title": "AD SET MS01, MS02, DC01",
+      "text": "",
+      "updatedAt": null,
+      "custom": false
+    },
+    {
+      "id": "linux1",
+      "title": "Linux 1",
+      "text": "",
+      "updatedAt": null,
+      "custom": false
+    },
+    {
+      "id": "linux2",
+      "title": "Linux 2",
+      "text": "",
+      "updatedAt": null,
+      "custom": false
+    },
+    {
+      "id": "win1",
+      "title": "Windows 1",
+      "text": "",
+      "updatedAt": null,
+      "custom": false
+    },
+    {
+      "id": "extra1",
+      "title": "Additional 1",
+      "text": "",
+      "updatedAt": null,
+      "custom": true
+    },
+    {
+      "id": "extra2",
+      "title": "Additional 2",
+      "text": "",
+      "updatedAt": null,
+      "custom": true
+    }
+  ]
+}
