@@ -26,6 +26,7 @@ LABS_DIR = ROOT / "labs"
 KIERO = LABS_DIR / "192.168.245.149-kiero"
 T4S = LABS_DIR / "192.168.237.150-text4shell"
 AD = LABS_DIR / "ad-oscp-exam"
+MS02 = LABS_DIR / "ad-oscp-ms02"
 GUST = LABS_DIR / "192.168.137.151-gust"
 WINSNMP = LABS_DIR / "192.168.103.145-snmp-mouse"
 GITEXP = LABS_DIR / "192.168.161.144-git-exposure"
@@ -242,6 +243,77 @@ LABS = [
             ("ch-05", "05", "Pivot", "chisel into 10.10.118.0/24", AD / "05-pivot.md"),
             ("ch-06", "06", "MS02", "The second hop", AD / "06-ms02.md"),
             ("ch-07", "07", "DC01", "Domain admin and the flag", AD / "07-dc01.md"),
+        ] + REFERENCE,
+    },
+    {
+        "slug": "oscp-exam-ms02",
+        "out": MS02 / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-oscp-exam-ms02",
+        "card": {
+            "status": "warn",
+            "status_text": "in progress",
+            "role": "MS02 → DC01",
+            "summary": "Second pass at <code>oscp.exam</code> with DC01 reachable directly: WinRM as "
+                       "<code>celia.almeda</code>, SQL sysadmin ruled out, zero ACL edges in "
+                       "BloodHound → roast <code>sql_svc</code>.",
+            "tags": ["Server 2019", "Active Directory", "MSSQL", "Kerberoast"],
+            "foot": "MS02 foothold · DC01 open",
+        },
+        "dir": MS02,
+        "dir_rel": "labs/ad-oscp-ms02",
+        "ip": "10.10.152.0/24",
+        "name": "oscp.exam · MS02",
+        "title": "10.10.152.142 — MS02 · OSCP walkthrough",
+        "desc": "Interactive walkthrough of the oscp.exam AD set from a position where DC01 is "
+                "reachable: WinRM foothold, MSSQL ruled out, BloodHound analysis to a single "
+                "Kerberoastable service account.",
+        "ogdesc": "celia.almeda → WinRM → no SeImpersonate, no SQL sysadmin, no ACL edges → "
+                  "Kerberoast sql_svc.",
+        "lede": "The same directory as the earlier AD set, seen from a network where the domain "
+                "controller finally answers directly. Two credentials, four protocols, and every "
+                "local path closed by the token itself — which leaves one stale service account.",
+        "badges": [
+            ("", "Server 2019 · build 19041"),
+            ("", "oscp.exam"),
+            ("warn", "SMB signing off (MS02)"),
+            ("ok", "DC01 direct"),
+            ("warn", "no SeImpersonate"),
+            ("warn", "sysadmin = 0"),
+        ],
+        "meta": [
+            ("Domain", "oscp.exam"),
+            ("MS02", "10.10.152.142"),
+            ("DC01", "10.10.152.140"),
+            ("Domain SID", "…-2610934713-1581164095-2706428072"),
+            ("Access", "WinRM · celia.almeda"),
+            ("Result", "MS02 foothold"),
+        ],
+        "flags": [],
+        "chain": [
+            ("01", "Recon", "no shares, <code>signing:False</code>", "#ch-01"),
+            ("02", "WinRM", "<code>celia.almeda</code>, medium integrity", "#ch-02"),
+            ("03", "MSSQL", "two logins, <code>sysadmin = 0</code>", "#ch-03"),
+            ("04", "Domain", "DC01 direct, <code>Users</code> share", "#ch-04"),
+            ("05", "Graph", "zero outbound ACEs", "#ch-05"),
+            ("06", "Ruled out", "seven paths, closed with evidence", "#ch-06"),
+            ("07", "Next", "roast <code>sql_svc</code>", "#ch-07"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "Same directory, new network position",
+             MS02 / "01-reconnaissance.md"),
+            ("ch-02", "02", "Foothold", "WinRM, and the token that proves nothing",
+             MS02 / "02-foothold.md"),
+            ("ch-03", "03", "MSSQL", "Two logins, <code>sysadmin = 0</code>",
+             MS02 / "03-mssql.md"),
+            ("ch-04", "04", "Domain reconnaissance", "DC01 direct, and a Kerberoast that did not run",
+             MS02 / "04-domain-recon.md"),
+            ("ch-05", "05", "BloodHound", "Zero outbound edges, and one stale service account",
+             MS02 / "05-bloodhound.md"),
+            ("ch-06", "06", "What is ruled out", "Seven paths, each closed with evidence",
+             MS02 / "06-ruled-out.md"),
+            ("ch-07", "07", "Next actions", "Why <code>sql_svc</code>, and what runs next",
+             MS02 / "07-next-actions.md"),
         ] + REFERENCE,
     },
     {

