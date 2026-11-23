@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-24T07:31:05.778Z",
+  "updatedAt": "2026-11-24T07:36:53.343Z",
   "panels": [
     {
       "id": "ad",
       "title": "AD SET MS01, MS02, DC01",
-      "text": "[2026-11-24T07:04:07Z INFO  hackerai_desktop_lib] HackerAI Desktop initialized\n\n",
-      "updatedAt": "2026-11-24T07:31:05.778Z",
+      "text": "MS01 \nexport KALI=192.168.45.158\nexport TARGET=192.168.133.153\nexport DC=10.10.133.152\nexport DOMAIN=oscp.exam\nexport NETBIOS=OSCP\nexport USER=Eric.Wallows\nexport PASS=EricLikesRunning800",
+      "updatedAt": "2026-11-24T07:36:53.343Z",
       "custom": false,
       "pending": false
     },
