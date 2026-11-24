@@ -34,6 +34,7 @@ GITEXP = LABS_DIR / "192.168.161.144-git-exposure"
 AERO = LABS_DIR / "192.168.150.143-aerospike-screen"
 OSCPMOUSE = LABS_DIR / "192.168.133.155-oscp-mouse"
 VESTA = LABS_DIR / "192.168.161.156-vesta-snmp"
+CHARLIE = LABS_DIR / "192.168.161.157-charlie"
 
 # Lab index: one card per lab, plus a select that redirects to that lab page.
 # main.html is the entry point; index.html is a redirect so the Pages root keeps working.
@@ -822,6 +823,80 @@ LABS = [
              VESTA / "07-flags-and-cleanup.md"),
         ] + REFERENCE,
     },
+    {
+        "slug": "charlie",
+        "out": CHARLIE / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-charlie",
+        "card": {
+            "status": "ok",
+            "status_text": "owned",
+            "summary": "Anonymous FTP leaks document authors → case-flipped password → "
+                       "Usermin 1.820 GnuPG RCE → tar wildcard in a root cron → root.",
+            "tags": ["Ubuntu 22.04", "Usermin", "FTP", "tar wildcard"],
+            "foot": "local.txt + proof.txt",
+        },
+        "dir": CHARLIE,
+        "dir_rel": "labs/192.168.161.157-charlie",
+        "ip": "192.168.161.157",
+        "name": "charlie",
+        "title": "192.168.161.157 — charlie · OSCP walkthrough",
+        "desc": "Interactive step-by-step OSCP lab walkthrough: anonymous FTP leaks document "
+                "authors, the password is the username with the case flipped, Usermin 1.820's "
+                "GnuPG module gives code execution, and a bare `*` in a root cron job gives root. "
+                "Full commands, reasoning and raw output.",
+        "ogdesc": "Anonymous FTP → exiftool dc:creator → cassie:cassie → Usermin 1.820 GnuPG "
+                  "RCE → DenyUsers removed → tar --checkpoint-action → root.",
+        "lede": "A box that punishes two assumptions: that MiniServ on port 20000 is Webmin, and "
+                "that a proven-correct SSH key must work. Between them sits a per-user panel whose "
+                "GnuPG module pastes a key name into a shell, and a cron job that runs tar with a "
+                "bare wildcard inside a directory the user owns.",
+        "badges": [
+            ("", "Ubuntu 22.04.1"),
+            ("", "vsftpd 3.0.5 · anon"),
+            ("", "OpenSSH 8.9p1"),
+            ("warn", "Usermin 1.820"),
+            ("warn", "DenyUsers cassie"),
+            ("ok", "root · 2 flags"),
+        ],
+        "meta": [
+            ("Host", "lab-pwk2-…-charlie-240-111"),
+            ("IP", "192.168.161.157"),
+            ("OS", "Ubuntu 22.04.1"),
+            ("TCP", "21, 22, 80, 20000"),
+            ("Result", "root"),
+        ],
+        "flags": [
+            ("local.txt · as cassie", "9c3006bdea469fa32aace984f50acc19"),
+            ("proof.txt · as root", "06fc3530c91d86d66a81d84a116f4eb0"),
+        ],
+        "chain": [
+            ("01", "FTP 21", "anonymous <code>/backup</code> · 5 PDFs", "#ch-02"),
+            ("02", "Metadata", "<code>dc:creator</code> → cassie · mark · robert", "#ch-02"),
+            ("03", "Panel", "Usermin 1.820 · <code>/gnupg/</code>", "#ch-03"),
+            ("04", "RCE", "<code>edit_key.cgi</code> · as cassie", "#ch-04"),
+            ("05", "tar", "<code>/opt/admin</code> · <code>--checkpoint</code>", "#ch-06"),
+            ("06", "root", "<code>proof.txt</code>", "#ch-07"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "Four ports, and the banner that lies",
+             CHARLIE / "01-reconnaissance.md"),
+            ("ch-02", "02", "Anonymous FTP", "Five PDFs, three authors, nine guesses",
+             CHARLIE / "02-anonymous-ftp-and-pdf-metadata.md"),
+            ("ch-03", "03", "Usermin &amp; GnuPG", "The module that pastes a name into a shell",
+             CHARLIE / "03-usermin-and-gnupg.md"),
+            ("ch-04", "04", "Foothold", "Fixing EDB 50234, proving execution without a shell",
+             CHARLIE / "04-foothold.md"),
+            ("ch-05", "05", "SSH denied", "A 91-byte key and a pre-auth deny list",
+             CHARLIE / "05-ssh-denied.md"),
+            ("ch-06", "06", "Privilege escalation", "A bare <code>*</code> in a root cron job",
+             CHARLIE / "06-privilege-escalation.md"),
+            ("ch-07", "07", "Flags &amp; cleanup", "Proof, debris, remediation, lessons",
+             CHARLIE / "07-flags-and-cleanup.md"),
+            ("ch-10", "A", "Appendix", "Every script in full, plus inline payloads",
+             CHARLIE / "08-appendix-scripts.md"),
+        ] + REFERENCE,
+    },
 ]
 
 # markdown filename -> in-page anchor, plus the evidence blob prefix, per machine
@@ -861,7 +936,10 @@ def fix_links(text: str, mach: dict) -> str:
     return re.sub(r'href="([^"]+)"', repl, text)
 
 
-CMD_LANGS = {"bash", "sh", "shell", "console", "zsh", "powershell", "ps1", "ps", "cmd", "bat", "dos"}
+# Fenced blocks rendered as "command" cards with a Copy button. Script languages belong here
+# because a walkthrough script is something you copy and run, not output to read.
+CMD_LANGS = {"bash", "sh", "shell", "console", "zsh", "powershell", "ps1", "ps", "cmd", "bat",
+             "dos", "python", "python3", "py"}
 FENCE = re.compile(r"^```([^\n`]*)\n(.*?)^```\s*$", re.S | re.M)
 FORMATTER = HtmlFormatter(nowrap=True, style="monokai")
 

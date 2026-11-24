@@ -970,7 +970,7 @@ OSCP.EXAM/web_svc:$DCC2$10240#web_svc#130379745455ae62bbf41faa0572f6d3: (2022-11
 <h3>4.4 Triage before cracking</h3>
 <p>A dump mixes local accounts, machine accounts and rotated secrets. Sort it first, so cracking
 time is spent only on material that is actually new:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="ch">#!/usr/bin/env python3</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="ch">#!/usr/bin/env python3</span>
 <span class="sd">"""secrets2hashes.py — secretsdump/mimikatz text -&gt; hashcat files + triage.</span>
 
 <span class="sd">Writes nt.txt (-m 1000), nt_users.txt, dcc2.txt (-m 2100), machine.txt,</span>
@@ -1115,7 +1115,7 @@ finding. The domain <code>Administrator</code> cache did <strong>not</strong> cr
 (dates, seasons, org terms — see the generator below) and a <code>best66</code> rule pass all failed. It is
 dated 2022-11-10 and is a decoy; do not block on it.</p>
 <p>The targeted list, for hashes that resist a plain dictionary:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="ch">#!/usr/bin/env python3</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="ch">#!/usr/bin/env python3</span>
 <span class="sd">"""gen_targeted.py — lab-shaped candidates: Word+Number patterns and dated secrets.</span>
 
 <span class="sd">The image's known passwords are December31, Freedom1, EricLikesRunning800 — all</span>
@@ -1341,7 +1341,7 @@ straight from Kali through the tunnel, with no binary on the target:</p>
 <span class="w">  </span>-ns<span class="w"> </span><span class="m">10</span>.10.133.152<span class="w"> </span>-dc<span class="w"> </span>dc01.oscp.exam<span class="w"> </span>-c<span class="w"> </span>All<span class="w"> </span>--zip
 </pre></div>
 <p>Then resolve it — SIDs, group membership, ACL edges, and the collection gaps:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="ch">#!/usr/bin/env python3</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="ch">#!/usr/bin/env python3</span>
 <span class="sd">"""enum_bh.py — enumerate bloodhound/SharpHound JSON without Neo4j.</span>
 
 <span class="sd">Resolves SIDs to names, separates AD-default ACL scaffolding from real edges,</span>

