@@ -1,18 +1,24 @@
 # OSCP Lab Walkthroughs
 
-**▶ Interactive site: <https://av10v.github.io/OSCP/>** — [`main.html`](main.html) is the lab index:
-pick a lab from the dropdown or a card and it opens that lab's walkthrough. Every lab has its own
-self-contained page under [`labs/`](labs/) with collapsible sections, copy-to-clipboard commands,
-chapter progress and search. Built from the markdown in this repo by [`build.py`](build.py);
-regenerate with `python3 build.py`. The root `index.html` is a one-line redirect to `main.html` so
-the GitHub Pages URL keeps working.
+**▶ Open [`main.html`](main.html) from a local clone** — the lab index: pick a lab from the dropdown
+or a card and it opens that lab's walkthrough. Every lab has its own self-contained page under
+[`labs/`](labs/) with collapsible sections, copy-to-clipboard commands, chapter progress and search.
+Built from the markdown in this repo by [`build.py`](build.py); regenerate with `python3 build.py`.
+The root `index.html` redirects to `main.html` for anyone who opens the folder root.
 
-**Notes page: <https://av10v.github.io/OSCP/notes.html>** — six collapsible paste boxes
-(AD SET MS01/MS02/DC01, Linux 1, Linux 2, Windows 1 and two renameable extra slots), each at least
-15 lines tall. Pressing Save commits the text to [`notes.json`](notes.json) through the GitHub
-contents API from the browser, so the same notes load on any other machine. The token is a
-fine-grained PAT (this repo, Contents: read and write) and is kept only in that browser's
-localStorage; reads need no token on a public repo.
+Nothing here is published to the internet — the repository is private and GitHub Pages is
+disabled, so these pages are only readable from a local copy.
+
+**Notes page: [`notes.html`](notes.html)** — six collapsible paste boxes (AD SET MS01/MS02/DC01,
+Linux 1, Linux 2, Windows 1 and two renameable extra slots), each at least 15 lines tall. Pressing
+Save commits the text to [`notes.json`](notes.json) through the GitHub contents API straight from
+the browser.
+
+This repository is **private**, so the page is not published anywhere: open `notes.html` from a local
+clone (double-click it, or `python3 -m http.server` in the repo root) and paste a fine-grained PAT
+with *Contents: Read and write* into the page settings. Reading and saving both need that token; it
+is stored only in that browser's localStorage. A GitHub Pages site cannot be used here, because a
+Pages site is reachable from the internet even when the repository is private.
 
 Step-by-step documentation of my OSCP lab machines: every command as executed, why it was
 chosen, the raw output, and what it told me. Written as I work, not retrofitted afterwards.
@@ -186,8 +192,8 @@ python3 build.py                   # main.html + one page per lab
 
 Each entry in `LABS` (top of `build.py`) renders its markdown into a self-contained page at
 `labs/<dir>/index.html`. The root **`main.html`** is the entry point: a lab picker that redirects to
-those pages, plus a card per lab; `index.html` is a redirect to it for the Pages root. The generated
-HTML is committed, so GitHub Pages needs no build step. Edit the markdown, not the HTML.
+those pages, plus a card per lab; `index.html` is a redirect to it for the folder root. The generated
+HTML is committed, so a clone is ready to read with no build step. Edit the markdown, not the HTML.
 
 Adding a lab means: create `labs/<name>/` with `README.md` + numbered chapters, add one `LABS` entry
 in `build.py`, then run `python3 build.py`. The build warns if a folder under `labs/` is not listed.
@@ -205,7 +211,7 @@ in `build.py`, then run `python3 build.py`. The build warns if a folder under `l
 OSCP/
 ├── README.md                     # this file
 ├── main.html                     # lab index: picker + one card per lab (generated)
-├── index.html                    # redirect -> main.html (GitHub Pages root)
+├── index.html                    # redirect -> main.html (local folder root)
 ├── notes.html                    # scratch notes: six paste boxes, saves to notes.json
 ├── notes.json                    # notes content (written by notes.html via the API)
 ├── build.py                      # markdown -> main.html + one page per lab

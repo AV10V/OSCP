@@ -184,7 +184,7 @@ textarea:focus{border-color:#2f6f4a; box-shadow:0 0 0 3px rgba(63,185,80,.10)}
     <button id="btnCfgSave" class="btn primary">Save settings</button>
     <button id="btnCfgTest" class="btn">Test connection</button>
     <button id="btnCfgForget" class="btn danger">Forget token</button>
-    <span class="note">The token stays in this browser (localStorage) and is sent only to api.github.com. Reading works without a token when the repo is public.</span>
+    <span class="note">The token stays in this browser (localStorage) and is sent only to api.github.com. This repo is private, so <b>both reading and saving need it</b>.</span>
   </div>
 </section>
 
@@ -479,7 +479,8 @@ async function errMsg(r){
   try { const j = await r.json(); m = j.message || ''; } catch (_) {}
   if (r.status === 401) return 'token invalid or expired (401) — paste a new one in ⚙';
   if (r.status === 403) return 'permission denied or rate-limited (403)' + (m ? ' — ' + m : '');
-  if (r.status === 404) return 'not found (404) — check repo, branch and file path';
+  if (r.status === 404) return 'not found (404) — private repo without a valid token, or wrong repo/path';
+  if (r.status === 451) return 'repository unavailable (451) — check the token\u2019s repository access';
   if (r.status === 409) return 'edit conflict (409)';
   if (r.status === 422) return 'rejected (422)' + (m ? ' — ' + m : '');
   return 'HTTP ' + r.status + (m ? ' — ' + m : '');
@@ -549,8 +550,13 @@ async function pull(manual){
   try {
     const r = await ghGet();
     if (!r.exists){
-      setStatus(state.cfg.token ? 'no file yet — first save creates it' : 'local only · no token', 'warn');
-      if (manual) toast('notes.json is not in the repo yet — the first Save creates it', 'warn');
+      if (!state.cfg.token){
+        setStatus('private repo — add a token (\u2699)', 'warn');
+        if (manual) toast('This repository is private: a token is required to read it', 'warn');
+      } else {
+        setStatus('no notes.json yet — first save creates it', 'warn');
+        if (manual) toast('notes.json is not in the repo yet — the first Save creates it', 'warn');
+      }
       return;
     }
     const remote = normDoc(JSON.parse(r.text || '{}'));
@@ -575,8 +581,8 @@ async function pull(manual){
   } catch (err){
     console.warn(err);
     const m = String(err.message || '');
-    const badToken = m.indexOf('401') >= 0 || m.indexOf('token') >= 0;
-    setStatus(badToken ? 'token rejected — check ⚙' : 'offline — showing this browser’s copy', 'err');
+    const badToken = m.indexOf('401') >= 0 || m.indexOf('token') >= 0 || m.indexOf('404') >= 0;
+    setStatus(badToken ? 'no access — check token in ⚙' : 'offline — showing this browser’s copy', 'err');
     if (manual) toast('Reload failed: ' + err.message, 'err');
   }
 }
@@ -762,7 +768,8 @@ function boot(){
   fillSettings();
   updateFooter();
 
-  setStatus(state.cfg.token ? 'loading…' : 'local only · no token', state.cfg.token ? 'busy' : 'warn');
+  if (!state.cfg.token) $('#settings').hidden = false;   // private repo: token first
+  setStatus(state.cfg.token ? 'loading…' : 'private repo — add a token (\u2699)', state.cfg.token ? 'busy' : 'warn');
   pull(false);
 }
 
