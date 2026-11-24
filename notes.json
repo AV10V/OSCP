@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-24T00:01:58.411Z",
+  "updatedAt": "2026-11-24T07:39:15.856Z",
   "panels": [
     {
       "id": "ad",
       "title": "AD SET MS01, MS02, DC01",
-      "text": "",
-      "updatedAt": "2026-11-24T00:01:58.411Z",
+      "text": "MS01 \nexport KALI=192.168.45.158\nexport TARGET=192.168.133.153\nexport DC=10.10.133.152\nexport DOMAIN=oscp.exam\nexport NETBIOS=OSCP\nexport USER=Eric.Wallows\nexport PASS=EricLikesRunning800",
+      "updatedAt": "2026-11-24T07:39:15.856Z",
       "custom": false,
       "pending": false
     },
