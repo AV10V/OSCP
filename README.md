@@ -1,24 +1,11 @@
 # OSCP Lab Walkthroughs
 
-**▶ Open [`main.html`](main.html) from a local clone** — the lab index: pick a lab from the dropdown
-or a card and it opens that lab's walkthrough. Every lab has its own self-contained page under
-[`labs/`](labs/) with collapsible sections, copy-to-clipboard commands, chapter progress and search.
-Built from the markdown in this repo by [`build.py`](build.py); regenerate with `python3 build.py`.
-The root `index.html` redirects to `main.html` for anyone who opens the folder root.
-
-Nothing here is published to the internet — the repository is private and GitHub Pages is
-disabled, so these pages are only readable from a local copy.
-
-**Notes page: [`notes.html`](notes.html)** — six collapsible paste boxes (AD SET MS01/MS02/DC01,
-Linux 1, Linux 2, Windows 1 and two renameable extra slots), each at least 15 lines tall. Pressing
-Save commits the text to [`notes.json`](notes.json) through the GitHub contents API straight from
-the browser.
-
-This repository is **private**, so the page is not published anywhere: open `notes.html` from a local
-clone (double-click it, or `python3 -m http.server` in the repo root) and paste a fine-grained PAT
-with *Contents: Read and write* into the page settings. Reading and saving both need that token; it
-is stored only in that browser's localStorage. A GitHub Pages site cannot be used here, because a
-Pages site is reachable from the internet even when the repository is private.
+**▶ Live site: <https://av10v.github.io/OSCP/>** — [`main.html`](main.html) is the lab index:
+pick a lab from the dropdown or a card and it opens that lab's walkthrough. Every lab has its own
+self-contained page under [`labs/`](labs/) with collapsible sections, copy-to-clipboard commands,
+chapter progress and search. Built from the markdown in this repo by [`build.py`](build.py);
+regenerate with `python3 build.py`. The root `index.html` is a one-line redirect to `main.html` so
+the GitHub Pages URL keeps working. You can also open `main.html` from a local clone.
 
 Step-by-step documentation of my OSCP lab machines: every command as executed, why it was
 chosen, the raw output, and what it told me. Written as I work, not retrofitted afterwards.
@@ -212,8 +199,6 @@ OSCP/
 ├── README.md                     # this file
 ├── main.html                     # lab index: picker + one card per lab (generated)
 ├── index.html                    # redirect -> main.html (local folder root)
-├── notes.html                    # scratch notes: six paste boxes, saves to notes.json
-├── notes.json                    # notes content (written by notes.html via the API)
 ├── build.py                      # markdown -> main.html + one page per lab
 ├── docs/
 │   ├── methodology.md
