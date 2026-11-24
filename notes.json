@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-24T07:37:59.142Z",
+  "updatedAt": "2026-11-24T00:01:58.411Z",
   "panels": [
     {
       "id": "ad",
       "title": "AD SET MS01, MS02, DC01",
-      "text": "MS01 \nexport KALI=192.168.45.158\nexport TARGET=192.168.133.153\nexport DC=10.10.133.152\nexport DOMAIN=oscp.exam\nexport NETBIOS=OSCP\nexport USER=Eric.Wallows\nexport PASS=EricLikesRunning800",
-      "updatedAt": "2026-11-24T07:37:59.142Z",
+      "text": "",
+      "updatedAt": "2026-11-24T00:01:58.411Z",
       "custom": false,
       "pending": false
     },
@@ -14,7 +14,7 @@
       "id": "linux1",
       "title": "Linux 1",
       "text": "",
-      "updatedAt": "2026-11-24T07:37:53.903Z",
+      "updatedAt": "2026-11-24T00:01:58.411Z",
       "custom": false,
       "pending": false
     },
@@ -22,7 +22,7 @@
       "id": "linux2",
       "title": "Linux 2",
       "text": "",
-      "updatedAt": "2026-11-24T07:37:53.903Z",
+      "updatedAt": "2026-11-24T00:01:58.411Z",
       "custom": false,
       "pending": false
     },
@@ -30,7 +30,7 @@
       "id": "win1",
       "title": "Windows 1",
       "text": "",
-      "updatedAt": "2026-11-24T07:37:53.903Z",
+      "updatedAt": "2026-11-24T00:01:58.411Z",
       "custom": false,
       "pending": false
     },
@@ -38,7 +38,7 @@
       "id": "extra1",
       "title": "Additional 1",
       "text": "",
-      "updatedAt": "2026-11-24T07:37:53.903Z",
+      "updatedAt": "2026-11-24T00:01:58.411Z",
       "custom": true,
       "pending": false
     },
@@ -46,7 +46,7 @@
       "id": "extra2",
       "title": "Additional 2",
       "text": "",
-      "updatedAt": "2026-11-24T07:37:53.903Z",
+      "updatedAt": "2026-11-24T00:01:58.411Z",
       "custom": true,
       "pending": false
     }
