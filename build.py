@@ -27,6 +27,7 @@ KIERO = LABS_DIR / "192.168.245.149-kiero"
 T4S = LABS_DIR / "192.168.237.150-text4shell"
 AD = LABS_DIR / "ad-oscp-exam"
 MS02 = LABS_DIR / "ad-oscp-ms02"
+ADCOMPLETE = LABS_DIR / "ad-oscp-exam-complete"
 GUST = LABS_DIR / "192.168.137.151-gust"
 WINSNMP = LABS_DIR / "192.168.103.145-snmp-mouse"
 GITEXP = LABS_DIR / "192.168.161.144-git-exposure"
@@ -315,6 +316,80 @@ LABS = [
              MS02 / "06-ruled-out.md"),
             ("ch-07", "07", "Next actions", "Why <code>sql_svc</code>, and what runs next",
              MS02 / "07-next-actions.md"),
+        ] + REFERENCE,
+    },
+    {
+        "slug": "oscp-exam-ad",
+        "out": ADCOMPLETE / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-oscp-exam-ad",
+        "card": {
+            "status": "ok",
+            "status_text": "complete",
+            "role": "MS01 \u2192 MS02 \u2192 DC01",
+            "summary": "The whole AD set end to end: SYSTEM on MS01, the NL$ cache cracked to "
+                       "<code>web_svc</code>, a ligolo tunnel into <code>10.10.133.0/24</code>, "
+                       "<code>sql_svc</code> kerberoast \u2192 MSSQL \u2192 stale hives \u2192 "
+                       "<code>tom_admin</code> \u2192 DC01.",
+            "tags": ["Active Directory", "Kerberoast", "MSSQL", "SeImpersonate", "ligolo"],
+            "foot": "DC01 proof.txt \u00b7 Domain Admins",
+        },
+        "dir": ADCOMPLETE,
+        "dir_rel": "labs/ad-oscp-exam-complete",
+        "ip": "10.10.133.0/24",
+        "name": "oscp.exam AD",
+        "title": "oscp.exam \u2014 AD complete: MS01 \u2192 MS02 \u2192 DC01 \u00b7 OSCP walkthrough",
+        "desc": "Complete OSCP Active Directory walkthrough: WinRM foothold, SeImpersonate to SYSTEM, "
+                "NL$ cache cracking, a ligolo-ng pivot, sql_svc kerberoast, MSSQL xp_cmdshell, stale "
+                "windows.old hives and pass-the-hash to the domain controller. Full commands and scripts.",
+        "ogdesc": "MS01 SYSTEM \u2192 NL$ cache \u2192 web_svc \u2192 ligolo \u2192 sql_svc kerberoast \u2192 "
+                   "MSSQL \u2192 windows.old hives \u2192 tom_admin \u2192 DC01 proof.txt.",
+        "lede": "A domain behind a dual-homed member server, taken end to end. The interesting part is "
+                "not the SYSTEM shell \u2014 it is what a member server keeps on disk: a cached domain "
+                "credential, and a previous Windows build whose local accounts were never retired.",
+        "badges": [
+            ("", "Server 2019 \u00b7 build 19041"),
+            ("", "oscp.exam"),
+            ("warn", "SMB signing off"),
+            ("ok", "MS01 SYSTEM"),
+            ("ok", "MSSQL sysadmin"),
+            ("ok", "Domain Admins \u00b7 flag"),
+        ],
+        "meta": [
+            ("Domain", "oscp.exam"),
+            ("MS01", "10.10.133.153"),
+            ("MS02", "10.10.133.154"),
+            ("DC01", "10.10.133.152"),
+            ("Pivot", "ligolo-ng"),
+            ("Result", "Domain Admins"),
+        ],
+        "flags": [
+            ("proof.txt \u00b7 as tom_admin", "captured \u2014 see chapter 07"),
+        ],
+        "chain": [
+            ("01", "Recon", "one routable host, two networks", "#ch-01"),
+            ("02", "WinRM", "<code>OSCP\\eric.wallows</code>", "#ch-02"),
+            ("03", "SYSTEM", "<code>SeImpersonate</code> \u2192 SYSTEM", "#ch-03"),
+            ("04", "NL$ cache", "<code>web_svc:Diamond1</code>", "#ch-04"),
+            ("05", "Pivot", "ligolo \u2192 <code>10.10.133.0/24</code>", "#ch-05"),
+            ("06", "MS02", "kerberoast \u2192 MSSQL \u2192 hives", "#ch-06"),
+            ("07", "DC01", "<code>tom_admin</code> \u2192 <code>proof.txt</code>", "#ch-07"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "One routable host, two networks",
+             ADCOMPLETE / "01-reconnaissance.md"),
+            ("ch-02", "02", "Foothold", "WinRM as eric.wallows",
+             ADCOMPLETE / "02-foothold.md"),
+            ("ch-03", "03", "Privilege escalation", "SeImpersonate to SYSTEM, in detail",
+             ADCOMPLETE / "03-privilege-escalation.md"),
+            ("ch-04", "04", "Credentials", "LSASS, the NL$ cache, and web_svc",
+             ADCOMPLETE / "04-credentials.md"),
+            ("ch-05", "05", "Pivot", "ligolo-ng into 10.10.133.0/24",
+             ADCOMPLETE / "05-pivot.md"),
+            ("ch-06", "06", "MS02", "Kerberoast, MSSQL, and the stale hives",
+             ADCOMPLETE / "06-ms02.md"),
+            ("ch-07", "07", "DC01", "tom_admin, the flag, and what is proved",
+             ADCOMPLETE / "07-dc01.md"),
         ] + REFERENCE,
     },
     {
