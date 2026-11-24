@@ -33,6 +33,7 @@ WINSNMP = LABS_DIR / "192.168.103.145-snmp-mouse"
 GITEXP = LABS_DIR / "192.168.161.144-git-exposure"
 AERO = LABS_DIR / "192.168.150.143-aerospike-screen"
 OSCPMOUSE = LABS_DIR / "192.168.133.155-oscp-mouse"
+VESTA = LABS_DIR / "192.168.161.156-vesta-snmp"
 
 # Lab index: one card per lab, plus a select that redirects to that lab page.
 # main.html is the entry point; index.html is a redirect so the Pages root keeps working.
@@ -748,6 +749,77 @@ LABS = [
              OSCPMOUSE / "06-loot-and-admin-shell.md"),
             ("ch-07", "07", "Cleanup &amp; lessons", "Restore the service; what found what",
              OSCPMOUSE / "07-cleanup-and-lessons.md"),
+        ] + REFERENCE,
+    },
+    {
+        "slug": "vesta-snmp",
+        "out": VESTA / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-vesta-snmp",
+        "card": {
+            "status": "ok",
+            "status_text": "owned",
+            "summary": "UDP/161 SNMP extend publishes a cleartext panel password → VestaCP 0.9.8-27 "
+                       "→ mailbox forwarding field runs as root.",
+            "tags": ["Ubuntu 18.04", "SNMP", "VestaCP", "Command Injection"],
+            "foot": "local.txt + proof.txt",
+        },
+        "dir": VESTA,
+        "dir_rel": "labs/192.168.161.156-vesta-snmp",
+        "ip": "192.168.161.156",
+        "name": "vesta",
+        "title": "192.168.161.156 — vesta · OSCP walkthrough",
+        "desc": "Interactive step-by-step OSCP lab walkthrough: an SNMP extend entry that publishes "
+                "a cleartext panel password, then a VestaCP mailbox forwarding field that executes as "
+                "root. Full commands, reasoning and raw output.",
+        "ogdesc": "UDP/161 nsExtendConfigTable → jack's password → VestaCP 0.9.8-27 → v_fwd "
+                  "injection → root.",
+        "lede": "A hosting server with sixteen TCP ports, a full mail stack and a control panel — "
+                "and an entry point on a UDP port nobody scans. The host publishes its own password "
+                "in the SNMP MIB, and the panel then runs an unprivileged user's mailbox forwarding "
+                "address as root.",
+        "badges": [
+            ("", "Ubuntu 18.04"),
+            ("", "Exim 4.90_1 · Dovecot"),
+            ("", "VestaCP 0.9.8-27"),
+            ("warn", "udp/161 snmpd public"),
+            ("warn", "v_fwd → sudo"),
+            ("ok", "root · 2 flags"),
+        ],
+        "meta": [
+            ("Host", "lab-pwk2-student-cl6-156"),
+            ("IP", "192.168.161.156"),
+            ("OS", "Ubuntu 18.04 LTS"),
+            ("TCP", "21, 22, 25, 53, 80, 110, 143, 465, 587, 993, 995, 2525, 3306, 8080, 8083, 8443"),
+            ("UDP", "53, 161"),
+            ("Result", "root"),
+        ],
+        "flags": [
+            ("local.txt · as jack", "9cfca959e54738e70905a4024d16a44a"),
+            ("proof.txt · as root", "d4640a77ca31e0ab126751f98e819888"),
+        ],
+        "chain": [
+            ("01", "UDP 161", "snmpd · community <code>public</code>", "#ch-01"),
+            ("02", "Extend leak", "<code>nsExtendConfigTable</code> → <code>jack:3PUKs…</code>", "#ch-03"),
+            ("03", "Panel", "0.9.8-27 · session token", "#ch-04"),
+            ("04", "Upload", "webshell in <code>public_html</code> as jack", "#ch-05"),
+            ("05", "v_fwd", "<code>sudo v-edit-mail-account</code>", "#ch-06"),
+            ("06", "root", "<code>proof.txt</code>", "#ch-07"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "Sixteen TCP ports, and the UDP one that mattered",
+             VESTA / "01-reconnaissance.md"),
+            ("ch-02", "02", "Web enumeration", "Two servers, one panel, one false positive",
+             VESTA / "02-web-enumeration.md"),
+            ("ch-03", "03", "SNMP", "The host publishes its own password", VESTA / "03-snmp.md"),
+            ("ch-04", "04", "Panel access", "A session, and what a session is worth",
+             VESTA / "04-panel-access.md"),
+            ("ch-05", "05", "Foothold", "File write into a docroot, execution as the vhost user",
+             VESTA / "05-foothold.md"),
+            ("ch-06", "06", "Privilege escalation", "A forwarding address that runs as root",
+             VESTA / "06-privilege-escalation.md"),
+            ("ch-07", "07", "Flags &amp; cleanup", "Proof, debris, remediation, lessons",
+             VESTA / "07-flags-and-cleanup.md"),
         ] + REFERENCE,
     },
 ]

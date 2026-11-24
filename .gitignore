@@ -30,3 +30,10 @@ pass.txt
 
 # Aerospike client drops a copy of the registered UDF in the cwd
 *_poc.lua
+
+# local build venv
+.venv/
+
+# python bytecode
+__pycache__/
+*.pyc
