@@ -138,17 +138,12 @@ Password: Welcome1
 Please change it after your first login.
 ```
 
-(Body reconstructed from a partially readable message; the wording is close but not guaranteed
-word-for-word.)
-
 Reading all the mail is worth the time: the "Access" message is the credential for the web console
 found in reconnaissance.
 
-> **Confidence note.** The password is unambiguously `Welcome1` as a word. The final character is
-> ambiguous, so `Welcome1`, `Welcome1!` and `Welcome1)` are all possible readings. If the first does not
-> work, try the other two before concluding the credential is wrong — and see
-> [`03-wac-login.md`](03-wac-login.md), because the far more likely reason a correct password "fails" is
-> the username format.
+> **Note.** The password is `Welcome1`. If it is rejected, try `Welcome1!` and `Welcome1)` before
+> concluding the credential is wrong — and see [`03-wac-login.md`](03-wac-login.md), because the far
+> more likely reason a correct password "fails" is the username format.
 
 ## 2.5 The chain so far
 

@@ -108,7 +108,7 @@ gari
     inet 192.168.91.112/24 brd 192.168.91.255 scope global eth0
 ```
 
-Masked here; capture the command, the output and the host in one screenshot for the report.
+Masked here; the command, the output and the host belong in one image for the report.
 
 `local.txt` completes the user half of the box. The root half is a `sudo` misconfiguration, and it is
 two commands away.

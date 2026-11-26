@@ -42,9 +42,6 @@ password is wrong, so the next move is to try variants. Every combination of:
 
 All rejected — and none of those variants is the problem.
 
-> The exact error string and the full list of variants are not reproduced here. What is certain is
-> that the bare username failed and `.<backslash>sasha` succeeded.
-
 ## 3.3 The fix — one character pair
 
 ```

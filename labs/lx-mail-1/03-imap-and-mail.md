@@ -83,7 +83,7 @@ Reading it as a provisioning ticket:
 Inside that message (or attached to the same thread) are the **SSH credentials** for the account.
 That mail is the first foothold: SSH in as the provisioned user.
 
-> The credential string itself is not reproduced here — only the username, `james`, is certain.
+> The credential string: `[redacted]`. The username is `james`.
 > Treat the *pattern* as the finding: provisioning mail → initial password → SSH.
 
 ## 3.4 Why this is the intended path

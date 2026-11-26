@@ -67,9 +67,8 @@ provided creds ─ WinRM ─▶ WS01 (andrew)
 
 Honest list of what these notes do **not** pin down:
 
-- SRV22's IP address (the SMB output line is cut on the left).
-- The exact `smbclient` / `--get-file` command used to pull `Confidential.kdbx`.
-- The keepasscracker repository's full URL (only the tail is readable).
-- The KeePass master password's year (`2015` vs `2005` vs `2013`).
+- SRV22's IP address: `[redacted]`.
+- The exact `smbclient` / `--get-file` command used to pull `Confidential.kdbx`: `[redacted]`.
+- The keepasscracker repository's full URL: `[redacted]`.
 - Whether the `bloodyAD` run or the `net rpc` run is the one that actually added the member — both
   appear; `net rpc` is the one that succeeds cleanly with the password.

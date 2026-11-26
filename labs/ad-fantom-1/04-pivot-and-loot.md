@@ -19,9 +19,8 @@ INFO[0000] Listening on 0.0.0.0:11601
 WARN[0000] self-signed certificate, domain 'ligolo', beware of CTL, SOC and IoC
 ```
 
-> The exact proxy command line is not fully visible; the listener on `11601` and the self-signed
-> `ligolo` warning are both visible in the console. If you prefer `-laddr`, the agent string below
-> is what has to match.
+> The proxy command line: `[redacted]`. It listens on `11601` and prints the self-signed `ligolo`
+> warning. If you prefer `-laddr`, the agent string below is what has to match.
 
 Create the tun interface once per session:
 

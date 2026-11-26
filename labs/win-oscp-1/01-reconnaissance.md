@@ -81,8 +81,8 @@ feroxbuster -u https://192.168.91.111 -k \
   -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
 ```
 
-Expect `/powershell` to answer with a redirect to `/powershell/` and a login form. (Reconstructed
-command — not part of the original attempt.)
+Expect `/powershell` to answer with a redirect to `/powershell/` and a login form. (Suggested
+command — not run in this attempt.)
 
 ## 1.4 SMB in one line
 

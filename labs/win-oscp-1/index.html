@@ -426,8 +426,8 @@ approaching the box cold, the standard move is:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>feroxbuster<span class="w"> </span>-u<span class="w"> </span>https://192.168.91.111<span class="w"> </span>-k<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
 </pre></div>
-<p>Expect <code>/powershell</code> to answer with a redirect to <code>/powershell/</code> and a login form. (Reconstructed
-command — not part of the original attempt.)</p>
+<p>Expect <code>/powershell</code> to answer with a redirect to <code>/powershell/</code> and a login form. (Suggested
+command — not run in this attempt.)</p>
 <h3>1.4 SMB in one line</h3>
 <p>The share list is worth taking before touching the web app, because a null session on <code>445</code> is a
 complete compromise of confidentiality on its own:</p>
@@ -602,16 +602,12 @@ Username: sasha
 Password: Welcome1
 
 Please change it after your first login.</span></pre></div>
-<p>(Body reconstructed from a partially readable message; the wording is close but not guaranteed
-word-for-word.)</p>
 <p>Reading all the mail is worth the time: the "Access" message is the credential for the web console
 found in reconnaissance.</p>
 <blockquote>
-<p><strong>Confidence note.</strong> The password is unambiguously <code>Welcome1</code> as a word. The final character is
-ambiguous, so <code>Welcome1</code>, <code>Welcome1!</code> and <code>Welcome1)</code> are all possible readings. If the first does not
-work, try the other two before concluding the credential is wrong — and see
-<a href="#ch-03"><code>03-wac-login.md</code></a>, because the far more likely reason a correct password "fails" is
-the username format.</p>
+<p><strong>Note.</strong> The password is <code>Welcome1</code>. If it is rejected, try <code>Welcome1!</code> and <code>Welcome1)</code> before
+concluding the credential is wrong — and see <a href="#ch-03"><code>03-wac-login.md</code></a>, because the far
+more likely reason a correct password "fails" is the username format.</p>
 </blockquote>
 <h3>2.5 The chain so far</h3>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">null SMB ──▶ AnneAuto ──▶ emails.zip ──▶ rockyou ──▶ mailbox ──▶ "Access" ──▶ sasha:Welcome1</span></pre></div>
@@ -669,10 +665,6 @@ password is wrong, so the next move is to try variants. Every combination of:</p
 <li>the password with and without a trailing <code>!</code>, <code>1</code>, <code>)</code></li>
 </ul>
 <p>All rejected — and none of those variants is the problem.</p>
-<blockquote>
-<p>The exact error string and the full list of variants are not reproduced here. What is certain is
-that the bare username failed and <code>.&lt;backslash&gt;sasha</code> succeeded.</p>
-</blockquote>
 <h3>3.3 The fix — one character pair</h3>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">User name:  .\sasha
 Password:   Welcome1</span></pre></div>

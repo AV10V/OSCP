@@ -14,7 +14,7 @@ a decision that saved time, and each one generalises to the next AD box.
 
 ## 5.2 Do not fall into the database
 
-- A bcrypt table on a workstation is **loot, not a path**. Record it, screenshot it, move on.
+- A bcrypt table on a workstation is **loot, not a path**. Note it, save the output, move on.
 - If you ever do crack, do it on the Windows host (or with hashcat on the GPU box) and in the
   background — never sit and watch it.
 - The fastest win on this box was not the web app at all: it was `winPEAS` reading an environment
@@ -31,12 +31,12 @@ hand-written enumeration script will miss if you only look at services and ACLs.
 The report is scored as much as the shell. Capture each flag while you are still on the host that
 holds it, and capture it in a way that survives scrutiny:
 
-1. One screenshot per flag that shows **the command, the output, and the host** in the same image
+1. One image per flag that shows **the command, the output, and the host** together
    (`hostname`, `whoami`, `ipconfig`, then `type proof.txt`).
 2. The same content **copy-pasted as text** into the report — graders want to copy commands.
 3. Do it at the moment you get the flag, not at the end from memory.
 
-A flag screenshot without the command and hostname beside it is exactly the kind of evidence a grader
+An image of a flag without the command and hostname beside it is exactly the kind of evidence a grader
 can dispute.
 
 ## 5.5 Tunneling

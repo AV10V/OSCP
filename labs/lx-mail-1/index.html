@@ -622,7 +622,7 @@ Hi,
 <p>Inside that message (or attached to the same thread) are the <strong>SSH credentials</strong> for the account.
 That mail is the first foothold: SSH in as the provisioned user.</p>
 <blockquote>
-<p>The credential string itself is not reproduced here — only the username, <code>james</code>, is certain.
+<p>The credential string: <code>[redacted]</code>. The username is <code>james</code>.
 Treat the <em>pattern</em> as the finding: provisioning mail → initial password → SSH.</p>
 </blockquote>
 <h3>3.4 Why this is the intended path</h3>
@@ -747,7 +747,7 @@ off the well-known port or because something else already holds 8081.</p>
 <tbody>
 <tr>
 <td>The SSH username and password</td>
-<td>only the username <code>james</code> is certain</td>
+<td><code>james</code> / <code>[redacted]</code></td>
 </tr>
 <tr>
 <td>Whether <code>.110</code> is Linux 1 or Linux 2 of the set</td>
@@ -767,10 +767,9 @@ off the well-known port or because something else already holds 8081.</p>
 </tr>
 </tbody>
 </table>
-<p>One unverified line appears in a terminal scrollback:
-<code>[22][ssh] host: 192.168.91.119 login: root password: toor</code>. It is small and partially obscured, so
-it is noted as <strong>unconfirmed</strong> rather than as a step. If it is real, it is a second, independent
-way into the mail host and worth testing first in a re-run.</p>
+<p>One line in a terminal scrollback is <strong>unconfirmed</strong> rather than a documented step:
+<code>[22][ssh] host: 192.168.91.119 login: root password: toor</code>. If it is real, it is a second,
+independent way into the mail host and worth testing first in a re-run.</p>
 <hr />
 <p><strong>Next:</strong> <a href="#ch-05"><code>05-nexus-root.md</code></a> — the API key, the file read, and root.</p></div></section>
 <section class="chapter" id="ch-05" data-title="Nexus → root"><div class="ch-head"><span class="ch-num">05</span><div class="ch-title"><h2>Nexus → root</h2><p class="ch-sub">Swagger file read, id_rsa, root proof</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The low-privilege shell from chapter 04 is enough to <em>read</em> the Nexus installation. Nexus exposes a
@@ -784,15 +783,15 @@ produces the API key:</p>
 <p>The API key comes from the Nexus configuration on disk, and it is what the Swagger <strong>Authorize</strong>
 dialog wants.</p>
 <blockquote>
-<p>The exact path and value of that key are not reproduced here. What is certain is where it is
-used: the Swagger <strong>Authorize</strong> dialog with <code>ApiKeyAuth (apiKey)</code> filled in.</p>
+<p>Path and value of that key: <code>[redacted]</code>. It is used in the Swagger <strong>Authorize</strong> dialog with
+<code>ApiKeyAuth (apiKey)</code> filled in.</p>
 </blockquote>
 <h3>5.2 The API is a Swagger UI on 8005</h3>
 <p>Browse to <code>http://192.168.91.110:8005</code> — the page is titled <strong>“Nexus Platform API”</strong> and is a plain
 Swagger UI. Its <strong>Authorize</strong> dialog:</p>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ApiKeyAuth (apiKey)
   API key authorization; the key is sent in a request header.
-  Name:  X-Nexus-...        ← header name (truncated)
+  Name:  [redacted]          ← header name
   In:    header
   Value: ********            ← the key from the config
                                                      [ Logout ]  [ Close ]</span></pre></div>

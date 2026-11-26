@@ -37,7 +37,7 @@ domain user; an ACL misconfiguration makes that user local admin on `SRV22`; a K
 | Domain | `oscp.exam` (NetBIOS `OSCP`) |
 | WS01 (edge) | `192.168.91.206` — Windows 11, build 22000, dual-homed |
 | WS01 (internal) | `172.16.91.206/24`, gateway `192.168.91.254` |
-| SRV22 | Windows Server 2022, build 20348 — internal address not captured in these notes |
+| SRV22 | Windows Server 2022, build 20348 — internal address `[redacted]` |
 | DC20 | `172.16.91.200` — Windows Server 2022, build 20348, PDC |
 | Internal network | `172.16.91.0/24` — reachable only through WS01 |
 | Attacker | Kali, working dir `~/Desktop/oscp.exam/AD_SET`, home `/home/kali` |

@@ -17,8 +17,8 @@ produces the API key:
 The API key comes from the Nexus configuration on disk, and it is what the Swagger **Authorize**
 dialog wants.
 
-> The exact path and value of that key are not reproduced here. What is certain is where it is
-> used: the Swagger **Authorize** dialog with `ApiKeyAuth (apiKey)` filled in.
+> Path and value of that key: `[redacted]`. It is used in the Swagger **Authorize** dialog with
+> `ApiKeyAuth (apiKey)` filled in.
 
 ## 5.2 The API is a Swagger UI on 8005
 
@@ -28,7 +28,7 @@ Swagger UI. Its **Authorize** dialog:
 ```
 ApiKeyAuth (apiKey)
   API key authorization; the key is sent in a request header.
-  Name:  X-Nexus-...        ← header name (truncated)
+  Name:  [redacted]          ← header name
   In:    header
   Value: ********            ← the key from the config
                                                      [ Logout ]  [ Close ]

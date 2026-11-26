@@ -5,8 +5,8 @@ pagers. The upload filter checks the `Content-Type` header instead of the file, 
 around `disable_functions`, the `.env` on disk hands over a password that is reused as an OS login, and
 `sudo git` finishes the box.
 
-> **Status — complete.** `www-data` → `gari` → root. `local.txt` is masked below; the root flag lives at
-> `/root/proof.txt` and is not reproduced here.
+> **Status — complete.** `www-data` → `gari` → root. `local.txt` is masked below; the root flag at
+> `/root/proof.txt` is `[redacted]`.
 
 ---
 
@@ -49,7 +49,7 @@ around `disable_functions`, the `.env` on disk hands over a password that is reu
 | Host | Path | Flag |
 |---|---|---|
 | `192.168.91.112` | `/home/gari/local.txt` | `eb8bcdb8e5b8ad0c****************` |
-| `192.168.91.112` | `/root/proof.txt` | not reproduced |
+| `192.168.91.112` | `/root/proof.txt` | `[redacted]` |
 
 ## Chapters
 

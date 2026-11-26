@@ -105,16 +105,15 @@ The next steps on this host:
 
 | Question | Status |
 |---|---|
-| The SSH username and password | only the username `james` is certain |
+| The SSH username and password | `james` / `[redacted]` |
 | Whether `.110` is Linux 1 or Linux 2 of the set | the working directory is `…/SECOND`, and `.119` is `…/FIRST`, which suggests `.110` is the second box |
 | Whether a flag was captured on `.119` | no `local.txt` found; `proof.txt` on `.110` is covered in [`05-nexus-root.md`](05-nexus-root.md) |
 | Root on `.119` | not obtained |
 | The Nexus exploit itself | covered in [`05-nexus-root.md`](05-nexus-root.md) |
 
-One unverified line appears in a terminal scrollback:
-`[22][ssh] host: 192.168.91.119 login: root password: toor`. It is small and partially obscured, so
-it is noted as **unconfirmed** rather than as a step. If it is real, it is a second, independent
-way into the mail host and worth testing first in a re-run.
+One line in a terminal scrollback is **unconfirmed** rather than a documented step:
+`[22][ssh] host: 192.168.91.119 login: root password: toor`. If it is real, it is a second,
+independent way into the mail host and worth testing first in a re-run.
 
 ---
 

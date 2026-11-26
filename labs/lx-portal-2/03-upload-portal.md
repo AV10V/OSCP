@@ -105,9 +105,9 @@ pcntl_signal_dispatch,pcntl_get_last_error,pcntl_strerror,pcntl_sigprocmask,
 pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority
 ```
 
-The visible head of the list is the stock PHP `pcntl_*` block; the value continues past the visible
-width. The empty response from `?cmd=id` is the part that matters: it confirms `system()` is among the
-disabled entries, so the payload has to reach bash without calling any of the exec functions.
+The head of the list is the stock PHP `pcntl_*` block; the full directive continues with the exec
+family. The empty response from `?cmd=id` is the part that matters: it confirms `system()` is among
+the disabled entries, so the payload has to reach bash without calling any of the exec functions.
 
 That is the subject of the next chapter: a payload that executes without calling a single disabled
 function.

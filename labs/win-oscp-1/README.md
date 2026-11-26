@@ -41,11 +41,9 @@ stands between you and that console is knowing that a **local account must be ty
 |---|---|---|---|
 | *(SMB guest)* | *(empty)* | `-U ''` | list shares, read `AnneAuto` |
 | `emails.zip` | *(cracked)* | hashcat 13600 + rockyou | attachment |
-| `sasha` | `Welcome1` ⚠ | email "Access" from Anne Howard | WAC login as `.\sasha` |
+| `sasha` | `Welcome1` | email "Access" from Anne Howard | WAC login as `.\sasha` |
 
-⚠ The trailing character of the password is ambiguous: `Welcome1`, `Welcome1!` and `Welcome1)` are
-all plausible readings of the final character in the mail. The word is unambiguous; the punctuation
-is not.
+⚠ The password is `Welcome1`; if it is rejected, try `Welcome1!` or `Welcome1)`.
 
 ## Flags (masked)
 

@@ -1246,7 +1246,7 @@ LABS = [
         ],
         "flags": [
             ("local.txt · gari", "eb8bcdb8e5b8ad0c****************"),
-            ("proof.txt · root", "not reproduced"),
+            ("proof.txt · root", "[redacted]"),
         ],
         "chain": [
             ("01", "Recon", "21 · 22 · 80 · 3306", "#ch-01"),

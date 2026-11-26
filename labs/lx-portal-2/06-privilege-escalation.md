@@ -90,7 +90,7 @@ sudo bzmore /etc/passwd
 /root/proof.txt
 ```
 
-Masked here. Capture it with `hostname`, `whoami` and `id` in the same screenshot — a bare flag line is
+Masked here. Capture it with `hostname`, `whoami` and `id` in the same image — a bare flag line is
 the easiest evidence for a grader to dispute.
 
 ## 6.6 Why this is the intended path

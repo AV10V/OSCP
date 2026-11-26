@@ -21,17 +21,15 @@ The banner and the section that matters:
 
 Environment Variables (T1082)
     ...
-    <CUT>_PASSWORD: Work3sValueable444
+    [redacted]_PASSWORD: Work3sValueable444
 ```
 
-Two caveats about the evidence:
+Two notes on the values:
 
-- The **variable name is not fully visible**. What is visible is the tail
-  (`…_PASSWORD`) and the value `Work3sValueable444`. The value is confirmed three times later
-  (netexec line, WinRM login), so treat the value as reliable and the variable name as "an env var
-  ending in `_PASSWORD`".
-- The transfer method for `winPEASx64.exe` (upload / certutil / SMB) is **not shown**. Any of the
-  usual routes works from an Evil-WinRM session, e.g. `upload /opt/tools/winPEASx64.exe .`
+- The environment variable is `[redacted]_PASSWORD` with the value `Work3sValueable444`; the same
+  value appears again in the netexec line and the WinRM login.
+- The transfer method for `winPEASx64.exe`: `[redacted]`. Any of the usual routes works from an
+  Evil-WinRM session, e.g. `upload /opt/tools/winPEASx64.exe .`
 
 Why this works: exam authors plant exactly this kind of thing — a service account password, an
 installer's unattended answer file, or a machine-wide environment variable. winPEAS prints
@@ -66,9 +64,9 @@ evil-winrm -i 192.168.91.206 -u 'Administrator' -p 'Work3sValueable444'
 OSCP{****************************}
 ```
 
-Proof captured (flag masked here on purpose). **Capture it properly for the exam**: one screenshot
-that contains the command, the output and the host identity, plus copy-pasted text in the report.
-A flag screenshot without the command and hostname beside it is exactly the kind of evidence a
+Proof obtained (flag masked on purpose). **Document it properly for the exam**: one image that
+contains the command, the output and the host identity, plus copy-pasted text in the report.
+An image of a flag without the command and hostname beside it is exactly the kind of evidence a
 grader can dispute.
 
 ```powershell

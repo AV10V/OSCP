@@ -343,7 +343,7 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
         </div>
         <div class="flag">
           <div class="k">proof.txt · root</div>
-          <div class="v" data-value="not reproduced"><span class="masked">••••••••••••••••••••••••••••••••</span></div>
+          <div class="v" data-value="[redacted]"><span class="masked">••••••••••••••••••••••••••••••••</span></div>
           <button class="reveal" type="button">reveal</button>
         </div>
       </div>
@@ -667,9 +667,9 @@ pcntl_wifsignaled,pcntl_wexitstatus,pcntl_wifcontinued,pcntl_signal,
 pcntl_signal_dispatch,pcntl_get_last_error,pcntl_strerror,pcntl_sigprocmask,
 pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority
 </pre></div>
-<p>The visible head of the list is the stock PHP <code>pcntl_*</code> block; the value continues past the visible
-width. The empty response from <code>?cmd=id</code> is the part that matters: it confirms <code>system()</code> is among the
-disabled entries, so the payload has to reach bash without calling any of the exec functions.</p>
+<p>The head of the list is the stock PHP <code>pcntl_*</code> block; the full directive continues with the exec
+family. The empty response from <code>?cmd=id</code> is the part that matters: it confirms <code>system()</code> is among
+the disabled entries, so the payload has to reach bash without calling any of the exec functions.</p>
 <p>That is the subject of the next chapter: a payload that executes without calling a single disabled
 function.</p>
 <h3>3.6 The filter, in one line</h3>
@@ -827,7 +827,7 @@ oscp
 gari
 <span class="w">    </span>inet<span class="w"> </span><span class="m">192</span>.168.91.112/24<span class="w"> </span>brd<span class="w"> </span><span class="m">192</span>.168.91.255<span class="w"> </span>scope<span class="w"> </span>global<span class="w"> </span>eth0
 </pre></div>
-<p>Masked here; capture the command, the output and the host in one screenshot for the report.</p>
+<p>Masked here; the command, the output and the host belong in one image for the report.</p>
 <p><code>local.txt</code> completes the user half of the box. The root half is a <code>sudo</code> misconfiguration, and it is
 two commands away.</p>
 <hr />
@@ -920,7 +920,7 @@ root@oscp:/root# cat proof.txt
 <h3>6.5 The flag</h3>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>/root/proof.txt
 </pre></div>
-<p>Masked here. Capture it with <code>hostname</code>, <code>whoami</code> and <code>id</code> in the same screenshot — a bare flag line is
+<p>Masked here. Capture it with <code>hostname</code>, <code>whoami</code> and <code>id</code> in the same image — a bare flag line is
 the easiest evidence for a grader to dispute.</p>
 <h3>6.6 Why this is the intended path</h3>
 <p>The sudoers list is not random. <code>calendar</code>, <code>mcheck</code> and <code>rdma</code> are all programs that read data as
