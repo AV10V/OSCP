@@ -323,9 +323,13 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
 [hidden]{display:none!important}
 @media (max-width:900px){
   .doc-shell{grid-template-columns:1fr}
-  .doc-nav{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}
+  .doc-nav{
+    position:static;max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    border-right:0;border-bottom:1px solid var(--line);
+  }
   .doc-main{padding:26px 20px 90px}
   .topnav{display:none}
+  .doc-body .topbar .icon-btn{flex:0 0 auto}
 }
 @media print{
   .topbar,.doc-nav,.doc-actions,#toast,.block-bar,.doc-foot{display:none!important}
@@ -529,7 +533,7 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
 
     <div class="content doc-content">
 <section class="cs-group"><h1 id="information-gathering">Information Gathering</h1><section class="cs-sec" id="passive-information-gathering" data-intro="passive information gathering"><h2>Passive Information Gathering</h2><div class="cs-sub" id="whois"><h3>Whois</h3><ul>
-<li>Run a WHOIS lookup. The host (<code>-h</code>) flag specifies the WHOIS server to query.</li>
+<li>Run a WHOIS lookup. The <code>-h</code> flag specifies the WHOIS server to query.</li>
 </ul>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>whois<span class="w"> </span>megacorpone.com<span class="w"> </span>-h<span class="w"> </span><span class="m">192</span>.168.50.251
 </pre></div></div></section><section class="cs-sec" id="active-information-gathering" data-intro="active information gathering"><h2>Active Information Gathering</h2><div class="cs-sub" id="finalrecon"><h3>Finalrecon</h3><ul>

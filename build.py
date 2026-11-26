@@ -2052,9 +2052,13 @@ CHEATSHEET_CSS = r"""
 [hidden]{display:none!important}
 @media (max-width:900px){
   .doc-shell{grid-template-columns:1fr}
-  .doc-nav{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}
+  .doc-nav{
+    position:static;max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    border-right:0;border-bottom:1px solid var(--line);
+  }
   .doc-main{padding:26px 20px 90px}
   .topnav{display:none}
+  .doc-body .topbar .icon-btn{flex:0 0 auto}
 }
 @media print{
   .topbar,.doc-nav,.doc-actions,#toast,.block-bar,.doc-foot{display:none!important}

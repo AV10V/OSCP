@@ -4,7 +4,7 @@
 
 ### Whois
 
-- Run a WHOIS lookup. The host (`-h`) flag specifies the WHOIS server to query.
+- Run a WHOIS lookup. The `-h` flag specifies the WHOIS server to query.
 
 ```bash
 whois megacorpone.com -h 192.168.50.251
