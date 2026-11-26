@@ -35,6 +35,10 @@ AERO = LABS_DIR / "192.168.150.143-aerospike-screen"
 OSCPMOUSE = LABS_DIR / "192.168.133.155-oscp-mouse"
 VESTA = LABS_DIR / "192.168.161.156-vesta-snmp"
 CHARLIE = LABS_DIR / "192.168.161.157-charlie"
+ADF1 = LABS_DIR / "ad-fantom-1"
+LXM1 = LABS_DIR / "lx-mail-1"
+WIN1 = LABS_DIR / "win-oscp-1"
+LX3 = LABS_DIR / "lx-portal-2"
 
 # Lab index: one card per lab, plus a select that redirects to that lab page.
 # main.html is the entry point; index.html is a redirect so the Pages root keeps working.
@@ -973,7 +977,307 @@ LABS = [
              CHARLIE / "08-appendix-scripts.md"),
         ] + REFERENCE,
     },
+    {
+        "slug": "ad-fantom-1",
+        "out": ADF1 / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-ad-fantom-1",
+        "card": {
+            "status": "ok",
+            "status_text": "complete",
+            "role": "WS01 → SRV22 → DC20",
+            "summary": "Provided domain credential → WinRM on WS01 → <code>winPEAS</code> environment "
+                       "variable → local Administrator → ligolo-ng → <code>lsassy</code> perry cleartext → "
+                       "BloodHound <code>WriteMembers</code> → SRV22 → <code>Confidential.kdbx</code> cracked "
+                       "→ Domain Admin → <code>proof.txt</code> on DC20.",
+            "tags": ["AD set", "Windows 11", "Active Directory", "winPEAS", "BloodHound", "KeePass", "ligolo-ng"],
+            "foot": "DC20 domain admin · proof on both hosts",
+        },
+        "dir": ADF1,
+        "dir_rel": "labs/ad-fantom-1",
+        "ip": "192.168.91.206",
+        "name": "AD Fantom 1 · WS01 → DC20",
+        "title": "192.168.91.206 — WS01 → DC20 · AD Fantom 1 walkthrough",
+        "desc": "Interactive walkthrough of an OSCP Active Directory set: WinRM with a provided "
+                "credential on WS01, config.php and MySQL enumeration, a winPEAS environment-variable "
+                "password to local Administrator, a ligolo-ng pivot into 172.16.91.0/24, lsassy loot, "
+                "a BloodHound WriteMembers ACL abuse onto SRV22, a cracked KeePass database and "
+                "Domain Admin on DC20.",
+        "ogdesc": "andrew → WinRM → winPEAS env var → Administrator → ligolo-ng → lsassy perry → "
+                  "BloodHound WriteMembers → SRV22 → Confidential.kdbx → GALLAGHER → DC20.",
+        "lede": "A Windows 11 workstation with a web app, a MySQL database and two network cards. "
+                "The database is a decoy; the box falls to an environment variable. Once WS01 is "
+                "local admin, the second NIC opens the internal network and LSASS hands over the "
+                "credential for the domain controller.",
+        "badges": [
+            ("", "Windows 11 · build 22000"),
+            ("", "oscp.exam"),
+            ("warn", "MySQL 3306 exposed"),
+            ("warn", "bcrypt table · dead end"),
+            ("ok", "WS01 local Administrator"),
+            ("ok", "172.16.91.0/24 routed"),
+        ],
+        "meta": [
+            ("Domain", "oscp.exam"),
+            ("WS01", "192.168.91.206"),
+            ("SRV22", "internal · Server 2022"),
+            ("DC20", "172.16.91.200"),
+            ("Access", "WinRM → winPEAS → ACL abuse → KeePass"),
+            ("Result", "proof.txt on WS01 + DC20"),
+        ],
+        "flags": [
+            ("proof.txt · WS01 Administrator", "************"),
+            ("proof.txt · DC20 Domain Admin", "****************************"),
+        ],
+        "chain": [
+            ("01", "Recon", "7 ports, web + MySQL + WinRM", "#ch-01"),
+            ("02", "WinRM", "<code>oscp.exam\\andrew</code>", "#ch-02"),
+            ("03", "winPEAS", "env var → <code>Administrator</code>", "#ch-03"),
+            ("04", "Pivot", "ligolo-ng → <code>172.16.91.0/24</code>", "#ch-04"),
+            ("05", "ACL abuse", "<code>WriteMembers</code> → HELPDESK USERS", "#ch-06"),
+            ("06", "KeePass", "<code>Confidential.kdbx</code> → GALLAGHER", "#ch-06"),
+            ("07", "DC20", "Domain Admin → <code>proof.txt</code>", "#ch-06"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "One host, two networks",
+             ADF1 / "01-reconnaissance.md"),
+            ("ch-02", "02", "Foothold", "WinRM as andrew, then config.php and MySQL",
+             ADF1 / "02-foothold.md"),
+            ("ch-03", "03", "Privilege escalation", "winPEAS reads the Administrator password",
+             ADF1 / "03-privilege-escalation.md"),
+            ("ch-04", "04", "Pivot &amp; loot", "ligolo-ng into 172.16.91.0/24, then lsassy",
+             ADF1 / "04-pivot-and-loot.md"),
+            ("ch-05", "05", "Lessons", "What the set teaches about the exam",
+             ADF1 / "05-lessons.md"),
+            ("ch-06", "06", "DC20", "Pass-the-hash, ACL abuse, KeePass, domain admin",
+             ADF1 / "06-dc20.md"),
+            ("ch-07", "07", "The set", "Full chain, credential map, traps, gaps",
+             ADF1 / "07-set-summary.md"),
+        ] + REFERENCE,
+    },
+    {
+        "slug": "lx-mail-1",
+        "out": LXM1 / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-lx-mail-1",
+        "card": {
+            "status": "ok",
+            "status_text": "complete",
+            "role": "mail box → Nexus · 192.168.91.119 + .110",
+            "summary": "A Linux host with no web app: SSH + Dovecot, and a <b>WHOIS registry answering on "
+                       "port 25</b>. The record leaks <code>sysad@oscp.exam</code>; <code>sysad:sysad</code> "
+                       "opens IMAP; the mailbox holds the SSH credential for the next host, where "
+                       "<code>/opt/nexus</code> and port 8005 give up <code>/root/.ssh/id_rsa</code> through "
+                       "the Swagger artifact-download path.",
+            "tags": ["Linux 1", "SMTP", "WHOIS", "IMAP", "Dovecot", "Nexus", "LFI"],
+            "foot": "mailbox → SSH → Nexus LFI → root · proof.txt",
+        },
+        "dir": LXM1,
+        "dir_rel": "labs/lx-mail-1",
+        "ip": "192.168.91.119",
+        "name": "Linux 1 · mail",
+        "title": "192.168.91.119 — Linux mail box · OSCP set walkthrough",
+        "desc": "Walkthrough of the Linux mail box of an OSCP-style set: a full-port nmap with no web "
+                "service, a WHOIS registry disguised as SMTP on port 25, the sysad account it leaks, "
+                "Dovecot IMAP access, a provisioning e-mail with SSH credentials and the second Linux "
+                "host's Nexus installation on port 8005.",
+        "ogdesc": "nmap → port 25 WHOIS → sysad@oscp.exam → IMAP sysad:sysad → mailbox → SSH to the "
+                  "next host → linpeas → /opt/nexus → port 8005.",
+        "lede": "No web app, no share, no version to exploit — only SSH and a mail stack. The way in "
+                "is a WHOIS registry answering on port 25 that hands over an account name, and a "
+                "mailbox that contains the credentials for the machine behind it.",
+        "badges": [
+            ("", "Ubuntu · OpenSSH 9.6p1"),
+            ("warn", "no web service"),
+            ("warn", "WHOIS on port 25"),
+            ("ok", "sysad:sysad → IMAP"),
+            ("ok", "SSH foothold on .110"),
+            ("ok", "Nexus LFI → id_rsa"),
+            ("ok", "root on .110"),
+        ],
+        "meta": [
+            ("Mail host", "192.168.91.119"),
+            ("Open", "22 · 25 · 110 · 143 · 587 · 993"),
+            ("Registry", "O=OSCP-REGISTRY"),
+            ("Mailbox", "sysad:sysad"),
+            ("Second host", "192.168.91.110 (Ubuntu 24.04)"),
+            ("Result", "root on .110 · proof.txt"),
+        ],
+        "flags": [
+            ("proof.txt · root@192.168.91.110", "2fa72f9ec5d211700b82e4799b22f********"),
+        ],
+        "chain": [
+            ("01", "Recon", "6 ports, no web app", "#ch-01"),
+            ("02", "WHOIS", "port 25 → <code>sysad</code>", "#ch-02"),
+            ("03", "IMAP", "<code>sysad:sysad</code> → mailbox", "#ch-03"),
+            ("04", "Mail", "provisioning mail → SSH creds", "#ch-03"),
+            ("05", "SSH", "<code>192.168.91.110</code>", "#ch-04"),
+            ("06", "Nexus", "<code>/opt/nexus</code> · 8005", "#ch-04"),
+            ("07", "Root", "Swagger LFI → <code>id_rsa</code>", "#ch-05"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "A box with nothing on it",
+             LXM1 / "01-reconnaissance.md"),
+            ("ch-02", "02", "WHOIS on 25", "The 'SMTP' service is a registry",
+             LXM1 / "02-whois-on-port-25.md"),
+            ("ch-03", "03", "IMAP &amp; mail", "sysad, the mailbox and the account e-mail",
+             LXM1 / "03-imap-and-mail.md"),
+            ("ch-04", "04", "SSH &amp; Nexus", "Second host, linpeas, port 8005",
+             LXM1 / "04-ssh-and-nexus.md"),
+            ("ch-05", "05", "Nexus → root", "Swagger file read, id_rsa, root proof",
+             LXM1 / "05-nexus-root.md"),
+        ] + reference(6),
+    },
+    {
+        "slug": "win-oscp-1",
+        "out": WIN1 / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-win-oscp-1",
+        "card": {
+            "status": "warn",
+            "status_text": "partial",
+            "role": "standalone Windows · 192.168.91.111",
+            "summary": "A standalone Server 2019 with IIS, a null SMB session and <b>Windows PowerShell "
+                       "Web Access</b>. <code>AnneAuto</code> hands over <code>emails.zip</code>, rockyou "
+                       "opens it, the \"Access\" mail gives <code>sasha:Welcome1</code>, and "
+                       "<code>.\\sasha</code> opens the browser console. Privesc was never found.",
+            "tags": ["Windows", "SMB", "ZIP crack", "PowerShell Web Access", "IIS"],
+            "foot": "local.txt only · no privesc · no proof.txt",
+        },
+        "dir": WIN1,
+        "dir_rel": "labs/win-oscp-1",
+        "ip": "192.168.91.111",
+        "name": "Windows 1 · OSCP",
+        "title": "192.168.91.111 — Windows standalone · OSCP set walkthrough",
+        "desc": "Walkthrough of a standalone Windows Server 2019 box: IIS 10 and a Nicepage landing "
+                "page, a null SMB session on AnneAuto, a WinZip hash cracked with rockyou, credentials "
+                "in an \"Access\" e-mail and Windows PowerShell Web Access — including the .\\user "
+                "login trap.",
+        "ogdesc": "nmap → null SMB → AnneAuto → emails.zip → hashcat 13600 → sasha:Welcome1 → "
+                  "/powershell → .\\sasha → local.txt.",
+        "lede": "Four ports, one share and a web console. The box is a lesson in credential flow — and "
+                "in how a correct password can look wrong because the username needs a "
+                "dot and a backslash.",
+        "badges": [
+            ("", "Server 2019 · 10.0.17763"),
+            ("warn", "null SMB session"),
+            ("warn", "encrypted ZIP in a backup share"),
+            ("ok", "sasha:Welcome1"),
+            ("ok", "local.txt"),
+            ("warn", "privesc not found"),
+        ],
+        "meta": [
+            ("Host", "192.168.91.111 · OSCP"),
+            ("Open", "80 · 443 · 445 · 3389"),
+            ("Web", "IIS 10 · Nicepage 5.5.4"),
+            ("Share", "AnneAuto · null session"),
+            ("Access", "WAC /powershell as .\\sasha"),
+            ("Result", "local.txt · box not completed"),
+        ],
+        "flags": [
+            ("local.txt · sasha", "6cc351e3e4f2572432************"),
+        ],
+        "chain": [
+            ("01", "Recon", "IIS + SMB + RDP", "#ch-01"),
+            ("02", "Null SMB", "<code>AnneAuto</code>", "#ch-02"),
+            ("03", "emails.zip", "hashcat <code>13600</code>", "#ch-02"),
+            ("04", "Mail", "<code>sasha:Welcome1</code>", "#ch-02"),
+            ("05", "WAC", "<code>.\\sasha</code> → console", "#ch-03"),
+            ("06", "Flag", "<code>local.txt</code>", "#ch-04"),
+            ("07", "Dead end", "no privesc found", "#ch-04"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "IIS, SMB, RDP and a hidden /powershell",
+             WIN1 / "01-reconnaissance.md"),
+            ("ch-02", "02", "Null SMB &amp; ZIP", "AnneAuto, emails.zip, hashcat, the Access mail",
+             WIN1 / "02-smb-emails-zip.md"),
+            ("ch-03", "03", "WAC login", "sasha vs .\\sasha — the five-hour lesson",
+             WIN1 / "03-wac-login.md"),
+            ("ch-04", "04", "Flag &amp; dead end", "local.txt, enumeration, what was missing",
+             WIN1 / "04-local-flag-and-dead-end.md"),
+        ] + reference(5),
+    },
+    {
+        "slug": "lx-portal-2",
+        "out": LX3 / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-lx-portal-2",
+        "card": {
+            "status": "ok",
+            "status_text": "complete",
+            "role": "Linux web app · 192.168.91.112",
+            "summary": "Anonymous FTP holds four monthly backups; <code>/applications</code> exposes a "
+                       "directory listing and a CV upload form. The filter checks the client "
+                       "<code>Content-Type</code>, so a PHP file sent as <code>application/pdf</code> lands "
+                       "in the web root. Chankro gets around <code>disable_functions</code>, the "
+                       "<code>.env</code> password sprays to <code>gari</code>, and <code>sudo git</code> "
+                       "ends in root.",
+            "tags": ["Linux 2", "PHP", "FTP", "upload", "Chankro", "sudo"],
+            "foot": "www-data → gari → root",
+        },
+        "dir": LX3,
+        "dir_rel": "labs/lx-portal-2",
+        "ip": "192.168.91.112",
+        "name": "Linux 2 · portal",
+        "title": "192.168.91.112 — Linux upload portal · OSCP set walkthrough",
+        "desc": "Full walkthrough of a Linux web box: anonymous FTP with application backups, an Apache "
+                "directory listing, a CV upload form that validates only the client MIME type, a Chankro "
+                "payload that survives disable_functions, a .env password reused as an SSH login, and "
+                "sudo git for root.",
+        "ogdesc": "nmap → FTP anonymous → applications_dec22.zip → /applications → upload.php → "
+                  "Content-Type bypass → Chankro → .env → gari → sudo git → root.",
+        "lede": "A small PHP site, an anonymous FTP with a backup of the same site, and an upload form "
+                "that insists on PDF. The filter trusts the header, the payload ignores "
+                "disable_functions, and the password in .env is also the password of a real user.",
+        "badges": [
+            ("", "Linux · PHP"),
+            ("ok", "anonymous FTP"),
+            ("ok", "Content-Type bypass"),
+            ("ok", "Chankro RCE"),
+            ("ok", "sudo → root"),
+        ],
+        "meta": [
+            ("Host", "192.168.91.112"),
+            ("Open", "21 · 22 · 80 · 3306"),
+            ("FTP", "anonymous · 4 backups"),
+            ("Web", "/applications · upload.php"),
+            ("Filter", "client Content-Type only"),
+            ("Result", "www-data → gari → root"),
+        ],
+        "flags": [
+            ("local.txt · gari", "eb8bcdb8e5b8ad0c****************"),
+            ("proof.txt · root", "not reproduced"),
+        ],
+        "chain": [
+            ("01", "Recon", "21 · 22 · 80 · 3306", "#ch-01"),
+            ("02", "FTP", "<code>dec22.zip</code>", "#ch-02"),
+            ("03", "Upload", "<code>Content-Type</code> bypass", "#ch-03"),
+            ("04", "RCE", "Chankro → shell", "#ch-04"),
+            ("05", "Spray", ".env → <code>gari</code>", "#ch-05"),
+            ("06", "Root", "<code>sudo git</code> → proof", "#ch-06"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "Ports, feroxbuster and the directory listing",
+             LX3 / "01-reconnaissance.md"),
+            ("ch-02", "02", "Anonymous FTP", "Four backups and what upload.php reveals",
+             LX3 / "02-ftp-anonymous.md"),
+            ("ch-03", "03", "Upload portal", "The PDF filter and the Content-Type bypass",
+             LX3 / "03-upload-portal.md"),
+            ("ch-04", "04", "Chankro RCE", "A shell around disable_functions",
+             LX3 / "04-chankro-rce.md"),
+            ("ch-05", "05", "Credentials → gari", ".env, password spray, SSH, local.txt",
+             LX3 / "05-credentials-and-gari.md"),
+            ("ch-06", "06", "Privilege escalation", "sudo -l, GTFOBins, root",
+             LX3 / "06-privilege-escalation.md"),
+        ] + reference(7),
+    },
 ]
+
+# Teaching order for this exam set: AD set, Linux 1, Linux 2, Windows.
+_SET_ORDER = ["ad-fantom-1", "lx-mail-1", "lx-portal-2", "win-oscp-1"]
+if all(m["slug"] in _SET_ORDER for m in LABS[-4:]):
+    LABS[-4:] = sorted(LABS[-4:], key=lambda m: _SET_ORDER.index(m["slug"]))
+
 
 # markdown filename -> in-page anchor, plus the evidence blob prefix, per machine
 for _m in LABS:

