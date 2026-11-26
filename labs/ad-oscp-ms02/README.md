@@ -26,7 +26,7 @@ the same set, because they end differently:
 | 1 | MS01 | `SeImpersonatePrivilege` → PrintSpoofer → SYSTEM |
 | 2 | MS01 | `net localgroup administrators /add Eric.Wallows`, so the dump can run remotely |
 | 3 | MS01 | `secretsdump` → SAM + **DCC2 cache**: `OSCP.EXAM/Administrator` from 2022 |
-| 4 | Kali | `hashcat -m 1000` → `December31`, `Freedom1`; `-m 2100` → `7Tg9M9MZbzAokR9` |
+| 4 | Kali | `hashcat -m 1000` → `December31`, `Freedom1`; DCC2 → `7Tg9M9MZbzAokR9` (`-m 2100`, not in the capture) |
 | 5 | MS01 → DC01 | ligolo-ng route into `10.10.131.0/24`; `psexec` as `Administrator` → SYSTEM → flag |
 
 The short version: **the domain Administrator had logged on to MS01 in 2022, and the cached
@@ -69,5 +69,6 @@ MS01's cache. That is a result about position, not a refutation of the plan.
 - The DCC2 `Administrator` hash → `7Tg9M9MZbzAokR9` mapping was re-checked with `hashcat -m 2100`
   against the captured hash, not taken from memory.
 - Credentials and hashes are lab values and are published as captured.
-- MS02 was enumerated; the capture contains no authentication attempt against it, so whether it
-  would have accepted any of the credentials in hand is not established.
+- MS02 was enumerated; the capture contains no authentication attempt against it. A follow-up scan
+  found `1433`/`5986` open on MS02 (the all-port sweep missed both) and `eric.wallows` authenticates
+  to MSSQL — but that login's role was never measured, and MS02 was not used to finish the set.

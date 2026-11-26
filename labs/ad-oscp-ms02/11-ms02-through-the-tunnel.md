@@ -56,14 +56,22 @@ else — consistent with a host firewall — which is why `65528` ports are `fil
 | `5040` | unknown | a Windows service port; not enough banner to identify it |
 | `5985` | WinRM | a shell for anyone in `Remote Management Users` |
 
-Two negatives are as useful as the positives:
+The capture's all-port scan is **incomplete**, and a follow-up pass proves it. A second
+`nmap -sV` over the same tunnel (2026-11-25 21:38) found two more listeners:
 
-**No `1433`.** The MSSQL service that pass 2 built chapters 03 and 07 around is not exposed in
-this instantiation. The SQL path does not exist here.
+| Port | Service | Detail |
+|---|---|---|
+| `1433` | `ms-sql-s` | **Microsoft SQL Server 2019 15.00.2000** |
+| `5986` | WinRM over TLS | `Microsoft HTTPAPI httpd 2.0` (SSL) |
 
-**No credential was tested against MS02.** The capture contains no SMB, WinRM or MSSQL
-authentication attempt — this chapter is enumeration only. Whether `celia.almeda`, `web_svc` or
-the cracked local Administrator would authenticate here is **not established**.
+Both were missing from the first run, which reported `65528` filtered ports. Treat that output as
+evidence of what it saw, not as an inventory: when a host firewall drops packets instead of
+resetting, an `-p-` sweep is timing-dependent, and this one had already spent 228 seconds.
+
+`1433` changes the picture. The SQL service that pass 2 built chapters 03 and 07 around **is**
+exposed in this instantiation, and `eric.wallows` holds a login on it — the follow-up spray
+authenticated as `oscp.exam\Eric.Wallows:EricLikesRunning800`. Whether that login is `sysadmin`
+was **not** checked here, so the `xp_cmdshell` road is open in principle and unmeasured.
 
 `signing enabled but not required` is the one configuration worth flagging: it makes MS02 a valid
 relay target in principle. Nothing was coerced into authenticating during this pass, so it stayed
@@ -114,13 +122,13 @@ reachable NTP source, or correct only the offset when the tooling allows it.
 
 ---
 
-## 11.4 Why MS02 was not the way in
+## 11.4 Why MS02 was not needed
 
 MS02 was reachable, enumerated, and no attack on it appears in this capture. That is not an
 oversight — the credential that finishes the set was already in hand:
 
 - the DCC2 entry in chapter 09 is the **domain** Administrator, so it applies to DC01 directly;
-- MS02 exposed no SQL service and no credential of ours was known to work there;
+- the SQL login on `1433` was never tested for `sysadmin`, so it was an unknown, not a lead;
 - attacking MS02 would have added a hop, not removed one.
 
 Pass 2 reached the opposite conclusion for a different position: with DC01 direct, MS02 was the
@@ -132,5 +140,28 @@ only host whose token could be escalated, so `sql_svc` was the plan. Here the pl
 | MS01 | `10.10.131.147` | SYSTEM, local admin add in place |
 | MS02 | `10.10.131.148` | reachable · enumerated · **no attack in this capture** |
 | DC01 | `10.10.131.146` | not contacted yet — credential in hand |
+
+**A road not taken, and where it starts.** MS02's *local* Administrator password does not have to
+be cracked. In another pass over this same set it was sitting in a console history file. As
+`Administrator` on MS01:
+
+```powershell
+type C:\Users\Administrator\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt
+```
+
+```
+C:\users\support\admintool.exe hghgib6vHT3bVWf cmd
+C:\users\support\admintool.exe cmd
+shutdown /s /t 7
+```
+
+An administrator ran a helper that takes the local-admin password as an argument, and `PSReadLine`
+kept the line. Sprayed with **local** authentication, that password opens MS02 as
+`MS02\Administrator`; MS02's own `SECURITY` hive then hands over the domain Administrator through
+`DefaultPassword` and the same DCC2 entry seen in chapter 09.
+
+**This was not run in this pass.** It is recorded because it is the cheapest demonstration that
+MS02's credential store is reachable without touching MS02's services at all — and because it
+answers where that password comes from.
 
 DC01 is next.

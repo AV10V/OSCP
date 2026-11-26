@@ -1,8 +1,8 @@
 # 12 — DC01: the cached credential is domain-tier
 
-The password recovered from MS01's DCC2 cache is used here for the first time. It authenticates
-to the domain controller as the built-in Administrator and returns a SYSTEM shell — which is the
-end of the set.
+The password matching MS01's DCC2 entry for the domain Administrator is used here for the first
+time. It authenticates to the domain controller as the built-in Administrator and returns a SYSTEM
+shell — which is the end of the set.
 
 ---
 
