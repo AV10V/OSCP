@@ -73,7 +73,10 @@ NTLM — which is exactly what happened in chapter 04, and why the session data 
 
 ---
 
-## 6.5 Status
+## 6.5 Status at the end of this pass
+
+The set is completed in chapters 08–12 from a different position; the table below is the
+`10.10.152.x` position as it stood.
 
 | Host | Address | State |
 |---|---|---|

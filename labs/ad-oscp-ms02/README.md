@@ -1,43 +1,72 @@
-# ad-oscp-ms02 — `oscp.exam` from 10.10.152.0/24
+# ad-oscp-ms02 — `oscp.exam`: MS02 → DC01
 
-Second pass at the same `oscp.exam` directory, from a network position where **DC01 answers directly**
-(`10.10.152.140`) instead of sitting behind an MS01 SOCKS tunnel.
+The `oscp.exam` directory followed from the MS02 side. The page now records **two positions** on
+the same set, because they end differently:
 
-Same domain SID (`S-1-5-21-2610934713-1581164095-2706428072`) and GUID
-(`e7448cc9-434a-4130-90b0-812d3d0c5a96`) as [`../ad-oscp-exam`](../ad-oscp-exam/) — one directory, two
-network positions.
+- **Pass 2 — `10.10.152.0/24`** (chapters 01–06): DC01 reachable directly, WinRM as
+  `celia.almeda`, MSSQL and BloodHound close every path. A foothold, not a win. Chapter 07 is
+  the plan it produced — correct for that position, never executed.
+- **Pass 3 — `10.10.131.0/24`** (chapters 08–12): the set re-instantiated behind MS01. SYSTEM on
+  MS01, a cached **domain Administrator** verifier in the `SECURITY` hive, a ligolo pivot, and
+  `proof.txt` on DC01 read as `nt authority\system`.
 
 | Property | Value |
 |---|---|
-| MS02 | `10.10.152.142` — Windows 10 / Server 2019 build 19041, SMB signing **off** |
-| DC01 | `10.10.152.140` — Server 2019 build 17763, SMB signing **on** |
-| Access | WinRM as `OSCP\celia.almeda` (medium integrity) |
-| Result | **foothold only** — no SYSTEM, no domain admin, no flag |
+| MS02 | `10.10.152.142` (pass 2) · `10.10.131.148` (pass 3) |
+| DC01 | `10.10.152.140` (pass 2) · `10.10.131.146` (pass 3) |
+| Access | WinRM `celia.almeda` (pass 2) · WinRM `eric.wallows` → PrintSpoofer SYSTEM (pass 3) |
+| Result | **completed** — DC01 `proof.txt` |
+
+---
+
+## How the set finished
+
+| Step | Where | What happened |
+|---|---|---|
+| 1 | MS01 | `SeImpersonatePrivilege` → PrintSpoofer → SYSTEM |
+| 2 | MS01 | `net localgroup administrators /add Eric.Wallows`, so the dump can run remotely |
+| 3 | MS01 | `secretsdump` → SAM + **DCC2 cache**: `OSCP.EXAM/Administrator` from 2022 |
+| 4 | Kali | `hashcat -m 1000` → `December31`, `Freedom1`; `-m 2100` → `7Tg9M9MZbzAokR9` |
+| 5 | MS01 → DC01 | ligolo-ng route into `10.10.131.0/24`; `psexec` as `Administrator` → SYSTEM → flag |
+
+The short version: **the domain Administrator had logged on to MS01 in 2022, and the cached
+verifier was still there.** LSASS held nothing domain-tier; the `SECURITY` hive did.
 
 ## Chapters
 
 | # | Chapter | What it establishes |
 |---|---|---|
-| 01 | [Reconnaissance](01-reconnaissance.md) | the network position, and that `web_svc` is not a local admin |
-| 02 | [Foothold](02-foothold.md) | WinRM shell; why the token proves no potato path exists |
+| 01 | [Reconnaissance](01-reconnaissance.md) | the 152.x position; `web_svc` is not a local admin on MS02 |
+| 02 | [Foothold](02-foothold.md) | WinRM as `celia.almeda`; the token proves no potato path exists |
 | 03 | [MSSQL](03-mssql.md) | two SQL logins, `sysadmin = 0` for both |
-| 04 | [Domain reconnaissance](04-domain-recon.md) | DC01 located, `Users` share found, Kerberoast blocked on DNS + clock |
+| 04 | [Domain reconnaissance](04-domain-recon.md) | DC01 direct, `Users` share, Kerberoast blocked on DNS + clock |
 | 05 | [Reading the graph](05-bloodhound.md) | zero outbound ACEs, no LAPS, no sessions — `sql_svc` is the target |
 | 06 | [What is ruled out](06-ruled-out.md) | seven paths closed, each with the evidence that closed it |
-| 07 | [Next actions](07-next-actions.md) | why `sql_svc`, and the plan (not yet executed) |
+| 07 | [Next actions](07-next-actions.md) | the `sql_svc` plan — **superseded**, never executed |
+| 08 | [MS01: SYSTEM](08-ms01-system.md) | PrintSpoofer, and the local-admin add that makes the dump possible |
+| 09 | [Credentials and cracks](09-credentials-and-cracks.md) | SAM, LSA secrets, DCC2 — and the domain Administrator |
+| 10 | [Pivot with ligolo-ng](10-pivot-ligolo.md) | a route into `10.10.131.0/24` |
+| 11 | [MS02 through the tunnel](11-ms02-through-the-tunnel.md) | ports, signing, the 26-minute skew — and why MS02 is not the way in |
+| 12 | [DC01: `proof.txt`](12-dc01-proof.md) | the cached credential is domain-tier; flag read |
 
-## Ruled out with evidence
+## Ruled out in pass 2, with evidence
 
 `ADMIN$`/`C$` on MS02 · WinRM escalation (no `SeImpersonate`) · SQL sysadmin (`0`/`0`) · ACL abuse
 (zero outbound rights) · delegated group membership · LAPS · session theft.
 
 ## Open
 
-Kerberoast `sql_svc` · DC01 `Users` share · SYSVOL GPP sweep · `xp_dirtree` NetNTLMv2 capture ·
-Kerberos-backed BloodHound re-collection.
+None for this set — the flag is read.
+
+The `sql_svc` plan in chapter 07 was never executed: it belonged to the `10.10.152.x` position,
+where DC01 was direct and MS02 was the only escalatable host. Pass 3 found a shorter route through
+MS01's cache. That is a result about position, not a refutation of the plan.
 
 ## Evidence notes
 
-- BloodHound export analysed locally; the chapter records findings, not the raw JSON.
-- Credentials are lab credentials and are published as captured.
-- Nothing in chapter 07 is written as complete — it is the plan the evidence points to.
+- Pass 3 output is the captured scrollback from the run. Where a block is trimmed or a step is not
+  in it (the `psexec` service lines, the `-m 2100` invocation), the text says so.
+- The DCC2 `Administrator` hash → `7Tg9M9MZbzAokR9` mapping was re-checked with `hashcat -m 2100`
+  against the captured hash, not taken from memory.
+- Credentials and hashes are lab values and are published as captured.
+- MS02 was enumerated, not attacked: the capture contains no authentication attempt against it.

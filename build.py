@@ -91,11 +91,18 @@ DOC_PAGES = [
     },
 ]
 
-# Shared reference chapters, appended to every machine page (ids ch-08 / ch-09).
-REFERENCE = [
-    ("ch-08", "08", "Methodology", "The repeatable per-box loop", DOCS / "methodology.md"),
-    ("ch-09", "09", "Cheat sheet", "Every command, with the flag that matters", DOCS / "cheatsheet.md"),
-]
+# Shared reference chapters, appended to every machine page. `first` is the number they take;
+# pages with more than seven lab chapters start them later so the numbering stays continuous.
+def reference(first: int = 8):
+    return [
+        (f"ch-{first:02d}", f"{first:02d}", "Methodology", "The repeatable per-box loop",
+         DOCS / "methodology.md"),
+        (f"ch-{first + 1:02d}", f"{first + 1:02d}", "Cheat sheet", "Every command, with the flag that matters",
+         DOCS / "cheatsheet.md"),
+    ]
+
+
+REFERENCE = reference()
 
 # ---------------------------------------------------------------------------
 # One entry per lab. Each gets its own self-contained page built from the markdown
@@ -305,53 +312,56 @@ LABS = [
         "home": "../../main.html",
         "pkey": "oscp-progress-oscp-exam-ms02",
         "card": {
-            "status": "warn",
-            "status_text": "in progress",
+            "status": "ok",
+            "status_text": "complete",
             "role": "MS02 → DC01",
-            "summary": "Second pass at <code>oscp.exam</code> with DC01 reachable directly: WinRM as "
-                       "<code>celia.almeda</code>, SQL sysadmin ruled out, zero ACL edges in "
-                       "BloodHound → roast <code>sql_svc</code>.",
-            "tags": ["Server 2019", "Active Directory", "MSSQL", "Kerberoast"],
-            "foot": "MS02 foothold · DC01 open",
+            "summary": "Two positions on <code>oscp.exam</code>: WinRM as <code>celia.almeda</code> "
+                       "closes every local path on MS02, then a second pass lands SYSTEM on MS01, "
+                       "cracks the DCC2-cached domain Administrator and reads <code>proof.txt</code> "
+                       "on DC01.",
+            "tags": ["Server 2019", "Active Directory", "DCC2", "PrintSpoofer", "ligolo"],
+            "foot": "DC01 proof.txt · domain Administrator",
         },
         "dir": MS02,
         "dir_rel": "labs/ad-oscp-ms02",
-        "ip": "10.10.152.0/24",
+        "ip": "10.10.131.148",
         "name": "oscp.exam · MS02",
-        "title": "10.10.152.142 — MS02 · OSCP walkthrough",
-        "desc": "Interactive walkthrough of the oscp.exam AD set from a position where DC01 is "
-                "reachable: WinRM foothold, MSSQL ruled out, BloodHound analysis to a single "
-                "Kerberoastable service account.",
-        "ogdesc": "celia.almeda → WinRM → no SeImpersonate, no SQL sysadmin, no ACL edges → "
-                  "Kerberoast sql_svc.",
-        "lede": "The same directory as the earlier AD set, seen from a network where the domain "
-                "controller finally answers directly. Two credentials, four protocols, and every "
-                "local path closed by the token itself — which leaves one stale service account.",
+        "title": "10.10.131.148 — MS02 · OSCP walkthrough",
+        "desc": "Completed walkthrough of the oscp.exam AD set from the MS02 side: celia.almeda "
+                "WinRM foothold, MSSQL and BloodHound ruled out, then MS01 SYSTEM, the DCC2-cached "
+                "domain Administrator, a ligolo pivot and proof.txt on DC01.",
+        "ogdesc": "celia → WinRM → every MS02 path closed; MS01 SYSTEM → secretsdump → DCC2 "
+                  "Administrator cracked → ligolo → DC01 SYSTEM → proof.txt.",
+        "lede": "The same directory from two positions: one where MS02 is a locked-down member "
+                "server, and one where a member server's credential cache turns out to hold the "
+                "domain Administrator. The second one finishes the set.",
         "badges": [
             ("", "Server 2019 · build 19041"),
             ("", "oscp.exam"),
-            ("warn", "SMB signing off (MS02)"),
-            ("ok", "DC01 direct"),
-            ("warn", "no SeImpersonate"),
-            ("warn", "sysadmin = 0"),
+            ("warn", "SMB signing not required"),
+            ("ok", "MS01 SYSTEM"),
+            ("ok", "DCC2 → domain Administrator"),
+            ("ok", "DC01 proof.txt"),
         ],
         "meta": [
             ("Domain", "oscp.exam"),
-            ("MS02", "10.10.152.142"),
-            ("DC01", "10.10.152.140"),
+            ("MS02", "10.10.131.148 · 10.10.152.142"),
+            ("DC01", "10.10.131.146 · 10.10.152.140"),
             ("Domain SID", "…-2610934713-1581164095-2706428072"),
-            ("Access", "WinRM · celia.almeda"),
-            ("Result", "MS02 foothold"),
+            ("Access", "WinRM → SYSTEM → DCC2"),
+            ("Result", "DC01 proof.txt"),
         ],
-        "flags": [],
+        "flags": [
+            ("proof.txt · DC01", "f6a8a664f1a84134905200191b7ee464"),
+        ],
         "chain": [
-            ("01", "Recon", "no shares, <code>signing:False</code>", "#ch-01"),
-            ("02", "WinRM", "<code>celia.almeda</code>, medium integrity", "#ch-02"),
-            ("03", "MSSQL", "two logins, <code>sysadmin = 0</code>", "#ch-03"),
-            ("04", "Domain", "DC01 direct, <code>Users</code> share", "#ch-04"),
-            ("05", "Graph", "zero outbound ACEs", "#ch-05"),
-            ("06", "Ruled out", "seven paths, closed with evidence", "#ch-06"),
-            ("07", "Next", "roast <code>sql_svc</code>", "#ch-07"),
+            ("01", "Recon", "10.10.152.142 · no shares", "#ch-01"),
+            ("02", "celia", "WinRM · no <code>SeImpersonate</code>", "#ch-02"),
+            ("03", "Ruled out", "MSSQL, ACLs, LAPS", "#ch-06"),
+            ("04", "SYSTEM", "MS01 · PrintSpoofer", "#ch-08"),
+            ("05", "DCC2", "domain Administrator cracked", "#ch-09"),
+            ("06", "Pivot", "ligolo → <code>10.10.131.0/24</code>", "#ch-10"),
+            ("07", "DC01", "<code>proof.txt</code>", "#ch-12"),
         ],
         "chapters": [
             ("ch-01", "01", "Reconnaissance", "Same directory, new network position",
@@ -368,7 +378,17 @@ LABS = [
              MS02 / "06-ruled-out.md"),
             ("ch-07", "07", "Next actions", "Why <code>sql_svc</code>, and what runs next",
              MS02 / "07-next-actions.md"),
-        ] + REFERENCE,
+            ("ch-08", "08", "MS01: SYSTEM", "PrintSpoofer, and the local-admin add",
+             MS02 / "08-ms01-system.md"),
+            ("ch-09", "09", "Credentials and cracks", "SAM, DCC2, and the domain Administrator",
+             MS02 / "09-credentials-and-cracks.md"),
+            ("ch-10", "10", "Pivot with ligolo-ng", "A route into <code>10.10.131.0/24</code>",
+             MS02 / "10-pivot-ligolo.md"),
+            ("ch-11", "11", "MS02 through the tunnel", "Ports, signing, and a 26-minute skew",
+             MS02 / "11-ms02-through-the-tunnel.md"),
+            ("ch-12", "12", "DC01: proof.txt", "The cached credential is domain-tier",
+             MS02 / "12-dc01-proof.md"),
+        ] + reference(13),
     },
     {
         "slug": "oscp-exam-ad",

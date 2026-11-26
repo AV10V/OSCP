@@ -1,7 +1,8 @@
 # 07 — Next actions
 
-> **Not yet executed.** Everything on this page is the plan that follows from chapters 01–06. No result
-> is claimed here. When these run, this chapter is replaced with what actually happened.
+> **Superseded — this plan was never executed.** It belongs to the `10.10.152.x` position. The set
+> was completed from `10.10.131.x` through MS01's cached domain Administrator credential
+> (chapters 08–12), which made the `sql_svc` route unnecessary.
 
 With every ACL path closed and every local token exhausted, the only lever left is a credential we do
 not have. Three independent lines of evidence name the same one.
