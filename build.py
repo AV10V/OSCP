@@ -41,9 +41,55 @@ CHARLIE = LABS_DIR / "192.168.161.157-charlie"
 HOME_OUT = ROOT / "main.html"
 REDIRECT_OUT = ROOT / "index.html"
 
-# Standalone reference page: every command on one page, built from markdown.
+# Standalone reference pages, both built from markdown by build_doc_page().
+#   cheatsheet.html      — compact one-page reference (command syntax sheet)
+#   cheatsheet-big.html  — the field manual distilled from the lab notes
 CHEATSHEET_MD = DOCS / "oscp-cheatsheet.md"
 CHEATSHEET_OUT = ROOT / "cheatsheet.html"
+BIGSHEET_MD = DOCS / "oscp-cheatsheet-big.md"
+BIGSHEET_OUT = ROOT / "cheatsheet-big.html"
+
+DOC_PAGES = [
+    {
+        "key": "small",
+        "md": CHEATSHEET_MD,
+        "out": CHEATSHEET_OUT,
+        "nav": "Cheatsheet",
+        "brand": "cheatsheet",
+        "title": "OSCP cheatsheet — every command on one page",
+        "desc": "OSCP cheatsheet: information gathering, web attacks, password attacks, "
+                "Windows and Linux privilege escalation, pivoting, Metasploit, Active Directory.",
+        "eyebrow": "Reference",
+        "h1": "OSCP cheatsheet",
+        "lede": "Every command I reach for during an exam attempt, on one page: information "
+                "gathering, web attacks, password attacks, Windows and Linux privilege escalation, "
+                "pivoting, Metasploit and Active Directory. Commands are reproduced exactly as "
+                "published; only the descriptions and inline comments are in English.",
+        "foot": "Command syntax is unchanged from the original; descriptions and inline comments "
+                "were translated to English. Adapted from "
+                '<a href="https://xn--ec6b17t.com/OSCP/OSCP-Cheatsheet" rel="noopener">'
+                "KalioNix — OSCP Cheatsheet</a>.",
+    },
+    {
+        "key": "big",
+        "md": BIGSHEET_MD,
+        "out": BIGSHEET_OUT,
+        "nav": "Big cheatsheet",
+        "brand": "big sheet",
+        "title": "OSCP big cheatsheet — recon to domain admin",
+        "desc": "The long OSCP cheatsheet built from the lab notes: recon, service enumeration, "
+                "exploit playbooks, footholds, Linux and Windows privilege escalation, Active "
+                "Directory, pivoting, cracking, and a playbook for every solved lab.",
+        "eyebrow": "Field manual",
+        "h1": "OSCP big cheatsheet",
+        "lede": "The long version, distilled from every solved lab in this repository: what to run "
+                "first, what the output means, and which step actually opened the box. Organised in "
+                "the order an attempt runs, with a one-page playbook for each lab at the end.",
+        "foot": "Built from the lab notes in this repository. Commands are generalised to "
+                "<code>TARGET</code> / <code>LHOST</code> / <code>DC01</code>; the lab-specific "
+                "values are in the individual write-ups.",
+    },
+]
 
 # Shared reference chapters, appended to every machine page (ids ch-08 / ch-09).
 REFERENCE = [
@@ -1783,6 +1829,7 @@ HOME_TEMPLATE = """<!doctype html>
 <header class="topbar">
   <div class="brand"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">labs</span></div>
   <a class="toplink" href="cheatsheet.html">Cheatsheet</a>
+  <a class="toplink" href="cheatsheet-big.html">Big sheet</a>
   <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle colour theme" title="Toggle theme">◐</button>
 </header>
 
@@ -1804,6 +1851,7 @@ HOME_TEMPLATE = """<!doctype html>
         </select>
         <button class="btn" type="submit">Open lab →</button>
         <a class="btn btn-alt" href="cheatsheet.html">Cheatsheet →</a>
+        <a class="btn btn-alt" href="cheatsheet-big.html">Big cheatsheet →</a>
       </div>
       <p class="hint">Choosing a lab opens its page immediately. Press <b>/</b> to search.</p>
     </form>
@@ -2080,22 +2128,19 @@ CHEATSHEET_TEMPLATE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OSCP cheatsheet — every command on one page</title>
-<meta name="description" content="OSCP cheatsheet: information gathering, web attacks, password attacks, Windows and Linux privilege escalation, pivoting, Metasploit, Active Directory. Every command with its flag.">
+<title>%%TITLE%%</title>
+<meta name="description" content="%%DESC%%">
 <meta property="og:type" content="article">
-<meta property="og:title" content="OSCP cheatsheet — every command on one page">
-<meta property="og:description" content="Every command from the lab work, grouped by phase, with copy buttons.">
+<meta property="og:title" content="%%TITLE%%">
+<meta property="og:description" content="%%DESC%%">
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
 <style>%%CSS%%%%CHEATCSS%%</style>
 </head>
 <body class="doc-body">
 <header class="topbar">
-  <a class="brand" href="main.html" style="color:inherit;text-decoration:none"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">cheatsheet</span></a>
-  <nav class="topnav">
-    <a href="main.html">Labs</a>
-    <a href="cheatsheet.html" class="on">Cheatsheet</a>
-  </nav>
+  <a class="brand" href="main.html" style="color:inherit;text-decoration:none"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">%%BRAND%%</span></a>
+  <nav class="topnav">%%NAV%%</nav>
   <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle colour theme" title="Toggle theme">◐</button>
 </header>
 
@@ -2109,14 +2154,9 @@ CHEATSHEET_TEMPLATE = """<!doctype html>
 
   <main class="doc-main">
     <div class="doc-hero">
-      <div class="eyebrow">Reference</div>
-      <h1>OSCP cheatsheet</h1>
-      <p class="lede">
-        Every command I reach for during an exam attempt, on one page: information gathering,
-        web attacks, password attacks, Windows and Linux privilege escalation, pivoting,
-        Metasploit and Active Directory. Commands are reproduced exactly as published; only
-        the descriptions and inline comments are in English.
-      </p>
+      <div class="eyebrow">%%EYEBROW%%</div>
+      <h1>%%H1%%</h1>
+      <p class="lede">%%LEDE%%</p>
       <div class="doc-meta">
         <span>%%SECS%% sections</span>
         <span>%%BLOCKS%% code blocks</span>
@@ -2124,6 +2164,7 @@ CHEATSHEET_TEMPLATE = """<!doctype html>
       </div>
       <div class="doc-actions">
         <button class="ghost" id="copyAll" type="button">Copy every command</button>
+        %%SWITCH%%
         <a class="ghost" href="main.html">← Back to labs</a>
       </div>
     </div>
@@ -2133,10 +2174,7 @@ CHEATSHEET_TEMPLATE = """<!doctype html>
     </div>
 
     <footer class="doc-foot">
-      <p>Command syntax is unchanged from the original; descriptions and inline comments were
-        translated to English. Adapted from
-        <a href="https://xn--ec6b17t.com/OSCP/OSCP-Cheatsheet" rel="noopener">KalioNix — OSCP Cheatsheet</a>.
-        Lab-specific IPs, users and hashes are placeholders.</p>
+      <p>%%FOOT%%</p>
     </footer>
   </main>
 </div>
@@ -2365,8 +2403,9 @@ def render_doc(src: str) -> str:
     return re.sub(r"<p>CODEPLACEHOLDER(\d+)Z</p>", unstash, out)
 
 
-def build_cheatsheet() -> str:
-    src = CHEATSHEET_MD.read_text(encoding="utf-8")
+def build_doc_page(page: dict) -> str:
+    """Render one cheatsheet page (compact or big) from its markdown source."""
+    src = page["md"].read_text(encoding="utf-8")
     groups = split_cheatsheet(src)
     used: dict = {}
     toc: list = []
@@ -2413,6 +2452,19 @@ def build_cheatsheet() -> str:
 
     block_count = len(re.findall(r"^```", src, flags=re.M)) // 2
     meta = f"{sec_count} sections · {block_count} blocks"
+
+    # Top navigation and the button that switches to the other sheet.
+    nav = ['<a href="main.html">Labs</a>']
+    switch = []
+    for other in DOC_PAGES:
+        cls = ' class="on"' if other["key"] == page["key"] else ""
+        nav.append(f'<a href="{other["out"].name}"{cls}>{html.escape(other["nav"])}</a>')
+        if other["key"] != page["key"]:
+            switch.append(
+                f'<a class="ghost" href="{other["out"].name}">'
+                f'{html.escape(other["nav"])} →</a>'
+            )
+
     return (
         CHEATSHEET_TEMPLATE.replace("%%CSS%%", CSS)
         .replace("%%CHEATCSS%%", CHEATSHEET_CSS)
@@ -2422,6 +2474,15 @@ def build_cheatsheet() -> str:
         .replace("%%SECS%%", str(sec_count))
         .replace("%%BLOCKS%%", str(block_count))
         .replace("%%META%%", meta)
+        .replace("%%TITLE%%", html.escape(page["title"], quote=True))
+        .replace("%%DESC%%", html.escape(page["desc"], quote=True))
+        .replace("%%BRAND%%", html.escape(page["brand"]))
+        .replace("%%NAV%%", "".join(nav))
+        .replace("%%SWITCH%%", "".join(switch))
+        .replace("%%EYEBROW%%", html.escape(page["eyebrow"]))
+        .replace("%%H1%%", html.escape(page["h1"]))
+        .replace("%%LEDE%%", page["lede"])
+        .replace("%%FOOT%%", page["foot"])
         .replace("%%DATE%%", datetime.date.today().strftime("%d %B %Y"))
     )
 
@@ -2455,10 +2516,11 @@ def main() -> None:
     print(f"wrote {HOME_OUT.name} ({HOME_OUT.stat().st_size/1024:.1f} KB, "
           f"{home.count(chr(10))} lines)")
 
-    sheet = build_cheatsheet()
-    CHEATSHEET_OUT.write_text(sheet, encoding="utf-8")
-    print(f"wrote {CHEATSHEET_OUT.name} ({CHEATSHEET_OUT.stat().st_size/1024:.1f} KB, "
-          f"{sheet.count(chr(10))} lines)")
+    for page in DOC_PAGES:
+        sheet = build_doc_page(page)
+        page["out"].write_text(sheet, encoding="utf-8")
+        print(f"wrote {page['out'].name} ({page['out'].stat().st_size/1024:.1f} KB, "
+              f"{sheet.count(chr(10))} lines)")
 
     REDIRECT_OUT.write_text(REDIRECT_TEMPLATE, encoding="utf-8")
     print(f"wrote {REDIRECT_OUT.name} (redirect -> {HOME_OUT.name})")
