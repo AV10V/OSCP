@@ -39,6 +39,10 @@ MS01's `SECURITY` hive (chapter 09), left there by an interactive domain-adminis
 2022. That is the boundary the cache crossed: a member server kept a verifier for the domain
 Administrator, and a local administrator on that member server could read it.
 
+The same password also sits **in plaintext** in MS02's `DefaultPassword` LSA secret (chapter 11.6),
+reachable once MS02's local Administrator is owned. Two different servers, two different stores,
+one credential — either path ends at the value used below.
+
 ---
 
 ## 12.3 The flag, attributable

