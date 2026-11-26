@@ -248,13 +248,15 @@ LABS = [
         "home": "../../main.html",
         "pkey": "oscp-progress-oscp-exam",
         "card": {
-            "status": "warn",
-            "status_text": "in progress",
+            "status": "ok",
+            "status_text": "complete",
             "role": "MS01 → MS02 → DC01",
             "summary": "WinRM foothold on MS01 → SeImpersonate → SYSTEM → chisel pivot into "
-                       "10.10.118.0/24 → MS02 → DC01.",
-            "tags": ["Server 2019", "Active Directory", "SeImpersonate", "chisel"],
-            "foot": "MS01 SYSTEM · flag pending",
+                       "10.10.118.0/24 → kerberoast <code>SQL_SVC</code> → MSSQL "
+                       "<code>xp_cmdshell</code> → GodPotato → local admin → <code>secretsdump</code> "
+                       "→ DC01 domain admin.",
+            "tags": ["Server 2019", "Active Directory", "MSSQL", "GodPotato", "chisel"],
+            "foot": "MS02 SYSTEM · DC01 domain admin",
         },
         "dir": AD,
         "dir_rel": "labs/ad-oscp-exam",
@@ -262,18 +264,22 @@ LABS = [
         "name": "oscp.exam",
         "title": "oscp.exam — MS01 → MS02 → DC01 · OSCP walkthrough",
         "desc": "Interactive walkthrough of an OSCP Active Directory set: a WinRM foothold on MS01, "
-                "SeImpersonate to SYSTEM, a chisel SOCKS pivot into 10.10.118.0/24, then MS02 and DC01.",
-        "ogdesc": "OSCP\\eric.wallows → WinRM → SeImpersonate → SYSTEM → chisel pivot → MS02 → DC01.",
+                "SeImpersonate to SYSTEM, a chisel SOCKS pivot into 10.10.118.0/24, then kerberoast "
+                "SQL_SVC, MSSQL xp_cmdshell, GodPotato and a dump that hands over the domain Administrator.",
+        "ogdesc": "OSCP\\eric.wallows → WinRM → SeImpersonate → SYSTEM → chisel pivot → MSSQL → GodPotato → DC01 domain admin.",
         "lede": "A domain behind a dual-homed member server. Kali can reach exactly one host; the DC "
                 "lives on a network only MS01 can see. The way in is a domain user with "
-                "SeImpersonatePrivilege — which is enough to take the host and open the tunnel.",
+                "SeImpersonatePrivilege — which is enough to take the host and open the tunnel. What "
+                "waits on the far side is not another ACL: it is a service account, and a member server "
+                "that remembers the domain Administrator's password.",
         "badges": [
             ("", "Server 2019 · build 19041"),
             ("", "oscp.exam"),
             ("warn", "SMB signing off"),
             ("warn", "SeImpersonate"),
             ("ok", "MS01 SYSTEM"),
-            ("warn", "MS02 / DC01 pending"),
+            ("ok", "MSSQL → SYSTEM"),
+            ("ok", "DC01 domain admin"),
         ],
         "meta": [
             ("Domain", "oscp.exam"),
@@ -281,7 +287,7 @@ LABS = [
             ("MS01 int.", "10.10.118.147"),
             ("DC01", "10.10.118.146"),
             ("Attacker", "192.168.45.158"),
-            ("Result", "MS01 SYSTEM"),
+            ("Result", "MS02 SYSTEM · DC01 admin"),
         ],
         "flags": [],
         "chain": [
@@ -290,8 +296,8 @@ LABS = [
             ("03", "Potato", "<code>SeImpersonate</code> → SYSTEM", "#ch-03"),
             ("04", "LSASS", "no domain-tier material", "#ch-04"),
             ("05", "Pivot", "chisel <code>R:socks</code> → <code>10.10.118.0/24</code>", "#ch-05"),
-            ("06", "MS02", "the second hop", "#ch-06"),
-            ("07", "DC01", "<code>proof.txt</code>", "#ch-07"),
+            ("06", "MS02", "kerberoast → GodPotato → admin", "#ch-06"),
+            ("07", "DC01", "<code>domain admin</code>", "#ch-07"),
         ],
         "chapters": [
             ("ch-01", "01", "Reconnaissance", "One routable host, two networks",
@@ -302,8 +308,8 @@ LABS = [
             ("ch-04", "04", "Credentials", "What LSASS would and would not give",
              AD / "04-credentials.md"),
             ("ch-05", "05", "Pivot", "chisel into 10.10.118.0/24", AD / "05-pivot.md"),
-            ("ch-06", "06", "MS02", "The second hop", AD / "06-ms02.md"),
-            ("ch-07", "07", "DC01", "Domain admin and the flag", AD / "07-dc01.md"),
+            ("ch-06", "06", "MS02", "Kerberoast, MSSQL and GodPotato", AD / "06-ms02.md"),
+            ("ch-07", "07", "DC01", "Domain admin, and the last step", AD / "07-dc01.md"),
         ] + REFERENCE,
     },
     {
