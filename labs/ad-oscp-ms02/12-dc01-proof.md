@@ -110,7 +110,7 @@ domain Administrator would be expected to, but this pass did not try.
 | Host | Address | State |
 |---|---|---|
 | MS01 | `10.10.131.147` | **SYSTEM** — PrintSpoofer, local-admin add |
-| MS02 | `10.10.131.148` | reachable, enumerated, **not attacked** |
+| MS02 | `10.10.131.148` | reachable, enumerated, **no attack in this capture** |
 | DC01 | `10.10.131.146` | **SYSTEM** — `proof.txt` read |
 
 | Objective | State |
@@ -118,7 +118,7 @@ domain Administrator would be expected to, but this pass did not try.
 | Local admin on MS01 | yes (`Administrator:December31`, and `eric.wallows` added) |
 | Domain admin | **yes** — built-in Administrator on DC01 |
 | `proof.txt` | **read** — `f6a8a664f1a84134905200191b7ee464` |
-| MS02 owned | no — and not needed |
+| MS02 owned | no — not on the path that finished the set |
 
 Cleanup is not shown: `eric.wallows` is still in MS01's local `Administrators`, and the ligolo
 agent is still running. `psexec`'s service is transient by design, but the capture does not show

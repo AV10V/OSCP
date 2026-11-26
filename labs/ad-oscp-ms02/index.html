@@ -1846,8 +1846,8 @@ tickets, logs and file timestamps in ways that are harder to diagnose than the s
 reachable NTP source, or correct only the offset when the tooling allows it.</p>
 <hr />
 <h3>11.4 Why MS02 was not the way in</h3>
-<p>MS02 was reachable, enumerated, and left alone. That is not an oversight — the credential that
-finishes the set was already in hand:</p>
+<p>MS02 was reachable, enumerated, and no attack on it appears in this capture. That is not an
+oversight — the credential that finishes the set was already in hand:</p>
 <ul>
 <li>the DCC2 entry in chapter 09 is the <strong>domain</strong> Administrator, so it applies to DC01 directly;</li>
 <li>MS02 exposed no SQL service and no credential of ours was known to work there;</li>
@@ -1873,7 +1873,7 @@ only host whose token could be escalated, so <code>sql_svc</code> was the plan. 
 <tr>
 <td>MS02</td>
 <td><code>10.10.131.148</code></td>
-<td>reachable · enumerated · <strong>not attacked</strong></td>
+<td>reachable · enumerated · <strong>no attack in this capture</strong></td>
 </tr>
 <tr>
 <td>DC01</td>
@@ -1987,7 +1987,7 @@ domain Administrator would be expected to, but this pass did not try.</p>
 <tr>
 <td>MS02</td>
 <td><code>10.10.131.148</code></td>
-<td>reachable, enumerated, <strong>not attacked</strong></td>
+<td>reachable, enumerated, <strong>no attack in this capture</strong></td>
 </tr>
 <tr>
 <td>DC01</td>
@@ -2018,7 +2018,7 @@ domain Administrator would be expected to, but this pass did not try.</p>
 </tr>
 <tr>
 <td>MS02 owned</td>
-<td>no — and not needed</td>
+<td>no — not on the path that finished the set</td>
 </tr>
 </tbody>
 </table>

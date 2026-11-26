@@ -69,4 +69,5 @@ MS01's cache. That is a result about position, not a refutation of the plan.
 - The DCC2 `Administrator` hash → `7Tg9M9MZbzAokR9` mapping was re-checked with `hashcat -m 2100`
   against the captured hash, not taken from memory.
 - Credentials and hashes are lab values and are published as captured.
-- MS02 was enumerated, not attacked: the capture contains no authentication attempt against it.
+- MS02 was enumerated; the capture contains no authentication attempt against it, so whether it
+  would have accepted any of the credentials in hand is not established.

@@ -116,8 +116,8 @@ reachable NTP source, or correct only the offset when the tooling allows it.
 
 ## 11.4 Why MS02 was not the way in
 
-MS02 was reachable, enumerated, and left alone. That is not an oversight — the credential that
-finishes the set was already in hand:
+MS02 was reachable, enumerated, and no attack on it appears in this capture. That is not an
+oversight — the credential that finishes the set was already in hand:
 
 - the DCC2 entry in chapter 09 is the **domain** Administrator, so it applies to DC01 directly;
 - MS02 exposed no SQL service and no credential of ours was known to work there;
@@ -130,7 +130,7 @@ only host whose token could be escalated, so `sql_svc` was the plan. Here the pl
 | Host | Address | State after this chapter |
 |---|---|---|
 | MS01 | `10.10.131.147` | SYSTEM, local admin add in place |
-| MS02 | `10.10.131.148` | reachable · enumerated · **not attacked** |
+| MS02 | `10.10.131.148` | reachable · enumerated · **no attack in this capture** |
 | DC01 | `10.10.131.146` | not contacted yet — credential in hand |
 
 DC01 is next.
