@@ -41,6 +41,10 @@ CHARLIE = LABS_DIR / "192.168.161.157-charlie"
 HOME_OUT = ROOT / "main.html"
 REDIRECT_OUT = ROOT / "index.html"
 
+# Standalone reference page: every command on one page, built from markdown.
+CHEATSHEET_MD = DOCS / "oscp-cheatsheet.md"
+CHEATSHEET_OUT = ROOT / "cheatsheet.html"
+
 # Shared reference chapters, appended to every machine page (ids ch-08 / ch-09).
 REFERENCE = [
     ("ch-08", "08", "Methodology", "The repeatable per-box loop", DOCS / "methodology.md"),
@@ -944,12 +948,15 @@ FENCE = re.compile(r"^```([^\n`]*)\n(.*?)^```\s*$", re.S | re.M)
 FORMATTER = HtmlFormatter(nowrap=True, style="monokai")
 
 
-def code_block(code: str, lang: str) -> str:
+def code_block(code: str, lang: str, plain: bool = False) -> str:
     """Render one fenced block as a command or output card."""
     code = code.strip("\n")
     is_cmd = lang.lower() in CMD_LANGS
     label = "command" if is_cmd else "output"
     cls = "block block-cmd" if is_cmd else "block block-out"
+
+    if plain:
+        lang = ""
 
     if lang:
         try:
@@ -1087,6 +1094,8 @@ code{font-family:var(--mono);font-size:.88em}
 .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 12px var(--acc)}
 .brand .slash{color:var(--dim2);font-weight:400}
 .brand-sub{color:var(--dim);font-weight:500}
+.toplink{padding:6px 11px;border-radius:9px;color:var(--dim);font-size:13.5px;white-space:nowrap}
+.toplink:hover{background:var(--bg2);color:var(--fg);text-decoration:none}
 .search-wrap{position:relative;flex:1;max-width:460px;margin-left:auto}
 #search{
   width:100%;padding:9px 13px;border-radius:10px;border:1px solid var(--line2);
@@ -1621,6 +1630,11 @@ main.home{max-width:1140px;margin:0 auto;padding:48px 24px 80px}
   padding:12px 18px;font-size:14px;font-weight:700;font-family:var(--sans);cursor:pointer;
 }
 .btn:hover{filter:brightness(1.08)}
+.btn-alt{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:transparent;color:var(--fg);border-color:var(--line2);text-decoration:none;
+}
+.btn-alt:hover{border-color:var(--acc);color:var(--acc);filter:none;text-decoration:none}
 .picker .hint{margin:11px 0 0;font-size:12.5px;color:var(--dim2)}
 .labs{margin-top:44px}
 .labs-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:14px}
@@ -1768,6 +1782,7 @@ HOME_TEMPLATE = """<!doctype html>
 <body class="home-body">
 <header class="topbar">
   <div class="brand"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">labs</span></div>
+  <a class="toplink" href="cheatsheet.html">Cheatsheet</a>
   <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle colour theme" title="Toggle theme">◐</button>
 </header>
 
@@ -1788,6 +1803,7 @@ HOME_TEMPLATE = """<!doctype html>
 %%OPTIONS%%
         </select>
         <button class="btn" type="submit">Open lab →</button>
+        <a class="btn btn-alt" href="cheatsheet.html">Cheatsheet →</a>
       </div>
       <p class="hint">Choosing a lab opens its page immediately. Press <b>/</b> to search.</p>
     </form>
@@ -1964,6 +1980,445 @@ REDIRECT_TEMPLATE = """<!doctype html>
 """
 
 
+# ---------------------------------------------------------------------------
+# Standalone cheatsheet page (cheatsheet.html)
+#
+# docs/oscp-cheatsheet.md is split on H1/H2 boundaries so the page gets a real table of
+# contents, anchor links, and a search filter that hides whole sections. Each fenced block
+# goes through the same code_block() renderer as the lab pages, so commands keep a Copy
+# button and identical highlighting.
+# ---------------------------------------------------------------------------
+CHEATSHEET_CSS = r"""
+/* ---------- cheatsheet ---------- */
+.topnav{display:flex;gap:6px;margin-left:6px;align-items:center}
+.topnav a{padding:6px 11px;border-radius:9px;color:var(--dim);font-size:13.5px;white-space:nowrap}
+.topnav a:hover{background:var(--bg2);color:var(--fg);text-decoration:none}
+.topnav a.on{background:var(--bg2);color:var(--fg);border:1px solid var(--line2)}
+.doc-shell{display:grid;grid-template-columns:288px minmax(0,1fr);align-items:start}
+.doc-nav{
+  position:sticky;top:59px;max-height:calc(100vh - 59px);overflow-y:auto;
+  padding:16px 12px 70px;border-right:1px solid var(--line);
+}
+.doc-nav::-webkit-scrollbar{width:9px}
+.doc-nav::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px}
+.doc-nav a{display:block;padding:5px 10px;border-radius:8px;color:var(--dim);font-size:13px;line-height:1.4}
+.doc-nav a:hover{background:var(--bg2);color:var(--fg);text-decoration:none}
+.doc-nav a.lvl1{margin:14px 0 2px;font-weight:700;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--fg)}
+.doc-nav a.lvl2{padding-left:18px;border-left:1px solid var(--line);border-radius:0 8px 8px 0}
+.doc-nav a.lvl3{padding-left:30px;font-size:12.4px;color:var(--dim2)}
+.doc-nav a.lvl3:hover{color:var(--fg)}
+.doc-nav a.active{color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,transparent)}
+.doc-search{
+  width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--line2);
+  background:var(--bg2);color:var(--fg);font-family:var(--sans);font-size:13px;outline:none;margin-bottom:4px;
+}
+.doc-search:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+.doc-count{margin:18px 10px 0;font-size:11.5px;color:var(--dim2);font-family:var(--mono)}
+.doc-main{padding:34px 46px 120px;max-width:1080px;min-width:0}
+.doc-hero .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);margin-bottom:12px}
+.doc-hero h1{font-size:clamp(30px,4.6vw,46px);line-height:1.04;letter-spacing:-.035em;margin:0 0 14px}
+.doc-hero .lede{font-size:16.5px;color:var(--dim);max-width:72ch;margin:0 0 18px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.doc-meta span{
+  font-family:var(--mono);font-size:11.5px;color:var(--dim);border:1px solid var(--line);
+  border-radius:999px;padding:4px 11px;background:var(--panel);
+}
+.doc-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start}
+.doc-actions .ghost{flex:0 0 auto;width:auto}
+.doc-body .topbar .icon-btn{margin-left:auto}
+.ghost{
+  display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);
+  color:var(--fg);border-radius:10px;padding:9px 14px;font-size:13.5px;font-family:var(--sans);cursor:pointer;
+}
+.ghost:hover{border-color:var(--acc);color:var(--acc);text-decoration:none}
+.doc-content h1{
+  font-size:clamp(24px,3vw,31px);letter-spacing:-.02em;margin:54px 0 10px;
+  padding-top:26px;border-top:1px solid var(--line);
+}
+.doc-content .cs-group:first-child h1{margin-top:36px;padding-top:0;border-top:0}
+.doc-content h1,.doc-content h2,.cs-sec{scroll-margin-top:72px}
+.doc-content h2{font-size:19.5px;letter-spacing:-.01em;margin:30px 0 6px;color:var(--fg)}
+.doc-content h3{font-size:15.2px;margin:22px 0 6px;color:var(--fg)}
+.doc-content h3+ul,.doc-content h3+p{margin-top:4px}
+.doc-content ul{margin:6px 0 12px}
+.doc-content li>ul{margin:4px 0}
+.doc-content table{display:block;width:100%;overflow-x:auto}
+.cs-sec{padding-bottom:8px}
+.cs-sec+.cs-sec{border-top:1px dashed var(--line);margin-top:6px}
+.cs-sub{scroll-margin-top:70px}
+.cs-sub+.cs-sub{margin-top:4px}
+.doc-foot{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--dim2)}
+.doc-foot a{color:var(--dim)}
+[hidden]{display:none!important}
+@media (max-width:900px){
+  .doc-shell{grid-template-columns:1fr}
+  .doc-nav{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}
+  .doc-main{padding:26px 20px 90px}
+  .topnav{display:none}
+}
+@media print{
+  .topbar,.doc-nav,.doc-actions,#toast,.block-bar,.doc-foot{display:none!important}
+  .doc-shell{display:block}
+  .doc-main{padding:0;max-width:none}
+  body{background:#fff;color:#000}
+  .block,.block pre{background:#f6f8fa;color:#111;border-color:#ddd}
+  .doc-content h1{page-break-after:avoid;border-top:0}
+  .cs-sec{page-break-inside:auto}
+  a{color:#000}
+}
+"""
+
+CHEATSHEET_TEMPLATE = """<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OSCP cheatsheet — every command on one page</title>
+<meta name="description" content="OSCP cheatsheet: information gathering, web attacks, password attacks, Windows and Linux privilege escalation, pivoting, Metasploit, Active Directory. Every command with its flag.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OSCP cheatsheet — every command on one page">
+<meta property="og:description" content="Every command from the lab work, grouped by phase, with copy buttons.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<style>%%CSS%%%%CHEATCSS%%</style>
+</head>
+<body class="doc-body">
+<header class="topbar">
+  <a class="brand" href="main.html" style="color:inherit;text-decoration:none"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">cheatsheet</span></a>
+  <nav class="topnav">
+    <a href="main.html">Labs</a>
+    <a href="cheatsheet.html" class="on">Cheatsheet</a>
+  </nav>
+  <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle colour theme" title="Toggle theme">◐</button>
+</header>
+
+<div class="doc-shell">
+  <aside class="doc-nav" aria-label="Contents">
+    <input class="doc-search" id="csSearch" type="search" placeholder="Filter sections…" autocomplete="off" spellcheck="false" aria-label="Filter sections">
+    <div class="nav-title">Contents</div>
+%%TOC%%
+    <p class="doc-count" id="csCount">%%META%%</p>
+  </aside>
+
+  <main class="doc-main">
+    <div class="doc-hero">
+      <div class="eyebrow">Reference</div>
+      <h1>OSCP cheatsheet</h1>
+      <p class="lede">
+        Every command I reach for during an exam attempt, on one page: information gathering,
+        web attacks, password attacks, Windows and Linux privilege escalation, pivoting,
+        Metasploit and Active Directory. Commands are reproduced exactly as published; only
+        the descriptions and inline comments are in English.
+      </p>
+      <div class="doc-meta">
+        <span>%%SECS%% sections</span>
+        <span>%%BLOCKS%% code blocks</span>
+        <span>updated %%DATE%%</span>
+      </div>
+      <div class="doc-actions">
+        <button class="ghost" id="copyAll" type="button">Copy every command</button>
+        <a class="ghost" href="main.html">← Back to labs</a>
+      </div>
+    </div>
+
+    <div class="content doc-content">
+%%BODY%%
+    </div>
+
+    <footer class="doc-foot">
+      <p>Command syntax is unchanged from the original; descriptions and inline comments were
+        translated to English. Adapted from
+        <a href="https://xn--ec6b17t.com/OSCP/OSCP-Cheatsheet" rel="noopener">KalioNix — OSCP Cheatsheet</a>.
+        Lab-specific IPs, users and hashes are placeholders.</p>
+    </footer>
+  </main>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<script>%%CHEATJS%%</script>
+</body>
+</html>
+"""
+
+CHEATSHEET_JS = r"""
+(function(){
+  "use strict";
+  var root=document.documentElement;
+
+  /* ---------- theme ---------- */
+  var THEME_KEY="oscp-theme";
+  function setTheme(t){root.setAttribute("data-theme",t);try{localStorage.setItem(THEME_KEY,t)}catch(e){}}
+  var saved=null;try{saved=localStorage.getItem(THEME_KEY)}catch(e){}
+  if(!saved&&window.matchMedia){saved=window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";}
+  setTheme(saved||"dark");
+  var tb=document.getElementById("themeBtn");
+  if(tb){tb.addEventListener("click",function(){setTheme(root.getAttribute("data-theme")==="dark"?"light":"dark");});}
+
+  /* ---------- toast + clipboard ---------- */
+  var toast=document.getElementById("toast"),timer=null;
+  function say(msg){if(!toast)return;toast.textContent=msg;toast.classList.add("show");clearTimeout(timer);timer=setTimeout(function(){toast.classList.remove("show")},1600);}
+  function fallback(text){
+    var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(e){}document.body.removeChild(ta);
+  }
+  function copy(text,btn){
+    function ok(){if(btn){btn.classList.add("done");var t=btn.textContent;btn.textContent="Copied";
+      setTimeout(function(){btn.classList.remove("done");btn.textContent=t},1400);}say("Copied to clipboard");}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(ok).catch(function(){fallback(text);ok();});
+    }else{fallback(text);ok();}
+  }
+  document.addEventListener("click",function(e){
+    var btn=e.target.closest(".copy");
+    if(!btn)return;
+    var block=btn.closest(".block"),pre=block&&block.querySelector("pre");
+    if(pre)copy(pre.innerText.replace(/\s+$/,""),btn);
+  });
+  var all=document.getElementById("copyAll");
+  if(all){all.addEventListener("click",function(){
+    var cmds=Array.prototype.map.call(document.querySelectorAll(".block pre"),function(p){return p.innerText.replace(/\s+$/,"")});
+    if(!cmds.length){say("Nothing to copy");return;}
+    copy(cmds.join("\n\n"),all);
+  });}
+
+  /* ---------- section filter ---------- */
+  var q=document.getElementById("csSearch");
+  var secs=Array.prototype.slice.call(document.querySelectorAll(".cs-sec"));
+  var groups=Array.prototype.slice.call(document.querySelectorAll(".cs-group"));
+  var subs=Array.prototype.slice.call(document.querySelectorAll(".cs-sub"));
+  var links=Array.prototype.slice.call(document.querySelectorAll(".doc-nav a"));
+  var count=document.getElementById("csCount");
+  var baseCount=count?count.textContent:"";
+  if(q){
+    var apply=function(){
+      var term=(q.value||"").toLowerCase().trim(),shown=0,vis={};
+      subs.forEach(function(s){
+        var hit=!term||s.textContent.toLowerCase().indexOf(term)!==-1;
+        s.hidden=!hit;if(hit){vis[s.id]=1;}
+      });
+      secs.forEach(function(sec){
+        var anySub=Array.prototype.some.call(sec.querySelectorAll(".cs-sub"),function(s){return !s.hidden;});
+        var intro=(sec.getAttribute("data-intro")||"").toLowerCase();
+        var hit=!term||anySub||intro.indexOf(term)!==-1;
+        sec.hidden=!hit;if(hit){shown++;vis[sec.id]=1;}
+      });
+      groups.forEach(function(g){
+        var any=Array.prototype.some.call(g.querySelectorAll(".cs-sec"),function(s){return !s.hidden;});
+        g.hidden=!!term&&!any;
+      });
+      /* keep the toc hierarchy in step with the body: a visible target keeps its link,
+         and a matched child keeps its parent groups visible */
+      links.forEach(function(a){
+        var id=(a.getAttribute("href")||"").slice(1);
+        var direct=!term||(a.getAttribute("data-search")||"").toLowerCase().indexOf(term)!==-1;
+        a.dataset.hit=(direct||vis[id])?"1":"0";
+      });
+      for(var i=links.length-1;i>=0;i--){
+        var a=links[i];
+        if(a.className==="lvl3"&&a.dataset.hit==="1"){
+          for(var j=i-1;j>=0;j--){
+            if(links[j].className==="lvl2"){links[j].dataset.hit="1";break;}
+            if(links[j].className==="lvl1"){break;}
+          }
+        }
+      }
+      for(var k=links.length-1;k>=0;k--){
+        var b=links[k];
+        if(b.className==="lvl2"&&b.dataset.hit==="1"){
+          for(var n=k-1;n>=0;n--){
+            if(links[n].className==="lvl1"){links[n].dataset.hit="1";break;}
+          }
+        }
+      }
+      links.forEach(function(a){a.hidden=!!term&&a.dataset.hit!=="1";});
+      if(count){count.textContent=term?(shown+" / "+baseCount):baseCount;}
+    };
+    q.addEventListener("input",apply);
+    q.addEventListener("search",apply);
+    document.addEventListener("keydown",function(e){
+      var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      if(e.key==="/"&&!typing){e.preventDefault();q.focus();}
+      if(e.key==="Escape"&&document.activeElement===q){q.value="";apply();q.blur();}
+    });
+  }
+
+  /* ---------- highlight the section in view ---------- */
+  var heads=Array.prototype.slice.call(document.querySelectorAll(".doc-content h1[id],.doc-content h2[id],.cs-sub[id]"));
+  if("IntersectionObserver" in window&&heads.length){
+    var byId={};links.forEach(function(a){byId[a.getAttribute("href").slice(1)]=a;});
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(!en.isIntersecting)return;
+        links.forEach(function(a){a.classList.remove("active");});
+        var a=byId[en.target.id];
+        if(a&&!a.hidden){a.classList.add("active");}
+      });
+    },{rootMargin:"-64px 0px -72% 0px",threshold:0});
+    heads.forEach(function(h){io.observe(h);});
+  }
+})();
+"""
+
+
+def _slug(text: str, used: dict) -> str:
+    """Stable anchor id, with -2/-3 suffixes for duplicate headings."""
+    base = re.sub(r"[^a-z0-9]+", "-", html.unescape(text).lower()).strip("-") or "section"
+    n = used.get(base, 0)
+    used[base] = n + 1
+    return base if n == 0 else f"{base}-{n + 1}"
+
+
+def split_cheatsheet(src: str) -> list:
+    """Split the markdown into H1 groups -> H2 sections -> H3 tool blocks.
+
+    Fenced code is left untouched, so a '#' comment inside a command block can never start
+    a new section.
+    """
+    groups: list = []
+    group = None
+    sec = None
+    sub = None
+    fence = False
+    buf: list = []
+
+    def new_group(title: str) -> dict:
+        return {"title": title, "intro": "", "sections": []}
+
+    def new_sec(title: str) -> dict:
+        return {"title": title, "intro": "", "subs": []}
+
+    def flush() -> None:
+        text = "\n".join(buf).strip("\n")
+        buf.clear()
+        if not text.strip():
+            return
+        target = None
+        if sub is not None:
+            target = sub
+            key = "md"
+        elif sec is not None:
+            target = sec
+            key = "intro"
+        elif group is not None:
+            target = group
+            key = "intro"
+        if target is not None:
+            target[key] += ("\n\n" if target[key] else "") + text + "\n"
+
+    for line in src.splitlines():
+        if line.startswith("```"):
+            fence = not fence
+        if not fence and line.startswith("# "):
+            flush()
+            group = new_group(line[2:].strip())
+            groups.append(group)
+            sec = sub = None
+        elif not fence and line.startswith("## "):
+            flush()
+            if group is None:
+                group = new_group("")
+                groups.append(group)
+            sec = new_sec(line[3:].strip())
+            group["sections"].append(sec)
+            sub = None
+        elif not fence and line.startswith("### "):
+            flush()
+            if sec is None:
+                if group is None:
+                    group = new_group("")
+                    groups.append(group)
+                sec = new_sec("")
+                group["sections"].append(sec)
+            sub = {"title": line[4:].strip(), "md": ""}
+            sec["subs"].append(sub)
+        else:
+            buf.append(line)
+    flush()
+    return groups
+
+
+def render_doc(src: str) -> str:
+    """Markdown -> HTML with the shared command/output card renderer."""
+    blocks: list = []
+
+    def stash(m):
+        blocks.append((m.group(1).strip(), m.group(2)))
+        return "\n\nCODEPLACEHOLDER%sZ\n\n" % (len(blocks) - 1)
+
+    src = FENCE.sub(stash, src)
+    out = markdown.Markdown(extensions=["tables", "attr_list", "sane_lists"]).convert(src)
+
+    def unstash(m):
+        lang, code = blocks[int(m.group(1))]
+        # Pygments' console lexer swallows lines (hidden password input, trailing output),
+        # which would silently drop commands from the page. Render transcripts verbatim.
+        terminal = lang.lower() in {"console", "shell-session", "shellsession"}
+        return code_block(code, lang, plain=terminal)
+
+    return re.sub(r"<p>CODEPLACEHOLDER(\d+)Z</p>", unstash, out)
+
+
+def build_cheatsheet() -> str:
+    src = CHEATSHEET_MD.read_text(encoding="utf-8")
+    groups = split_cheatsheet(src)
+    used: dict = {}
+    toc: list = []
+    body: list = []
+    sec_count = 0
+
+    for group in groups:
+        gid = _slug(group["title"], used)
+        toc.append(f'<a class="lvl1" href="#{gid}">{html.escape(group["title"])}</a>')
+        inner = []
+        for sec in group["sections"]:
+            sid = _slug(sec["title"], used)
+            sec_count += 1
+            toc.append(
+                f'<a class="lvl2" href="#{sid}" '
+                f'data-search="{html.escape(sec["title"].lower(), quote=True)}">'
+                f'{html.escape(sec["title"])}</a>'
+            )
+            parts = []
+            if sec["title"]:
+                parts.append(f'<h2>{html.escape(sec["title"])}</h2>')
+            parts.append(render_doc(sec["intro"]))
+            for sub in sec["subs"]:
+                bid = _slug(sub["title"], used)
+                toc.append(
+                    f'<a class="lvl3" href="#{bid}" '
+                    f'data-search="{html.escape(sub["title"].lower(), quote=True)}">'
+                    f'{html.escape(sub["title"])}</a>'
+                )
+                parts.append(
+                    f'<div class="cs-sub" id="{bid}">'
+                    f'<h3>{html.escape(sub["title"])}</h3>{render_doc(sub["md"])}</div>'
+                )
+            label = re.sub(r"\s+", " ", f'{sec["title"]} {sec["intro"]}'.lower()).strip()
+            inner.append(
+                f'<section class="cs-sec" id="{sid}" '
+                f'data-intro="{html.escape(label, quote=True)}">{"".join(parts)}</section>'
+            )
+        head = f'<h1 id="{gid}">{html.escape(group["title"])}</h1>' if group["title"] else ""
+        body.append(
+            f'<section class="cs-group">{head}'
+            f'{render_doc(group["intro"])}{"".join(inner)}</section>'
+        )
+
+    block_count = len(re.findall(r"^```", src, flags=re.M)) // 2
+    meta = f"{sec_count} sections · {block_count} blocks"
+    return (
+        CHEATSHEET_TEMPLATE.replace("%%CSS%%", CSS)
+        .replace("%%CHEATCSS%%", CHEATSHEET_CSS)
+        .replace("%%CHEATJS%%", CHEATSHEET_JS)
+        .replace("%%TOC%%", "\n".join(toc))
+        .replace("%%BODY%%", "\n".join(body))
+        .replace("%%SECS%%", str(sec_count))
+        .replace("%%BLOCKS%%", str(block_count))
+        .replace("%%META%%", meta)
+        .replace("%%DATE%%", datetime.date.today().strftime("%d %B %Y"))
+    )
+
+
 def audit_labs() -> None:
     """Warn about lab folders the main page would not list."""
     listed = {lab["dir"].resolve() for lab in LABS}
@@ -1992,6 +2447,11 @@ def main() -> None:
     HOME_OUT.write_text(home, encoding="utf-8")
     print(f"wrote {HOME_OUT.name} ({HOME_OUT.stat().st_size/1024:.1f} KB, "
           f"{home.count(chr(10))} lines)")
+
+    sheet = build_cheatsheet()
+    CHEATSHEET_OUT.write_text(sheet, encoding="utf-8")
+    print(f"wrote {CHEATSHEET_OUT.name} ({CHEATSHEET_OUT.stat().st_size/1024:.1f} KB, "
+          f"{sheet.count(chr(10))} lines)")
 
     REDIRECT_OUT.write_text(REDIRECT_TEMPLATE, encoding="utf-8")
     print(f"wrote {REDIRECT_OUT.name} (redirect -> {HOME_OUT.name})")
