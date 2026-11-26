@@ -2042,6 +2042,9 @@ CHEATSHEET_CSS = r"""
 .doc-content h3+ul,.doc-content h3+p{margin-top:4px}
 .doc-content ul{margin:6px 0 12px}
 .doc-content li>ul{margin:4px 0}
+/* hashes and long paths must not widen the page on a phone */
+.doc-content p,.doc-content li,.doc-content td{overflow-wrap:anywhere}
+.doc-content p code{white-space:normal}
 .doc-content table{display:block;width:100%;overflow-x:auto}
 .cs-sec{padding-bottom:8px}
 .cs-sec+.cs-sec{border-top:1px dashed var(--line);margin-top:6px}
@@ -2051,7 +2054,7 @@ CHEATSHEET_CSS = r"""
 .doc-foot a{color:var(--dim)}
 [hidden]{display:none!important}
 @media (max-width:900px){
-  .doc-shell{grid-template-columns:1fr}
+  .doc-shell{grid-template-columns:minmax(0,1fr)}
   .doc-nav{
     position:static;max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
     border-right:0;border-bottom:1px solid var(--line);
